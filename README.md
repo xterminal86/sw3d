@@ -1,2 +1,2 @@
 # sw3d
-software 3d renderer
+Trying to recreate software 3d renderer based on One Lone Coder videos

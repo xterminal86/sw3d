@@ -128,67 +128,6 @@ namespace SW3D
         RestoreColor();
       }
 
-      void DrawLine(uint16_t x1, uint16_t y1,
-                    uint16_t x2, uint16_t y2,
-                    uint32_t colorMask,
-                    bool useAlpha = false)
-      {
-        SaveColor();
-
-        if (useAlpha)
-        {
-          HTML2RGBA(colorMask);
-        }
-        else
-        {
-          HTML2RGB(colorMask);
-        }
-
-        SDL_SetRenderDrawColor(_renderer,
-                               _drawColor.r,
-                               _drawColor.g,
-                               _drawColor.b,
-                               _drawColor.a);
-
-        _rect.w = _pixelSize;
-        _rect.h = _pixelSize;
-
-        uint16_t dx = x2 - x1;
-        uint16_t dy = y2 - y1;
-
-        int16_t D = 2*dy - dx;
-
-        uint16_t x = x1;
-        uint16_t y = y1;
-
-        while (x <= x2)
-        {
-          if (D >= 0)
-          {
-            _rect.x = x * _pixelSize;
-            _rect.y = y * _pixelSize;
-
-            SDL_RenderFillRect(_renderer, &_rect);
-
-            y++;
-            D += (2*dy - 2*dx);
-          }
-          else
-          {
-            _rect.x = x * _pixelSize;
-            _rect.y = y * _pixelSize;
-
-            SDL_RenderFillRect(_renderer, &_rect);
-
-            D += 2*dy;
-          }
-
-          x++;
-        }
-
-        RestoreColor();
-      }
-
     protected:
       std::string _windowName = "DrawService window";
 

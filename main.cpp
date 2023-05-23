@@ -44,7 +44,7 @@ class Drawer : public DrawWrapper
 
     void Draw() override
     {
-      DrawLine(x, y, 30, 10, 0xFFFFFF);
+      DrawPoint(10, 10, 0xFFFFFF);
     }
 };
 

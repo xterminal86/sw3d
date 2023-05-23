@@ -1,8 +1,9 @@
 build*/
 obj/
-CMakeLists.txt.user*
+CMakeLists.txt.user
 core.*
 *.txt
+!CMakeLists.txt
 *.out
 *.exe
 /*.bmp

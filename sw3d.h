@@ -2,11 +2,38 @@
 #define SW3D_H
 
 #include <string>
+#include <vector>
 
 #include <SDL2/SDL.h>
 
 namespace SW3D
 {
+  enum class TriangleType
+  {
+    FLAT_TOP = 0,
+    FLAT_BOTTOM,
+    COMPOSITE
+  };
+
+  struct Vec3
+  {
+    double X = 0.0;
+    double Y = 0.0;
+    double Z = 0.0;
+  };
+
+  struct Triangle
+  {
+    Vec3 Points[3];
+  };
+
+  struct Mesh
+  {
+    std::vector<Triangle> Triangles;
+  };
+
+  // ===========================================================================
+
   class DrawWrapper
   {
     public:
@@ -14,6 +41,8 @@ namespace SW3D
       {
         SDL_Quit();
       }
+
+      // -----------------------------------------------------------------------
 
       bool Init(uint16_t windowWidth,
                 uint16_t windowHeight,
@@ -59,6 +88,8 @@ namespace SW3D
           }
         }
 
+        _aspectRatio = (double)_windowHeight / (double)_windowWidth;
+
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 
         _initialized = true;
@@ -66,7 +97,9 @@ namespace SW3D
         return true;
       }
 
-      void Run()
+      // -----------------------------------------------------------------------
+
+      void Run(bool drawGrid = false)
       {
         if (not _initialized)
         {
@@ -85,21 +118,32 @@ namespace SW3D
 
           SDL_RenderClear(_renderer);
 
+          if (drawGrid)
+          {
+            DrawGrid();
+          }
+
           Draw();
 
           SDL_RenderPresent(_renderer);
         }
       }
 
+      // -----------------------------------------------------------------------
+
       void Stop()
       {
         _running = false;
       }
 
+      // -----------------------------------------------------------------------
+
       virtual void Draw() = 0;
       virtual void HandleEvent(const SDL_Event& evt) = 0;
 
-      void DrawPoint(uint16_t x, uint16_t y, uint32_t colorMask, bool useAlpha = false)
+      // -----------------------------------------------------------------------
+
+      void DrawPoint(int x, int y, uint32_t colorMask)
       {
         _rect.x = x * _pixelSize;
         _rect.y = y * _pixelSize;
@@ -108,12 +152,14 @@ namespace SW3D
 
         SaveColor();
 
-        if (useAlpha)
+        if (HasAlpha(colorMask))
         {
+          SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
           HTML2RGBA(colorMask);
         }
         else
         {
+          SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_NONE);
           HTML2RGB(colorMask);
         }
 
@@ -126,6 +172,92 @@ namespace SW3D
         SDL_RenderFillRect(_renderer, &_rect);
 
         RestoreColor();
+      }
+
+      // -----------------------------------------------------------------------
+
+      void FillTriangle(int x1, int y1,
+                        int x2, int y2,
+                        int x3, int y3,
+                        uint32_t colorMask)
+      {
+        //
+        // For any type of winding one invSlope will be negative, one positive.
+        //
+        // You can do the same with "classic" slope as well, but then
+        // you'll have to scanline vertically instead. I left the original
+        // algorithm I found in the Internet, since it's more natural to think
+        // of scanlines in terms of a line going from left to right,
+        // top to bottom.
+        //
+        // Since we're controlling y here, we have to find out next X coordinate
+        // when Y has increased by one. That's why we use inverted slope.
+        // Because k*x is the same as (k + k + k + k) x times, we can see that
+        // by solving for x we'll get x = y/k. So we can calculate 1/k
+        // beforehand and then just add it in every iteration of the loop.
+        // Since k = dy / dx, 1/k = 1 / dy / dx = dx / dy.
+        //
+
+        TriangleType tt = GetTriangleType(x1, y1, x2, y2, x3, y3);
+
+        SwapCoords(x1, y1, x2, y2, x3, y3, tt);
+
+        switch (tt)
+        {
+          case TriangleType::FLAT_BOTTOM:
+          {
+            double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
+            double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
+
+            double curx1 = x1;
+            double curx2 = x1;
+
+            for (int scanline = y1; scanline <= y3; scanline++)
+            {
+              for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
+              {
+                DrawPoint(lineX, scanline, colorMask);
+              }
+
+              //
+              // Ladder-like movement to left and right respectively,
+              // depending on chosen winding, CCW in this project.
+              //
+              curx1 += invSlope1;
+              curx2 += invSlope2;
+            }
+          }
+          break;
+
+          case TriangleType::FLAT_TOP:
+          {
+            double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
+            double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
+
+            double curx1 = x1;
+            double curx2 = x1;
+
+            //
+            // Bottom-up from lowest point.
+            //
+            for (int scanline = y1; scanline >= y3; scanline--)
+            {
+              for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
+              {
+                DrawPoint(lineX, scanline, colorMask);
+              }
+
+              curx1 += invSlope1;
+              curx2 += invSlope2;
+            }
+          }
+          break;
+
+          case TriangleType::COMPOSITE:
+          {
+          }
+          break;
+        }
       }
 
     protected:
@@ -142,6 +274,8 @@ namespace SW3D
         return _drawColor;
       }
 
+      // -----------------------------------------------------------------------
+
       const SDL_Color& HTML2RGBA(const uint32_t& colorMask)
       {
         _drawColor.a = (colorMask & _maskA) >> 24;
@@ -152,6 +286,8 @@ namespace SW3D
         return _drawColor;
       }
 
+      // -----------------------------------------------------------------------
+
       void SaveColor()
       {
         SDL_GetRenderDrawColor(_renderer,
@@ -160,6 +296,8 @@ namespace SW3D
                                &_oldColor.b,
                                &_oldColor.a);
       }
+
+      // -----------------------------------------------------------------------
 
       void RestoreColor()
       {
@@ -170,6 +308,102 @@ namespace SW3D
                                _oldColor.a);
       }
 
+      // -----------------------------------------------------------------------
+
+      void DrawGrid()
+      {
+        SaveColor();
+
+        SDL_SetRenderDrawColor(_renderer, 128, 128, 128, 255);
+
+        for (int x = 0; x < _windowWidth; x += _pixelSize)
+        {
+          for (int y = 0; y < _windowHeight; y += _pixelSize)
+          {
+            SDL_RenderDrawPoint(_renderer, x, y);
+          }
+        }
+
+        RestoreColor();
+      }
+
+      // -----------------------------------------------------------------------
+
+      bool HasAlpha(uint32_t colorMask)
+      {
+        return (colorMask & _maskA) != 0x0;
+      }
+
+      // -----------------------------------------------------------------------
+
+      TriangleType GetTriangleType(int x1, int y1,
+                                   int x2, int y2,
+                                   int x3, int y3)
+      {
+        bool isFlatBottom = ( (y2 == y3) and (x1 < y2) ) or
+                            ( (y1 == y2) and (y3 < y2) ) or
+                            ( (y3 == y1) and (y2 < y3) );
+
+        bool isFlatTop = ( (y1 == y3) and (y2 > y1) ) or
+                         ( (y3 == y2) and (y1 > y3) ) or
+                         ( (y2 == y1) and (y3 > y2) );
+
+        return isFlatTop ? TriangleType::FLAT_TOP
+                         : isFlatBottom ? TriangleType::FLAT_BOTTOM
+                         : TriangleType::COMPOSITE;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void SwapCoords(int& x1, int& y1,
+                      int& x2, int& y2,
+                      int& x3, int& y3,
+                      TriangleType tt)
+      {
+        switch (tt)
+        {
+          case TriangleType::FLAT_BOTTOM:
+          {
+            if (x1 < x2)
+            {
+              std::swap(x1, x2);
+              std::swap(y1, y2);
+              std::swap(x1, x3);
+              std::swap(y1, y3);
+            }
+            else if (x3 < x1)
+            {
+              std::swap(x1, x3);
+              std::swap(y1, y3);
+              std::swap(x1, x2);
+              std::swap(y1, y2);
+            }
+          }
+          break;
+
+          case TriangleType::FLAT_TOP:
+          {
+            if (x1 < x3)
+            {
+              std::swap(x1, x2);
+              std::swap(y1, y2);
+              std::swap(x2, x3);
+              std::swap(y2, y3);
+            }
+            else if (x2 < x1)
+            {
+              std::swap(x1, x2);
+              std::swap(y1, y2);
+              std::swap(x1, x3);
+              std::swap(y1, y3);
+            }
+          }
+          break;
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
       SDL_Renderer* _renderer = nullptr;
       SDL_Window* _window     = nullptr;
 
@@ -177,6 +411,8 @@ namespace SW3D
 
       uint16_t _windowWidth  = 0;
       uint16_t _windowHeight = 0;
+
+      double _aspectRatio = 0.0;
 
       bool _initialized = false;
 

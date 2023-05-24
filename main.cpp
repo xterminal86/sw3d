@@ -11,6 +11,33 @@ class Drawer : public DrawWrapper
     Drawer()
     {
       _windowName = "Software 3D renderer";
+
+      _cube.Triangles =
+      {
+        // FRONT
+        { 0.0, 0.0, 0.0,    1.0, 0.0, 0.0,    0.0, 1.0, 0.0 },
+        { 1.0, 0.0, 0.0,    1.0, 1.0, 0.0,    0.0, 1.0, 0.0 },
+
+        // BACK
+        { 0.0, 0.0, 1.0,    0.0, 1.0, 1.0,    1.0, 0.0, 1.0 },
+        { 1.0, 0.0, 1.0,    0.0, 1.0, 1.0,    1.0, 1.0, 1.0 },
+
+        // LEFT
+        { 0.0, 0.0, 0.0,    0.0, 1.0, 0.0,    0.0, 1.0, 1.0 },
+        { 0.0, 0.0, 0.0,    0.0, 1.0, 1.0,    0.0, 0.0, 1.0 },
+
+        // RIGHT
+        { 1.0, 0.0, 0.0,    1.0, 0.0, 1.0,    1.0, 1.0, 1.0 },
+        { 1.0, 0.0, 0.0,    1.0, 1.0, 1.0,    1.0, 1.0, 0.0 },
+
+        // TOP
+        { 0.0, 1.0, 0.0,    1.0, 1.0, 0.0,    0.0, 1.0, 1.0 },
+        { 1.0, 1.0, 0.0,    1.0, 1.0, 1.0,    0.0, 1.0, 1.0 },
+
+        // BOTTOM
+        { 0.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 0.0 },
+        { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
+      };
     }
 
     void HandleEvent(const SDL_Event& evt) override
@@ -44,16 +71,35 @@ class Drawer : public DrawWrapper
 
     void Draw() override
     {
-      DrawPoint(10, 10, 0xFFFFFF);
+      //
+      // Flat bottom
+      //
+
+      //FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
+      //FillTriangle(0, 20, 30, 20, 10, 0, 0xFFFFFF);
+      //FillTriangle(30, 20, 10, 0, 0, 20, 0xFFFFFF);
+
+      //
+      // Flat top
+      //
+
+      //FillTriangle(20, 10, 30, 0, 0, 0, 0xFFFFFF);
+      //FillTriangle(30, 0, 0, 0, 20, 10, 0xFFFFFF);
+      //FillTriangle(0, 0, 20, 10, 30, 0, 0xFFFFFF);
     }
+
+  private:
+    SW3D::Mesh _cube;
 };
 
 int main()
 {
   Drawer d;
 
-  d.Init(800, 600, 12);
-  d.Run();
+  if ( d.Init(800, 600, 12) )
+  {
+    d.Run(true);
+  }
 
   return 0;
 }

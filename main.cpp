@@ -75,7 +75,7 @@ class Drawer : public DrawWrapper
       // Flat bottom
       //
 
-      //FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
+      FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
       //FillTriangle(0, 20, 30, 20, 10, 0, 0xFFFFFF);
       //FillTriangle(30, 20, 10, 0, 0, 20, 0xFFFFFF);
 
@@ -92,7 +92,7 @@ class Drawer : public DrawWrapper
     SW3D::Mesh _cube;
 };
 
-int main()
+int main(int argc, char* argv[])
 {
   Drawer d;
 

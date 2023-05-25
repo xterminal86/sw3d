@@ -75,7 +75,7 @@ class Drawer : public DrawWrapper
       // Flat bottom
       //
 
-      FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
+      //FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
       //FillTriangle(0, 20, 30, 20, 10, 0, 0xFFFFFF);
       //FillTriangle(30, 20, 10, 0, 0, 20, 0xFFFFFF);
 
@@ -83,9 +83,18 @@ class Drawer : public DrawWrapper
       // Flat top
       //
 
-      //FillTriangle(20, 10, 30, 0, 0, 0, 0xFFFFFF);
+      //FillTriangle(20, 20, 10, 0, 0, 0, 0xFFFFFF);
       //FillTriangle(30, 0, 0, 0, 20, 10, 0xFFFFFF);
       //FillTriangle(0, 0, 20, 10, 30, 0, 0xFFFFFF);
+
+      //
+      // Composite
+      //
+      //FillTriangle(20, 0, 10, 10, 30, 20, 0xFFFFFF);
+      //FillTriangle(10, 10, 30, 20, 20, 0, 0xFFFFFF);
+      //FillTriangle(30, 20, 20, 0, 10, 10, 0xFFFFFF);
+
+      FillTriangle(10, 0, 0, 10, 20, 5, 0xFFFFFF);
     }
 
   private:

@@ -206,55 +206,37 @@ namespace SW3D
         {
           case TriangleType::FLAT_BOTTOM:
           {
-            double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
-            double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
-
-            double curx1 = x1;
-            double curx2 = x1;
-
-            for (int scanline = y1; scanline <= y3; scanline++)
-            {
-              for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
-              {
-                DrawPoint(lineX, scanline, colorMask);
-              }
-
-              //
-              // Ladder-like movement to left and right respectively,
-              // depending on chosen winding, CCW in this project.
-              //
-              curx1 += invSlope1;
-              curx2 += invSlope2;
-            }
+            DrawFlatBottomTriangle(x1, y1, x2, y2, x3, y3, colorMask);
           }
           break;
 
           case TriangleType::FLAT_TOP:
           {
-            double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
-            double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
-
-            double curx1 = x1;
-            double curx2 = x1;
-
-            //
-            // Bottom-up from lowest point.
-            //
-            for (int scanline = y1; scanline >= y3; scanline--)
-            {
-              for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
-              {
-                DrawPoint(lineX, scanline, colorMask);
-              }
-
-              curx1 += invSlope1;
-              curx2 += invSlope2;
-            }
+            DrawFlatTopTriangle(x1, y1, x2, y2, x3, y3, colorMask);
           }
           break;
 
           case TriangleType::COMPOSITE:
           {
+            int x4;
+            int y4;
+
+            if (y3 > y2)
+            {
+              x4 = x1 + ( (double)(y2 - y1) / (double)(y3 - y1) ) * (x3 - x1);
+              y4 = y2;
+
+              DrawFlatBottomTriangle(x1, y1, x2, y2, x4, y4, colorMask);
+              DrawFlatTopTriangle(x3, y3, x4, y4, x2, y2, colorMask);
+            }
+            else if (y2 > y3)
+            {
+              x4 = x1 - ( (double)(y3 - y1) / (double)(y2 - y1) ) * (x1 - x2);
+              y4 = y3;
+
+              DrawFlatBottomTriangle(x1, y1, x4, y4, x3, y3, colorMask);
+              DrawFlatTopTriangle(x2, y2, x3, y3, x4, y4, colorMask);
+            }
           }
           break;
         }
@@ -329,6 +311,63 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      void DrawFlatBottomTriangle(int x1, int y1,
+                                  int x2, int y2,
+                                  int x3, int y3,
+                                  uint32_t colorMask)
+      {
+        double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
+        double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
+
+        double curx1 = x1;
+        double curx2 = x1;
+
+        for (int scanline = y1; scanline <= y3; scanline++)
+        {
+          for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
+          {
+            DrawPoint(lineX, scanline, colorMask);
+          }
+
+          //
+          // Ladder-like movement to left and right respectively,
+          // depending on chosen winding, CCW in this project.
+          //
+          curx1 += invSlope1;
+          curx2 += invSlope2;
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      void DrawFlatTopTriangle(int x1, int y1,
+                               int x2, int y2,
+                               int x3, int y3,
+                               uint32_t colorMask)
+      {
+        double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
+        double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
+
+        double curx1 = x1;
+        double curx2 = x1;
+
+        //
+        // Bottom-up from lowest point.
+        //
+        for (int scanline = y1; scanline >= y3; scanline--)
+        {
+          for (int lineX = (int)curx2; lineX <= (int)curx1; lineX++)
+          {
+            DrawPoint(lineX, scanline, colorMask);
+          }
+
+          curx1 -= invSlope1;
+          curx2 -= invSlope2;
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
       bool HasAlpha(uint32_t colorMask)
       {
         return (colorMask & _maskA) != 0x0;
@@ -340,7 +379,7 @@ namespace SW3D
                                    int x2, int y2,
                                    int x3, int y3)
       {
-        bool isFlatBottom = ( (y2 == y3) and (x1 < y2) ) or
+        bool isFlatBottom = ( (y2 == y3) and (y1 < y2) ) or
                             ( (y1 == y2) and (y3 < y2) ) or
                             ( (y3 == y1) and (y2 < y3) );
 
@@ -362,16 +401,33 @@ namespace SW3D
       {
         switch (tt)
         {
+          //
+          // Proper winding:
+          //
+          //       1
+          //
+          //     2   3
+          //
           case TriangleType::FLAT_BOTTOM:
           {
-            if (x1 < x2)
+            //
+            //     3          1
+            //          ->
+            //   1   2      2   3
+            //
+            if ( (x1 < x2) and (y1 > y3) )
             {
               std::swap(x1, x2);
               std::swap(y1, y2);
               std::swap(x1, x3);
               std::swap(y1, y3);
             }
-            else if (x3 < x1)
+            //
+            //     2          1
+            //          ->
+            //   3   1      2   3
+            //
+            else if ( (x3 < x1) and (y3 > y2) )
             {
               std::swap(x1, x3);
               std::swap(y1, y3);
@@ -381,21 +437,99 @@ namespace SW3D
           }
           break;
 
+          //
+          // Proper winding:
+          //
+          //    3   2
+          //
+          //      1
+          //
           case TriangleType::FLAT_TOP:
           {
-            if (x1 < x3)
+            //
+            //   2   1     3   2
+            //          ->
+            //     3         1
+            //
+            if ( (x1 > x2) and (y1 < y3) )
+            {
+              std::swap(x1, x2);
+              std::swap(y1, y2);
+              std::swap(x1, x3);
+              std::swap(y1, y3);
+            }
+            //
+            //   1   3     3   2
+            //          ->
+            //     2         1
+            //
+            else if ( (x3 > x1) and (y2 > y3) )
             {
               std::swap(x1, x2);
               std::swap(y1, y2);
               std::swap(x2, x3);
               std::swap(y2, y3);
             }
-            else if (x2 < x1)
+          }
+          break;
+
+          case TriangleType::COMPOSITE:
+          {
+            //
+            //      3           1
+            //
+            //    1      ->   2
+            //
+            //         2           3
+            //
+            if ( (y1 > y3) and (y1 < y2) )
+            {
+              std::swap(x1, x3);
+              std::swap(y1, y3);
+              std::swap(x2, x3);
+              std::swap(y2, y3);
+            }
+            //
+            //      2           1
+            //
+            //    3      ->   2
+            //
+            //         1           3
+            //
+            else if ( (y3 > y2) and (y3 < y1) )
             {
               std::swap(x1, x2);
               std::swap(y1, y2);
+              std::swap(x2, x3);
+              std::swap(y2, y3);
+            }
+            //
+            //      3           1
+            //
+            //        2  ->       3
+            //
+            //   1           2
+            //
+            else if ( (y1 > y2) and (y2 > y3) )
+            {
               std::swap(x1, x3);
               std::swap(y1, y3);
+              std::swap(x2, x3);
+              std::swap(y2, y3);
+            }
+            //
+            //      2           1
+            //
+            //        1  ->       3
+            //
+            //   3           2
+            //
+            else if ( (y3 > y1) and (y1 > y2) )
+            {
+              std::swap(x1, x2);
+              std::swap(y1, y2);
+              std::swap(x2, x3);
+              std::swap(y2, y3);
             }
           }
           break;

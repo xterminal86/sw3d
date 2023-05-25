@@ -3,11 +3,15 @@
 
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include <SDL2/SDL.h>
 
 namespace SW3D
 {
+  using Clock = std::chrono::high_resolution_clock;
+  using Ns = std::chrono::nanoseconds;
+
   enum class TriangleType
   {
     FLAT_TOP = 0,
@@ -99,7 +103,7 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      void Run(bool drawGrid = false)
+      void Run(bool debugMode = false)
       {
         if (not _initialized)
         {
@@ -109,8 +113,16 @@ namespace SW3D
 
         SDL_Event evt;
 
+        Clock::time_point measureStart;
+        Clock::time_point measureEnd;
+
+        Ns dt = Ns{0};
+
         while (_running)
         {
+          measureStart = Clock::now();
+          measureEnd = measureStart;
+
           while (SDL_PollEvent(&evt))
           {
             HandleEvent(evt);
@@ -118,14 +130,22 @@ namespace SW3D
 
           SDL_RenderClear(_renderer);
 
-          if (drawGrid)
+          if (debugMode)
           {
             DrawGrid();
+            char buf[128];
+            ::snprintf(buf, sizeof(buf), "%f", _deltaTime);
+            SDL_SetWindowTitle(_window, buf);
           }
 
           Draw();
 
           SDL_RenderPresent(_renderer);
+
+          measureEnd = Clock::now();
+          dt = measureEnd - measureStart;
+
+          _deltaTime = std::chrono::duration<double>(dt).count();
         }
       }
 
@@ -195,7 +215,14 @@ namespace SW3D
         // Because k*x is the same as (k + k + k + k) x times, we can see that
         // by solving for x we'll get x = y/k. So we can calculate 1/k
         // beforehand and then just add it in every iteration of the loop.
-        // Since k = dy / dx, 1/k = 1 / dy / dx = dx / dy.
+        //
+        // Since:
+        //
+        //      dy      1     1       1     dx
+        // k = ----,   --- = ----,   --- = ----
+        //      dx      k     dy      k     dy
+        //                   ----
+        //                    dx
         //
 
         TriangleType tt = GetTriangleType(x1, y1, x2, y2, x3, y3);
@@ -205,16 +232,12 @@ namespace SW3D
         switch (tt)
         {
           case TriangleType::FLAT_BOTTOM:
-          {
             DrawFlatBottomTriangle(x1, y1, x2, y2, x3, y3, colorMask);
-          }
-          break;
+            break;
 
           case TriangleType::FLAT_TOP:
-          {
             DrawFlatTopTriangle(x1, y1, x2, y2, x3, y3, colorMask);
-          }
-          break;
+            break;
 
           case TriangleType::COMPOSITE:
           {
@@ -223,23 +246,80 @@ namespace SW3D
 
             if (y3 > y2)
             {
+              //
+              // x4 is derived from Intercept Theorem.
+              //
+              //         1
+              //
+              //      2  o  4
+              //
+              //         x    3
+              //
+              // "The ratio of the two segments on the same ray starting at S
+              // equals the ratio of the segments on the parallels:"
+              //
+              // Thus, the following holds true:
+              //
+              // 1-o   o-4
+              // --- = ---
+              // 1-x   x-3
+              //
+              // which gives us:
+              //
+              // (y2 - y1)   (x4 - x1)
+              // --------- = ---------
+              // (y3 - y1)   (x3 - x1)
+              //
+              // solving for x4:
+              //
+              //
+              // (y2 - y1)
+              // --------- * (x3 - x1) = (x4 - x1)
+              // (y3 - y1)
+              //
+              //
+              //           (y2 - y1)
+              // x4 = x1 + --------- * (x3 - x1)
+              //           (y3 - y1)
+              //
+
               x4 = x1 + ( (double)(y2 - y1) / (double)(y3 - y1) ) * (x3 - x1);
               y4 = y2;
 
-              DrawFlatBottomTriangle(x1, y1, x2, y2, x4, y4, colorMask);
+              DrawFlatBottomTriangle(x1, y1, x2, y2, x4, y4, colorMask, false);
               DrawFlatTopTriangle(x3, y3, x4, y4, x2, y2, colorMask);
             }
             else if (y2 > y3)
             {
+              //
+              // This variant is just a matter of flipping some signs and
+              // variables because of a mirror image of the above.
+              // But you can derive this in the same way.
+              //
+              //
+              //         1
+              //
+              //      4  o  3
+              //
+              //    2    x
+              //
+
               x4 = x1 - ( (double)(y3 - y1) / (double)(y2 - y1) ) * (x1 - x2);
               y4 = y3;
 
-              DrawFlatBottomTriangle(x1, y1, x4, y4, x3, y3, colorMask);
+              DrawFlatBottomTriangle(x1, y1, x4, y4, x3, y3, colorMask, false);
               DrawFlatTopTriangle(x2, y2, x3, y3, x4, y4, colorMask);
             }
           }
           break;
         }
+      }
+
+      // -----------------------------------------------------------------------
+
+      const double& DeltaTime()
+      {
+        return _deltaTime;
       }
 
     protected:
@@ -294,6 +374,11 @@ namespace SW3D
 
       void DrawGrid()
       {
+        if (_pixelSize < 4)
+        {
+          return;
+        }
+
         SaveColor();
 
         SDL_SetRenderDrawColor(_renderer, 128, 128, 128, 255);
@@ -314,7 +399,8 @@ namespace SW3D
       void DrawFlatBottomTriangle(int x1, int y1,
                                   int x2, int y2,
                                   int x3, int y3,
-                                  uint32_t colorMask)
+                                  uint32_t colorMask,
+                                  bool includeLastPoint = true)
       {
         double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
         double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
@@ -322,7 +408,9 @@ namespace SW3D
         double curx1 = x1;
         double curx2 = x1;
 
-        for (int scanline = y1; scanline <= y3; scanline++)
+        for (int scanline = y1;
+             (includeLastPoint ? scanline <= y3 : scanline < y3);
+             scanline++)
         {
           for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
           {
@@ -343,7 +431,8 @@ namespace SW3D
       void DrawFlatTopTriangle(int x1, int y1,
                                int x2, int y2,
                                int x3, int y3,
-                               uint32_t colorMask)
+                               uint32_t colorMask,
+                               bool includeLastPoint = true)
       {
         double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
         double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
@@ -354,7 +443,9 @@ namespace SW3D
         //
         // Bottom-up from lowest point.
         //
-        for (int scanline = y1; scanline >= y3; scanline--)
+        for (int scanline = y1;
+             (includeLastPoint ? scanline >= y3 : scanline > y3);
+             scanline--)
         {
           for (int lineX = (int)curx2; lineX <= (int)curx1; lineX++)
           {
@@ -545,6 +636,8 @@ namespace SW3D
 
       uint16_t _windowWidth  = 0;
       uint16_t _windowHeight = 0;
+
+      double _deltaTime = 0.0;
 
       double _aspectRatio = 0.0;
 

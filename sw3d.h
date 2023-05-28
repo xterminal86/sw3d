@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <cmath>
 
 #include <SDL2/SDL.h>
 

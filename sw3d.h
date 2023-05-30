@@ -5,6 +5,8 @@
 #include <vector>
 #include <chrono>
 #include <cmath>
+#include <sstream>
+#include <map>
 
 #include <SDL2/SDL.h>
 
@@ -20,6 +22,8 @@ namespace SW3D
     COMPOSITE
   };
 
+  // ===========================================================================
+
   struct Vec3
   {
     double X = 0.0;
@@ -27,14 +31,212 @@ namespace SW3D
     double Z = 0.0;
   };
 
+  // ===========================================================================
+
+  struct Vec4
+  {
+    double X = 0.0;
+    double Y = 0.0;
+    double Z = 0.0;
+    double W = 1.0;
+  };
+
+  // ===========================================================================
+
   struct Triangle
   {
     Vec3 Points[3];
   };
 
+  // ===========================================================================
+
   struct Mesh
   {
     std::vector<Triangle> Triangles;
+  };
+
+  // ===========================================================================
+
+  using VV = std::vector<std::vector<double>>;
+
+  struct Matrix
+  {
+    public:
+
+      // -----------------------------------------------------------------------
+
+      Matrix(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols)
+      {
+        _matrix.resize(_rows);
+
+        for (uint32_t i = 0; i < _rows; i++)
+        {
+          _matrix[i].resize(_cols);
+        }
+
+        Clear();
+      }
+
+      // -----------------------------------------------------------------------
+
+      void Clear()
+      {
+        for (uint32_t x = 0; x < _rows; x++)
+        {
+          for (uint32_t y = 0; y < _cols; y++)
+          {
+            _matrix[x][y] = 0.0;
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      void Identity()
+      {
+        if (_rows != _cols)
+        {
+          return;
+        }
+
+        for (uint32_t x = 0; x < _rows; x++)
+        {
+          for (uint32_t y = 0; y < _cols; y++)
+          {
+            _matrix[x][y] = (x == y) ? 1.0 : 0.0;
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      std::string ToString()
+      {
+        size_t maxLength = 0;
+
+        for (uint32_t y = 0; y < _cols; y++)
+        {
+          maxLength = 0;
+
+          for (uint32_t x = 0; x < _rows; x++)
+          {
+            ::snprintf(_buf, sizeof(_buf), "%.4f", _matrix[x][y]);
+
+            size_t ln = ::strlen(_buf);
+            if (ln > maxLength)
+            {
+              maxLength = ln;
+            }
+          }
+
+          _maxColumnLengthByColumn[y] = maxLength;
+        }
+
+        _ss.str(std::string());
+
+        for (uint32_t x = 0; x < _rows; x++)
+        {
+          _ss << "[ ";
+
+          for (uint32_t y = 0; y < _cols; y++)
+          {
+            ::snprintf(_buf, sizeof(_buf), "%.4f", _matrix[x][y]);
+
+            for (int spaces = 0;
+                 spaces < (_maxColumnLengthByColumn[y] - ::strlen(_buf));
+                 spaces++)
+            {
+              _ss << " ";
+            }
+
+            _ss << _buf << " ";
+          }
+
+          _ss << "]\n";
+        }
+
+        return _ss.str();
+      }
+
+      // -----------------------------------------------------------------------
+
+      void Print()
+      {
+        if (_rows == 0 or _cols == 0)
+        {
+          SDL_Log("<rows = 0, cols = 0>");
+        }
+        else
+        {
+          SDL_Log("\n%s\n", ToString().data());
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      const std::vector<double>& operator[](uint32_t row) const
+      {
+        return _matrix[row];
+      }
+
+      // -----------------------------------------------------------------------
+
+      std::vector<double>& operator[](uint32_t row)
+      {
+        return _matrix[row];
+      }
+
+      // -----------------------------------------------------------------------
+
+      const uint32_t& Rows() const
+      {
+        return _rows;
+      }
+
+      // -----------------------------------------------------------------------
+
+      const uint32_t& Columns() const
+      {
+        return _cols;
+      }
+
+      // -----------------------------------------------------------------------
+
+      Matrix operator*(const Matrix& rhs)
+      {
+        if (_cols != rhs.Rows())
+        {
+          return Matrix(0,0);
+        }
+
+        uint32_t newCols = rhs.Columns();
+
+        Matrix res(_rows, newCols);
+
+        // FIXME:
+
+        for (uint32_t row = 0; row < _rows; row++)
+        {
+          for (uint32_t col = 0; col < newCols; col++)
+          {
+            res[row][col] += (_matrix[row][col] * rhs[col][row]);
+          }
+        }
+
+        return res;
+      }
+
+    private:
+      VV _matrix;
+
+      uint32_t _rows;
+      uint32_t _cols;
+
+      std::map<uint32_t, size_t> _maxColumnLengthByColumn;
+
+      char _buf[32];
+
+      std::stringstream _ss;
   };
 
   // ===========================================================================
@@ -810,6 +1012,14 @@ namespace SW3D
 
       bool _running = true;
   };
+
+  // ===========================================================================
+
+  template <typename M1, typename M2, typename M3>
+  void MultiplyMatrices(const M1& m1, const M2& m2, M3& result)
+  {
+
+  }
 
 } // namespace sw3d
 

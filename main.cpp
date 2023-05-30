@@ -69,9 +69,8 @@ class Drawer : public DrawWrapper
       }
     }
 
-    void Draw() override
+    void DebugDraw()
     {
-      // ***********************************************************************
       //
       // DEBUG:
       //
@@ -98,8 +97,11 @@ class Drawer : public DrawWrapper
       //FillTriangle(30, 20, 20, 0, 10, 10, 0xFFFFFF);
       //FillTriangle(10, 0, 0, 10, 20, 5, 0xFFFFFF);
       //
+    }
 
-      // ***********************************************************************
+    void Draw() override
+    {
+      //DebugDraw();
 
       //
       // The objects exist in 3D space, but our screen is 2D space.
@@ -191,6 +193,61 @@ class Drawer : public DrawWrapper
       //               z * -------------- - -------------- ];
       //                   (Zfar - Znear)   (Zfar - Znear)
       //
+      //
+      // When things are further away, they appear less, so this implies a
+      // change in x coordinate is somehow related to z depth, more specifically
+      // it's inversely proportional:
+      //
+      //           1
+      // x' = x * ---
+      //           z
+      //
+      // The same goes for y:
+      //
+      //           1
+      // y' = y * ---
+      //           z
+      //
+      //
+      // So our formula becomes:
+      //
+      //
+      //                        1         x
+      // [x, y, z] = [ a *  ---------- * ---,
+      //                     tan(TH/2)    z
+      //
+      //                         1        y
+      //                    ---------- * ---,
+      //                     tan(TH/2)    z
+      //
+      //                       Zfar         (Znear * Zfar)
+      //               z * -------------- - -------------- ];
+      //                   (Zfar - Znear)   (Zfar - Znear)
+      //
+      //
+      // Let's simplify this a bit by making aliases:
+      //
+      //         1
+      // F = ---------
+      //     tan(TH/2)
+      //
+      //
+      //         Zfar
+      // q = --------------
+      //     (Zfar - Znear)
+      //
+      //
+      // With this we can rewrite the transformations above as:
+      //
+      //                aFx    Fy
+      // [x, y, z] = [ ----- , --- , q * (z - Znear) ]
+      //                 z      z
+      //
+      //
+      // We can implement these equations directly, but in 3D graphics it's
+      // common to use matrix multiplication, so we'll convert this to matrix
+      // form.
+      //
     }
 
   private:
@@ -199,6 +256,19 @@ class Drawer : public DrawWrapper
 
 int main(int argc, char* argv[])
 {
+  SW3D::Matrix m1(1, 3);
+  m1[0][0] = 1;
+  m1[0][1] = 2;
+  m1[0][2] = 3;
+
+  SW3D::Matrix m2(3, 1);
+  m2[0][0] = 1;
+  m2[1][0] = 2;
+  m2[2][0] = 3;
+
+  SW3D::Matrix res = m2 * m1;
+  res.Print();
+
   Drawer d;
 
   if ( d.Init(800, 600, 12) )

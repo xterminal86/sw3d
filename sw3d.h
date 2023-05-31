@@ -315,6 +315,28 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      Matrix operator+(const Matrix& rhs)
+      {
+        if ( (_rows != rhs._rows) or (_cols != rhs._cols) )
+        {
+          return *this;
+        }
+
+        Matrix res(_rows, _cols);
+
+        for (int x = 0; x < _rows; x++)
+        {
+          for (int y = 0; y < _cols; y++)
+          {
+            res[x][y] = _matrix[x][y] + rhs._matrix[x][y];
+          }
+        }
+
+        return res;
+      }
+
+      // -----------------------------------------------------------------------
+
       void operator=(const Matrix& rhs)
       {
         _matrix = rhs._matrix;
@@ -1186,7 +1208,7 @@ namespace SW3D
 
     Matrix proj(4, 4);
 
-    proj[0][0] = aspectRatio * f;
+    proj[0][0] = f / aspectRatio;
     proj[1][1] = f;
     proj[2][2] = q;
     proj[3][2] = -zNear * q;

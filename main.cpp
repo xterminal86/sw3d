@@ -50,25 +50,44 @@ class Drawer : public DrawWrapper
       //
       // To do this several steps need to be performed. First of which is
       // normalization of our screen space to be [-1; 1] along the x axis
-      // and [-1; 1] along the y axis.
+      // and [-1; 1] along the y axis. This is called Normalized Device
+      // Coordinates (or NDC for short).
       //
       // (NOTE: need details in the following section, research more)
       //
-      //      h
-      // a = ---
+      // Since desktop screens usually have their width greater than height,
+      // we'll define aspect ratio as w / h. It really is just a matter of
+      // convention, we could've easily defined aspect ratio as h / w, just like
+      // in OLC video, it would just resulted in multiplying aspect ratio by
+      // coordinate in the matrix instead of dividing coordinate over it.
+      //
       //      w
+      // a = ---
+      //      h
       //
-      // First step is to multiply aspect ratio with x coordinate of a given 3D
-      // point to take into account different screen width.
+      // First step is to divide x coordinate of a given 3D point over aspect
+      // ratio to take into account different screen width.
+      // Since we'll be "condensing" all points into NDC, we need to take into
+      // account different screen resolutions. E.g. resolution 2000x1000 would
+      // mean that we have to map all [ -1 ; 1 ] into 2000 pixels wide.
+      // That would make the object stretch across X axis. So, to prevent that
+      // we will divide its projected X coordinate over aspect ratio to bring it
+      // back into [ -1 ; 1 ] of normalized space.
+      // Conversely, if resolution would've been 1000x2000 the projected Y
+      // coordinates would have to be squeezed into 2000 pixels of height.
+      // Since aspect ratio would be less than 1, by dividing Y over it we will
+      // bring it back into [ -1 ; 1 ] for Y.
       //
-      // [x, y, z] = [ a * x, a * y, z];
+      //                x
+      // [x, y, z] = [ ---, y, z];
+      //                a
       //
       // Next, we need to take into account Field Of View (FOV), which is
       // defined by angle theta (TH).
       //
-      //                        1               1
-      // [x, y, z] = [ a *  ---------- * x, ---------- * y, z];
-      //                     tan(TH/2)       tan(TH/2)
+      //                1          1              1
+      // [x, y, z] = [ ---  *  --------- * x, --------- * y, z];
+      //                a      tan(TH/2)      tan(TH/2)
       //
       //
       // Next, position of object in depth:
@@ -120,9 +139,9 @@ class Drawer : public DrawWrapper
       //
       // So, our total projection so far looks like this:
       //
-      //                        1
-      // [x, y, z] = [ a *  ---------- * x,
-      //                     tan(TH/2)
+      //                1          1
+      // [x, y, z] = [ --- *  ---------- * x,
+      //                a      tan(TH/2)
       //
       //                         1
       //                    ---------- * y,
@@ -151,9 +170,9 @@ class Drawer : public DrawWrapper
       // So our formula becomes:
       //
       //
-      //                        1         x
-      // [x, y, z] = [ a *  ---------- * ---,
-      //                     tan(TH/2)    z
+      //                1        1        x
+      // [x, y, z] = [ --- * --------- * ---,
+      //                a    tan(TH/2)    z
       //
       //                         1        y
       //                    ---------- * ---,
@@ -178,35 +197,75 @@ class Drawer : public DrawWrapper
       //
       // With this we can rewrite the transformations above as:
       //
-      //                aFx     Fy
-      // [x, y, z] = [ ----- , ---- , q * (z - Znear) ]
-      //                 z      z
+      //                Fx     Fy
+      // [x, y, z] = [ ---- , ---- , q * (z - Znear) ]
+      //                az     z
       //
       //
       // We can implement these equations directly, but in 3D graphics it's
       // common to use matrix multiplication, so we'll convert this to matrix
       // form.
       //
-      //
-      //  -                    -
-      // |                      |
-      // | aF  0  0           0 |
-      // |                      |
-      // | 0   F  0           0 |
-      // |                      |
-      // | 0   0  q           1 |
-      // |                      |
-      // | 0   0  -Znear * q  0 |
-      // |                      |
-      //  -                    -
+      //      -                 -
+      //     |                   |
+      //     | F/a 0  0          |
+      //     |                   |
+      //     | 0   F  0          |
+      // M = |                   |
+      //     | 0   0  q          |
+      //     |                   |
+      //     | 0   0  -Znear * q |
+      //     |                   |
+      //      -                 -
       //
       // Given like this, it is called the projection matrix. By multiplying
       // our 3D coordinates by this matrix we will transform them into
-      // coordinates on the screen.
+      // coordinates on the screen. But there is a problem.
+      // We need to divide everything by Z in order to take into account depth
+      // information, but there will be no Z saved in the resulting vector after
+      // multiplication by this matrix. To solve this we need to add another
+      // column to our matrix, thus making it 4 dimensional, as well as add
+      // another coordinate to our original vector, which is conventionally
+      // called W. We will put a 1 into cell [3][4] (one based index) of the
+      // projection matrix which will allow us to put original Z value of a
+      // vector into 4th element W of a resulting vector. Then we can divide
+      // by it to correct for depth.
+      // We can explicitly add another coordinate into vector class, or
+      // calculate W implicitly during matrix-vector multiplication and
+      // performing divide by W there (which exactly how it's done now).
+      // But I believe this W coordinate also comes in handy in other situations
+      // so usually people operate directly on Vec4.
+      //
+      //      -                    -
+      //     |                      |
+      //     | F/a 0  0           0 |
+      //     |                      |
+      //     | 0   F  0           0 |
+      // M = |                      |
+      //     | 0   0  q           1 |
+      //     |                      |
+      //     | 0   0  -Znear * q  0 |
+      //     |                      |
+      //      -                    -
+      //
+      // v4 = [ x, y, z, 0 ]
+      //
+      // projected = M * v;
+      //
+      //        F
+      // [ x * ---   y * F   z * q - z * (Znear * q)   z ]
+      //        a
+      //
+      //
+      // Divide everything over 4th coordinate W (which is effectively Z):
+      //
+      //      xF
+      // [ ( ---- ) / z   (y * F) / z   (z * q - z * (Znear * q)) / z   1 ]
+      //      a
       //
 
       _projection = GetProjection(90.0,
-                                 (double)WH / (double)WW,
+                                 (double)WW / (double)WH,
                                  0.1,
                                  1000.0);
     }
@@ -279,9 +338,9 @@ class Drawer : public DrawWrapper
       //t.Points[1] = { -1.0, 0.0, 0.0 };
       //t.Points[0] = {  1.0, 0.0, 0.0 };
 
-      t.Points[0] = {  1.0, 0.0, 0.0 };
-      t.Points[1] = {  0.0, 1.0, 0.0 };
-      t.Points[2] = { -1.0, 0.0, 0.0 };
+      t.Points[0] = {  1.0, 0.0, 20.0 };
+      t.Points[1] = {  0.0, 1.0, 20.0 };
+      t.Points[2] = { -1.0, 0.0, 20.0 };
 
       Triangle tp;
 

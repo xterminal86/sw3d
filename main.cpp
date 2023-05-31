@@ -206,9 +206,9 @@ class Drawer : public DrawWrapper
       //
 
       _projection = GetProjection(90.0,
-                                  (double)WH / (double)WW,
-                                   0.1,
-                                   1000.0);
+                                 (double)WH / (double)WW,
+                                 0.1,
+                                 1000.0);
     }
 
     void HandleEvent(const SDL_Event& evt) override
@@ -275,35 +275,52 @@ class Drawer : public DrawWrapper
       //DebugDraw();
 
       Triangle t;
-      t.Points[2] = {  0.0, 1.0, 0.0 };
-      t.Points[1] = { -1.0, 0.0, 0.0 };
+      //t.Points[2] = {  0.0, 1.0, 0.0 };
+      //t.Points[1] = { -1.0, 0.0, 0.0 };
+      //t.Points[0] = {  1.0, 0.0, 0.0 };
+
       t.Points[0] = {  1.0, 0.0, 0.0 };
+      t.Points[1] = {  0.0, 1.0, 0.0 };
+      t.Points[2] = { -1.0, 0.0, 0.0 };
 
       Triangle tp;
 
       for (size_t i = 0; i < 3; i++)
       {
+        //
+        // The resulting coordinates will be in range [ -1 ; 1 ].
+        // So leftmost part will be offscreen.
+        //
         tp.Points[i] = _projection * t.Points[i];
 
         //
-        // Now it's between 0 and 2
+        // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
+        // and thus visible.
         //
         tp.Points[i] += 1.0;
 
         //
-        // Now to scale it into view
+        // Now we need to scale it properly into viewscreen.
         //
         tp.Points[i] *= 0.5 * ((double)WW / (double)PixelSize());
       }
 
 
       //
-      // FIXME: triangle is projected upside down, flip screen Y direction.
+      // FIXME: triangle is projected upside down, winding order gets changed
+      // depending on order of points in Points array.
       //
+      /*
       FillTriangle(tp.Points[0].X, tp.Points[0].Y,
-                    tp.Points[1].X, tp.Points[1].Y,
-                    tp.Points[2].X, tp.Points[2].Y,
-                    0xFFFFFF);
+                   tp.Points[1].X, tp.Points[1].Y,
+                   tp.Points[2].X, tp.Points[2].Y,
+                   0xFFFFFF);
+      */
+
+      DrawTriangle(tp.Points[0].X, tp.Points[0].Y,
+                   tp.Points[1].X, tp.Points[1].Y,
+                   tp.Points[2].X, tp.Points[2].Y,
+                   0xFFFFFF);
 
       /*
       for (auto& t : _cube.Triangles)

@@ -502,6 +502,66 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      void DrawLine(int x1, int y1, int x2, int y2, uint32_t colorMask)
+      {
+        bool steep = fabs(y2 - y1) > fabs(x2 - x1);
+
+        if (steep)
+        {
+          std::swap(x1, y1);
+          std::swap(x2, y2);
+        }
+
+        if (x1 > x2)
+        {
+          std::swap(x1, x2);
+          std::swap(y1, y2);
+        }
+
+        double dx = x2 - x1;
+        double dy = fabs(y2 - y1);
+
+        double error = dx / 2.0;
+
+        int yStep = (y1 < y2) ? 1 : -1;
+
+        int y = y1;
+
+        for (int x = x1; x <= x2; x++)
+        {
+          if (steep)
+          {
+            DrawPoint(y, x, colorMask);
+          }
+          else
+          {
+            DrawPoint(x, y, colorMask);
+          }
+
+          error -= dy;
+
+          if (error < 0)
+          {
+            y += yStep;
+            error += dx;
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      void DrawTriangle(int x1, int y1,
+                        int x2, int y2,
+                        int x3, int y3,
+                        uint32_t colorMask)
+      {
+        DrawLine(x1, y1, x2, y2, colorMask);
+        DrawLine(x2, y2, x3, y3, colorMask);
+        DrawLine(x1, y1, x3, y3, colorMask);
+      }
+
+      // -----------------------------------------------------------------------
+
       void FillTriangle(int x1, int y1,
                         int x2, int y2,
                         int x3, int y3,
@@ -514,11 +574,11 @@ namespace SW3D
         switch (tt)
         {
           case TriangleType::FLAT_BOTTOM:
-            DrawFlatBottomTriangle(x1, y1, x2, y2, x3, y3, colorMask);
+            FillFlatBottomTriangle(x1, y1, x2, y2, x3, y3, colorMask);
             break;
 
           case TriangleType::FLAT_TOP:
-            DrawFlatTopTriangle(x1, y1, x2, y2, x3, y3, colorMask);
+            FillFlatTopTriangle(x1, y1, x2, y2, x3, y3, colorMask);
             break;
 
           case TriangleType::COMPOSITE:
@@ -577,8 +637,8 @@ namespace SW3D
               x4 = x1 + ( (double)(y2 - y1) / (double)(y3 - y1) ) * (x3 - x1);
               y4 = y2;
 
-              DrawFlatBottomTriangle(x1, y1, x2, y2, x4, y4, colorMask, false);
-              DrawFlatTopTriangle(x3, y3, x4, y4, x2, y2, colorMask);
+              FillFlatBottomTriangle(x1, y1, x2, y2, x4, y4, colorMask, false);
+              FillFlatTopTriangle(x3, y3, x4, y4, x2, y2, colorMask);
             }
             else if (y2 > y3)
             {
@@ -616,8 +676,8 @@ namespace SW3D
               x4 = x1 - ( (double)(y3 - y1) / (double)(y2 - y1) ) * (x1 - x2);
               y4 = y3;
 
-              DrawFlatBottomTriangle(x1, y1, x4, y4, x3, y3, colorMask, false);
-              DrawFlatTopTriangle(x2, y2, x3, y3, x4, y4, colorMask);
+              FillFlatBottomTriangle(x1, y1, x4, y4, x3, y3, colorMask, false);
+              FillFlatTopTriangle(x2, y2, x3, y3, x4, y4, colorMask);
             }
           }
           break;
@@ -712,7 +772,7 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      void DrawFlatBottomTriangle(int x1, int y1,
+      void FillFlatBottomTriangle(int x1, int y1,
                                   int x2, int y2,
                                   int x3, int y3,
                                   uint32_t colorMask,
@@ -798,7 +858,7 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      void DrawFlatTopTriangle(int x1, int y1,
+      void FillFlatTopTriangle(int x1, int y1,
                                int x2, int y2,
                                int x3, int y3,
                                uint32_t colorMask,

@@ -2,8 +2,11 @@
 
 using namespace SW3D;
 
-uint16_t x = 0;
-uint16_t y = 0;
+const uint32_t WW = 800;
+const uint32_t WH = 600;
+
+int x = 0;
+int y = 0;
 
 class Drawer : public DrawWrapper
 {
@@ -38,70 +41,6 @@ class Drawer : public DrawWrapper
         { 0.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 0.0 },
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
-    }
-
-    void HandleEvent(const SDL_Event& evt) override
-    {
-      const uint8_t* kb = SDL_GetKeyboardState(nullptr);
-      if (kb[SDL_SCANCODE_ESCAPE])
-      {
-        Stop();
-      }
-
-      if (kb[SDL_SCANCODE_RIGHT])
-      {
-        x++;
-      }
-
-      if (kb[SDL_SCANCODE_LEFT])
-      {
-        x--;
-      }
-
-      if (kb[SDL_SCANCODE_UP])
-      {
-        y--;
-      }
-
-      if (kb[SDL_SCANCODE_DOWN])
-      {
-        y++;
-      }
-    }
-
-    void DebugDraw()
-    {
-      //
-      // DEBUG:
-      //
-      // Flat bottom
-      //
-
-      //FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
-      //FillTriangle(0, 20, 30, 20, 10, 0, 0xFFFFFF);
-      //FillTriangle(30, 20, 10, 0, 0, 20, 0xFFFFFF);
-
-      //
-      // Flat top
-      //
-
-      //FillTriangle(20, 20, 10, 0, 0, 0, 0xFFFFFF);
-      //FillTriangle(30, 0, 0, 0, 20, 10, 0xFFFFFF);
-      //FillTriangle(0, 0, 20, 10, 30, 0, 0xFFFFFF);
-
-      //
-      // Composite
-      //
-      //FillTriangle(20, 0, 10, 10, 30, 20, 0xFFFFFF);
-      //FillTriangle(10, 10, 30, 20, 20, 0, 0xFFFFFF);
-      //FillTriangle(30, 20, 20, 0, 10, 10, 0xFFFFFF);
-      //FillTriangle(10, 0, 0, 10, 20, 5, 0xFFFFFF);
-      //
-    }
-
-    void Draw() override
-    {
-      //DebugDraw();
 
       //
       // The objects exist in 3D space, but our screen is 2D space.
@@ -239,8 +178,8 @@ class Drawer : public DrawWrapper
       //
       // With this we can rewrite the transformations above as:
       //
-      //                aFx    Fy
-      // [x, y, z] = [ ----- , --- , q * (z - Znear) ]
+      //                aFx     Fy
+      // [x, y, z] = [ ----- , ---- , q * (z - Znear) ]
       //                 z      z
       //
       //
@@ -248,30 +187,152 @@ class Drawer : public DrawWrapper
       // common to use matrix multiplication, so we'll convert this to matrix
       // form.
       //
+      //
+      //  -                    -
+      // |                      |
+      // | aF  0  0           0 |
+      // |                      |
+      // | 0   F  0           0 |
+      // |                      |
+      // | 0   0  q           1 |
+      // |                      |
+      // | 0   0  -Znear * q  0 |
+      // |                      |
+      //  -                    -
+      //
+      // Given like this, it is called the projection matrix. By multiplying
+      // our 3D coordinates by this matrix we will transform them into
+      // coordinates on the screen.
+      //
+
+      _projection = GetProjection(90.0,
+                                  (double)WH / (double)WW,
+                                   0.1,
+                                   1000.0);
+    }
+
+    void HandleEvent(const SDL_Event& evt) override
+    {
+      const uint8_t* kb = SDL_GetKeyboardState(nullptr);
+      if (kb[SDL_SCANCODE_ESCAPE])
+      {
+        Stop();
+      }
+
+      if (kb[SDL_SCANCODE_RIGHT])
+      {
+        x++;
+      }
+
+      if (kb[SDL_SCANCODE_LEFT])
+      {
+        x--;
+      }
+
+      if (kb[SDL_SCANCODE_UP])
+      {
+        y--;
+      }
+
+      if (kb[SDL_SCANCODE_DOWN])
+      {
+        y++;
+      }
+    }
+
+    void DebugDraw()
+    {
+      //
+      // DEBUG:
+      //
+      // Flat bottom
+      //
+
+      //FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
+      //FillTriangle(0, 20, 30, 20, 10, 0, 0xFFFFFF);
+      //FillTriangle(30, 20, 10, 0, 0, 20, 0xFFFFFF);
+
+      //
+      // Flat top
+      //
+
+      //FillTriangle(20, 20, 10, 0, 0, 0, 0xFFFFFF);
+      //FillTriangle(30, 0, 0, 0, 20, 10, 0xFFFFFF);
+      //FillTriangle(0, 0, 20, 10, 30, 0, 0xFFFFFF);
+
+      //
+      // Composite
+      //
+      //FillTriangle(20, 0, 10, 10, 30, 20, 0xFFFFFF);
+      //FillTriangle(10, 10, 30, 20, 20, 0, 0xFFFFFF);
+      //FillTriangle(30, 20, 20, 0, 10, 10, 0xFFFFFF);
+      //FillTriangle(10, 0, 0, 10, 20, 5, 0xFFFFFF);
+      //
+    }
+
+    void Draw() override
+    {
+      //DebugDraw();
+
+      Triangle t;
+      t.Points[2] = {  0.0, 1.0, 0.0 };
+      t.Points[1] = { -1.0, 0.0, 0.0 };
+      t.Points[0] = {  1.0, 0.0, 0.0 };
+
+      Triangle tp;
+
+      for (size_t i = 0; i < 3; i++)
+      {
+        tp.Points[i] = _projection * t.Points[i];
+
+        //
+        // Now it's between 0 and 2
+        //
+        tp.Points[i] += 1.0;
+
+        //
+        // Now to scale it into view
+        //
+        tp.Points[i] *= 0.5 * ((double)WW / (double)PixelSize());
+      }
+
+
+      //
+      // FIXME: triangle is projected upside down, flip screen Y direction.
+      //
+      FillTriangle(tp.Points[0].X, tp.Points[0].Y,
+                    tp.Points[1].X, tp.Points[1].Y,
+                    tp.Points[2].X, tp.Points[2].Y,
+                    0xFFFFFF);
+
+      /*
+      for (auto& t : _cube.Triangles)
+      {
+        Triangle triProj;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          triProj.Points[i] = _projection * t.Points[i];
+        }
+
+        FillTriangle(triProj.Points[0].X, triProj.Points[0].Y,
+                      triProj.Points[1].X, triProj.Points[1].Y,
+                      triProj.Points[2].X, triProj.Points[2].Y,
+                      0xFFFFFF);
+      }
+      */
     }
 
   private:
-    SW3D::Mesh _cube;
+    Mesh _cube;
+    Matrix _projection;
 };
 
 int main(int argc, char* argv[])
 {
-  SW3D::Matrix m1(1, 3);
-  m1[0][0] = 1;
-  m1[0][1] = 2;
-  m1[0][2] = 3;
-
-  SW3D::Matrix m2(3, 1);
-  m2[0][0] = 1;
-  m2[1][0] = 2;
-  m2[2][0] = 3;
-
-  SW3D::Matrix res = m2 * m1;
-  res.Print();
-
   Drawer d;
 
-  if ( d.Init(800, 600, 12) )
+  if ( d.Init(WW, WH, 12) )
   {
     d.Run(true);
   }

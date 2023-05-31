@@ -12,6 +12,8 @@
 
 namespace SW3D
 {
+  constexpr double DEG2RAD = std::acos(-1) / 180.0;
+
   using Clock = std::chrono::high_resolution_clock;
   using ns = std::chrono::nanoseconds;
 
@@ -29,6 +31,20 @@ namespace SW3D
     double X = 0.0;
     double Y = 0.0;
     double Z = 0.0;
+
+    void operator*=(double value)
+    {
+      X *= value;
+      Y *= value;
+      Z *= value;
+    }
+
+    void operator+=(double value)
+    {
+      X += value;
+      Y += value;
+      Z += value;
+    }
   };
 
   // ===========================================================================
@@ -62,6 +78,22 @@ namespace SW3D
   struct Matrix
   {
     public:
+      Matrix() = default;
+
+      // -----------------------------------------------------------------------
+
+      Matrix(const Matrix& copy) :
+        _rows(copy._rows), _cols(copy._cols), _matrix(copy._matrix)
+      {
+      }
+
+      // -----------------------------------------------------------------------
+
+      Matrix(const VV& data)
+        : _matrix(data), _rows(data.size())
+      {
+        _cols = (data.size() != 0) ? data[0].size() : 0;
+      }
 
       // -----------------------------------------------------------------------
 
@@ -204,26 +236,90 @@ namespace SW3D
 
       Matrix operator*(const Matrix& rhs)
       {
-        if (_cols != rhs.Rows())
+        if (_cols != rhs._rows)
         {
-          return Matrix(0,0);
+          return *this;
         }
 
-        uint32_t newCols = rhs.Columns();
+        Matrix res(_rows, rhs._cols);
 
-        Matrix res(_rows, newCols);
-
-        // FIXME:
-
-        for (uint32_t row = 0; row < _rows; row++)
+        for (uint32_t x = 0; x < res._rows; x++)
         {
-          for (uint32_t col = 0; col < newCols; col++)
+          for (uint32_t y = 0; y < res._cols; y++)
           {
-            res[row][col] += (_matrix[row][col] * rhs[col][row]);
+            for (uint32_t z = 0; z < _cols; z++) // or z < rhs._rows
+            {
+              res[x][y] += (_matrix[x][z] * rhs._matrix[z][y]);
+            }
           }
         }
 
         return res;
+      }
+
+      // -----------------------------------------------------------------------
+
+      Vec3 operator*(const Vec3& in)
+      {
+        Vec3 res;
+
+        if (_cols != 4)
+        {
+          return res;
+        }
+
+        res.X = _matrix[0][0] * in.X +
+                _matrix[0][1] * in.Y +
+                _matrix[0][2] * in.Z +
+                _matrix[0][3];
+
+        res.Y = _matrix[1][0] * in.X +
+                _matrix[1][1] * in.Y +
+                _matrix[1][2] * in.Z +
+                _matrix[1][3];
+
+        res.Z = _matrix[2][0] * in.X +
+                _matrix[2][1] * in.Y +
+                _matrix[2][2] * in.Z +
+                _matrix[2][3];
+
+        double w = _matrix[3][0] * in.X +
+                   _matrix[3][1] * in.Y +
+                   _matrix[3][2] * in.Z +
+                   _matrix[3][3];
+
+        if (w != 0.0)
+        {
+          res.X /= w;
+          res.Y /= w;
+          res.Z /= w;
+        }
+
+        return res;
+      }
+
+      // -----------------------------------------------------------------------
+
+      Matrix& operator*=(double value)
+      {
+        for (uint32_t x = 0; x < _rows; x++)
+        {
+          for (uint32_t y = 0; y < _cols; y++)
+          {
+            _matrix[x][y] *= value;
+          }
+        }
+
+        return *this;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void operator=(const Matrix& rhs)
+      {
+        _matrix = rhs._matrix;
+        _rows = rhs._rows;
+        _cols = rhs._cols;
       }
 
     private:
@@ -536,6 +632,11 @@ namespace SW3D
       }
 
       // -----------------------------------------------------------------------
+
+      const uint8_t& PixelSize()
+      {
+        return _pixelSize;
+      }
 
     protected:
       std::string _windowName = "DrawService window";
@@ -1015,10 +1116,23 @@ namespace SW3D
 
   // ===========================================================================
 
-  template <typename M1, typename M2, typename M3>
-  void MultiplyMatrices(const M1& m1, const M2& m2, M3& result)
+  Matrix GetProjection(double fov,
+                       double aspectRatio,
+                       double zNear,
+                       double zFar)
   {
+    double f = 1.0 / tan( (fov / 2) * DEG2RAD );
+    double q = zFar / (zFar - zNear);
 
+    Matrix proj(4, 4);
+
+    proj[0][0] = aspectRatio * f;
+    proj[1][1] = f;
+    proj[2][2] = q;
+    proj[3][2] = -zNear * q;
+    proj[2][3] = 1.0;
+
+    return proj;
   }
 
 } // namespace sw3d

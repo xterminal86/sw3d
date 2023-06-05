@@ -288,6 +288,28 @@ namespace SW3D
                    _matrix[3][2] * in.Z +
                    _matrix[3][3];
 
+        /*
+        res.X = _matrix[0][0] * in.X +
+                _matrix[1][0] * in.Y +
+                _matrix[2][0] * in.Z +
+                _matrix[3][0];
+
+        res.Y = _matrix[0][1] * in.X +
+                _matrix[1][1] * in.Y +
+                _matrix[2][1] * in.Z +
+                _matrix[3][1];
+
+        res.Z = _matrix[0][2] * in.X +
+                _matrix[1][2] * in.Y +
+                _matrix[2][2] * in.Z +
+                _matrix[3][2];
+
+        double w = _matrix[0][3] * in.X +
+                   _matrix[1][3] * in.Y +
+                   _matrix[2][3] * in.Z +
+                   _matrix[3][3];
+        */
+
         if (w != 0.0)
         {
           res.X /= w;
@@ -1208,7 +1230,7 @@ namespace SW3D
 
     Matrix proj(4, 4);
 
-    proj[0][0] = f / aspectRatio;
+    proj[0][0] = (aspectRatio > 1.0) ? (f / aspectRatio) : (f * aspectRatio);
     proj[1][1] = f;
     proj[2][2] = q;
     proj[3][2] = -zNear * q;

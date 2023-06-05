@@ -42,6 +42,13 @@ class Drawer : public DrawWrapper
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
 
+      for (auto& i : _cube.Triangles)
+      {
+        i.Points[0].Z += 20;
+        i.Points[1].Z += 20;
+        i.Points[2].Z += 20;
+      }
+
       //
       // The objects exist in 3D space, but our screen is 2D space.
       // In order to draw 3D object onto the screen we need to find a way to
@@ -339,7 +346,7 @@ class Drawer : public DrawWrapper
       //t.Points[0] = {  1.0, 0.0, 0.0 };
 
       t.Points[0] = {  1.0, 0.0, 20.0 };
-      t.Points[1] = {  0.0, 1.0, 20.0 };
+      t.Points[1] = {  1.0, 1.0, 20.0 };
       t.Points[2] = { -1.0, 0.0, 20.0 };
 
       Triangle tp;
@@ -366,8 +373,8 @@ class Drawer : public DrawWrapper
 
 
       //
-      // FIXME: triangle is projected upside down, winding order gets changed
-      // depending on order of points in Points array.
+      // FIXME: triangle is projected mirrored along X or Y axis,
+      // winding order gets changed depending on order of points in Points array.
       //
       /*
       FillTriangle(tp.Points[0].X, tp.Points[0].Y,
@@ -389,12 +396,20 @@ class Drawer : public DrawWrapper
         for (size_t i = 0; i < 3; i++)
         {
           triProj.Points[i] = _projection * t.Points[i];
+          triProj.Points[i] += 1.0;
+          triProj.Points[i] *= 0.5 * ((double)WW / (double)PixelSize());
         }
 
-        FillTriangle(triProj.Points[0].X, triProj.Points[0].Y,
+        DrawTriangle(triProj.Points[0].X, triProj.Points[0].Y,
                       triProj.Points[1].X, triProj.Points[1].Y,
                       triProj.Points[2].X, triProj.Points[2].Y,
                       0xFFFFFF);
+
+        //FillTriangle(triProj.Points[0].X, triProj.Points[0].Y,
+        //              triProj.Points[1].X, triProj.Points[1].Y,
+        //              triProj.Points[2].X, triProj.Points[2].Y,
+        //              0xFFFFFF);
+
       }
       */
     }

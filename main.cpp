@@ -8,6 +8,8 @@ const uint32_t WH = 600;
 int x = 0;
 int y = 0;
 
+const uint32_t DebugColor = 0xAAAAAA;
+
 class Drawer : public DrawWrapper
 {
   public:
@@ -314,31 +316,35 @@ class Drawer : public DrawWrapper
       // Flat bottom
       //
 
-      //FillTriangle(10, 0, 0, 20, 30, 20, 0xFFFFFF);
-      //FillTriangle(0, 20, 30, 20, 10, 0, 0xFFFFFF);
-      //FillTriangle(30, 20, 10, 0, 0, 20, 0xFFFFFF);
+      FillTriangle(10 + x,  0 + y,  0, 20, 30, 20, DebugColor);
+      //FillTriangle(0 + x,  20 + y, 30, 20, 10,  0, DebugColor);
+      //FillTriangle(30 + x, 20 + y, 10,  0,  0, 20, DebugColor);
 
       //
       // Flat top
       //
 
-      //FillTriangle(20, 20, 10, 0, 0, 0, 0xFFFFFF);
-      //FillTriangle(30, 0, 0, 0, 20, 10, 0xFFFFFF);
-      //FillTriangle(0, 0, 20, 10, 30, 0, 0xFFFFFF);
+      //FillTriangle(20 + x, 20 + y, 10,  0,  0,  0, DebugColor);
+      //FillTriangle(30 + x,  0 + y,  0,  0, 20, 10, DebugColor);
+      //FillTriangle(0,   0, 20, 10, 30,  0, DebugColor);
 
       //
       // Composite
       //
-      //FillTriangle(20, 0, 10, 10, 30, 20, 0xFFFFFF);
-      //FillTriangle(10, 10, 30, 20, 20, 0, 0xFFFFFF);
-      //FillTriangle(30, 20, 20, 0, 10, 10, 0xFFFFFF);
-      //FillTriangle(10, 0, 0, 10, 20, 5, 0xFFFFFF);
+      //FillTriangle(20,  0, 10, 10, 30, 20, DebugColor);
+      //FillTriangle(10, 10, 30, 20, 20,  0, DebugColor);
+      //FillTriangle(30, 20, 20,  0, 10, 10, DebugColor);
+      //FillTriangle(10,  0,  0, 10, 20,  5, DebugColor);
       //
     }
 
     void Draw() override
     {
-      //DebugDraw();
+      // DEBUG:
+      {
+        DebugDraw();
+        return;
+      }
 
       Triangle t;
       //t.Points[2] = {  0.0, 1.0, 0.0 };
@@ -376,42 +382,30 @@ class Drawer : public DrawWrapper
       // FIXME: triangle is projected mirrored along X or Y axis,
       // winding order gets changed depending on order of points in Points array.
       //
-      /*
-      FillTriangle(tp.Points[0].X, tp.Points[0].Y,
-                   tp.Points[1].X, tp.Points[1].Y,
-                   tp.Points[2].X, tp.Points[2].Y,
-                   0xFFFFFF);
-      */
+      //FillTriangle(tp.Points[0].X, tp.Points[0].Y,
+      //             tp.Points[1].X, tp.Points[1].Y,
+      //             tp.Points[2].X, tp.Points[2].Y,
+      //             0xFFFFFF);
 
-      DrawTriangle(tp.Points[0].X, tp.Points[0].Y,
-                   tp.Points[1].X, tp.Points[1].Y,
-                   tp.Points[2].X, tp.Points[2].Y,
-                   0xFFFFFF);
+      //DrawTriangle(tp.Points[0].X, tp.Points[0].Y,
+      //             tp.Points[1].X, tp.Points[1].Y,
+      //             tp.Points[2].X, tp.Points[2].Y,
+      //             0xFFFFFF);
 
-      /*
-      for (auto& t : _cube.Triangles)
-      {
-        Triangle triProj;
-
-        for (size_t i = 0; i < 3; i++)
-        {
-          triProj.Points[i] = _projection * t.Points[i];
-          triProj.Points[i] += 1.0;
-          triProj.Points[i] *= 0.5 * ((double)WW / (double)PixelSize());
-        }
-
-        DrawTriangle(triProj.Points[0].X, triProj.Points[0].Y,
-                      triProj.Points[1].X, triProj.Points[1].Y,
-                      triProj.Points[2].X, triProj.Points[2].Y,
-                      0xFFFFFF);
-
-        //FillTriangle(triProj.Points[0].X, triProj.Points[0].Y,
-        //              triProj.Points[1].X, triProj.Points[1].Y,
-        //              triProj.Points[2].X, triProj.Points[2].Y,
-        //              0xFFFFFF);
-
-      }
-      */
+      //for (auto& t : _cube.Triangles)
+      //{
+      //  Triangle triProj;
+      //
+      //  for (size_t i = 0; i < 3; i++)
+      //  {
+      //    triProj.Points[i] = _projection * t.Points[i];
+      //  }
+      //
+      //  FillTriangle(triProj.Points[0].X, triProj.Points[0].Y,
+      //               triProj.Points[1].X, triProj.Points[1].Y,
+      //               triProj.Points[2].X, triProj.Points[2].Y,
+      //               0xFFFFFF);
+      //}
     }
 
   private:

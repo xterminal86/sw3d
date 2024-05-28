@@ -6,20 +6,21 @@
 #include <chrono>
 #include <cmath>
 #include <sstream>
-#include <map>
+#include <unordered_map>
 
 #include <SDL2/SDL.h>
 
 namespace SW3D
 {
-  constexpr double DEG2RAD = std::acos(-1) / 180.0;
+  constexpr double DEG2RAD = M_PI / 180.0;
 
-  using Clock = std::chrono::high_resolution_clock;
+  using Clock = std::chrono::steady_clock;
   using ns = std::chrono::nanoseconds;
 
   enum class TriangleType
   {
-    FLAT_TOP = 0,
+    UNDEFINED = -1,
+    FLAT_TOP,
     FLAT_BOTTOM,
     COMPOSITE
   };
@@ -362,8 +363,8 @@ namespace SW3D
       void operator=(const Matrix& rhs)
       {
         _matrix = rhs._matrix;
-        _rows = rhs._rows;
-        _cols = rhs._cols;
+        _rows   = rhs._rows;
+        _cols   = rhs._cols;
       }
 
     private:
@@ -372,11 +373,16 @@ namespace SW3D
       uint32_t _rows;
       uint32_t _cols;
 
-      std::map<uint32_t, size_t> _maxColumnLengthByColumn;
+      // -----------------------------------------------------------------------
+      //
+      // For printf debug logs.
+      //
+      std::unordered_map<uint32_t, size_t> _maxColumnLengthByColumn;
 
       char _buf[32];
 
       std::stringstream _ss;
+      // -----------------------------------------------------------------------
   };
 
   // ===========================================================================
@@ -497,6 +503,8 @@ namespace SW3D
 
           _deltaTime = std::chrono::duration<double>(dt).count();
         }
+
+        SDL_Log("Goodbye!");
       }
 
       // -----------------------------------------------------------------------
@@ -517,8 +525,8 @@ namespace SW3D
       {
         _rect.x = x * _pixelSize;
         _rect.y = y * _pixelSize;
-        _rect.w = _pixelSize;
-        _rect.h = _pixelSize;
+        _rect.w =     _pixelSize;
+        _rect.h =     _pixelSize;
 
         SaveColor();
 
@@ -612,6 +620,12 @@ namespace SW3D
                         uint32_t colorMask)
       {
         TriangleType tt = GetTriangleType(x1, y1, x2, y2, x3, y3);
+
+        if (_triangleType != tt)
+        {
+          printf("Before: %s\n", _triangleTypeToString.at(_triangleType).data());
+          _triangleType = tt;
+        }
 
         SwapCoords(x1, y1, x2, y2, x3, y3, tt);
 
@@ -959,13 +973,13 @@ namespace SW3D
         // BASIC:
         // ------
         //
-        // 1) Flat-top
+        // 1) Flat-bottom
         //
         //       1
         //
         //     2   3
         //
-        // 2) Flat-bottom:
+        // 2) Flat-top:
         //
         //     3   2
         //
@@ -1216,6 +1230,16 @@ namespace SW3D
       SDL_Rect _rect;
 
       bool _running = true;
+
+      TriangleType _triangleType = TriangleType::FLAT_TOP;
+
+      const std::unordered_map<TriangleType, std::string> _triangleTypeToString =
+      {
+        { TriangleType::UNDEFINED,   "UNDEFINED"   },
+        { TriangleType::FLAT_BOTTOM, "FLAT_BOTTOM" },
+        { TriangleType::FLAT_TOP,    "FLAT_TOP"    },
+        { TriangleType::COMPOSITE,   "COMPOSITE"   },
+      };
   };
 
   // ===========================================================================

@@ -399,7 +399,7 @@ namespace SW3D
 
       bool Init(uint16_t windowWidth,
                 uint16_t windowHeight,
-                uint8_t pixelSize = 1)
+                uint32_t frameBufferSize = 100)
       {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
         {
@@ -409,7 +409,11 @@ namespace SW3D
 
         SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
-        _pixelSize = pixelSize;
+        //
+        // Extra 1 to account for last screen column in DrawGrid()
+        // since we go from 0 to frameBufferSize.
+        //
+        _frameBufferSize = frameBufferSize + 1;
 
         _windowWidth  = windowWidth;
         _windowHeight = windowHeight;
@@ -448,6 +452,17 @@ namespace SW3D
           }
         }
 
+        _framebuffer = SDL_CreateTexture(_renderer,
+                                         SDL_PIXELFORMAT_RGBA32,
+                                         SDL_TEXTUREACCESS_TARGET,
+                                         _frameBufferSize,
+                                         _frameBufferSize);
+        if (_framebuffer == nullptr)
+        {
+          SDL_Log("Failed to create framebuffer: %s", SDL_GetError());
+          return false;
+        }
+
         _aspectRatio = (double)_windowHeight / (double)_windowWidth;
 
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
@@ -484,17 +499,20 @@ namespace SW3D
             HandleEvent(evt);
           }
 
+          SDL_SetRenderTarget(_renderer, _framebuffer);
           SDL_RenderClear(_renderer);
 
           if (debugMode)
           {
             DrawGrid();
-            char buf[128];
-            ::snprintf(buf, sizeof(buf), "%f", _deltaTime);
-            SDL_SetWindowTitle(_window, buf);
+            ::snprintf(_buf, sizeof(_buf), "%f", _deltaTime);
+            SDL_SetWindowTitle(_window, _buf);
           }
 
           Draw();
+
+          SDL_SetRenderTarget(_renderer, nullptr);
+          SDL_RenderCopy(_renderer, _framebuffer, nullptr, nullptr);
 
           SDL_RenderPresent(_renderer);
 
@@ -521,13 +539,8 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      void DrawPoint(int x, int y, uint32_t colorMask)
+      void DrawPoint(const SDL_Point& p, uint32_t colorMask)
       {
-        _rect.x = x * _pixelSize;
-        _rect.y = y * _pixelSize;
-        _rect.w =     _pixelSize;
-        _rect.h =     _pixelSize;
-
         SaveColor();
 
         if (HasAlpha(colorMask))
@@ -542,20 +555,49 @@ namespace SW3D
         }
 
         SDL_SetRenderDrawColor(_renderer,
-                               _drawColor.r,
-                               _drawColor.g,
-                               _drawColor.b,
-                               _drawColor.a);
+                                _drawColor.r,
+                                _drawColor.g,
+                                _drawColor.b,
+                                _drawColor.a);
 
-        SDL_RenderFillRect(_renderer, &_rect);
+        SDL_RenderDrawPoint(_renderer, p.x, p.y);
 
         RestoreColor();
       }
 
       // -----------------------------------------------------------------------
 
-      void DrawLine(int x1, int y1, int x2, int y2, uint32_t colorMask)
+      void DrawLine(const SDL_Point& p1,
+                    const SDL_Point& p2,
+                    uint32_t colorMask)
       {
+        SaveColor();
+
+        if (HasAlpha(colorMask))
+        {
+          SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
+          HTML2RGBA(colorMask);
+        }
+        else
+        {
+          SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_NONE);
+          HTML2RGB(colorMask);
+        }
+
+        SDL_SetRenderDrawColor(_renderer,
+                                _drawColor.r,
+                                _drawColor.g,
+                                _drawColor.b,
+                                _drawColor.a);
+
+        SDL_RenderDrawLine(_renderer, p1.x, p1.y, p2.x, p2.y);
+
+        RestoreColor();
+
+        //
+        // Bresenham line rendering implementation using points.
+        //
+        #if 0
         bool steep = fabs(y2 - y1) > fabs(x2 - x1);
 
         if (steep)
@@ -598,26 +640,82 @@ namespace SW3D
             error += dx;
           }
         }
+        #endif
       }
 
       // -----------------------------------------------------------------------
 
-      void DrawTriangle(int x1, int y1,
-                        int x2, int y2,
-                        int x3, int y3,
+      void DrawTriangle(const SDL_Point& p1,
+                        const SDL_Point& p2,
+                        const SDL_Point& p3,
+                        uint32_t colorMask,
+                        bool wireframe = false)
+      {
+        if (wireframe)
+        {
+          DrawLine(p1, p2, colorMask);
+          DrawLine(p2, p3, colorMask);
+          DrawLine(p1, p3, colorMask);
+        }
+        else
+        {
+          FillTriangle(p1, p2, p3, colorMask);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      void DrawTriangle(const Vec3& p1,
+                        const Vec3& p2,
+                        const Vec3& p3,
+                        uint32_t colorMask,
+                        bool wireframe = false)
+      {
+        DrawTriangle(SDL_Point{ (int32_t)p1.X, (int32_t)p1.Y },
+                     SDL_Point{ (int32_t)p2.X, (int32_t)p2.Y },
+                     SDL_Point{ (int32_t)p3.X, (int32_t)p3.Y },
+                     colorMask,
+                     wireframe);
+      }
+
+      // -----------------------------------------------------------------------
+
+      void FillTriangle(const SDL_Point& p1,
+                        const SDL_Point& p2,
+                        const SDL_Point& p3,
                         uint32_t colorMask)
       {
-        DrawLine(x1, y1, x2, y2, colorMask);
-        DrawLine(x2, y2, x3, y3, colorMask);
-        DrawLine(x1, y1, x3, y3, colorMask);
+        int xMin = std::min( std::min(p1.x, p2.x), p3.x);
+        int yMin = std::min( std::min(p1.y, p2.y), p3.y);
+        int xMax = std::max( std::max(p1.x, p2.x), p3.x);
+        int yMax = std::max( std::max(p1.y, p2.y), p3.y);
+
+        for (int x = xMin; x <= xMax; x++)
+        {
+          for (int y = yMin; y <= yMax; y++)
+          {
+            SDL_Point p = { x, y };
+
+            int w0 = CrossProduct(p1, p2, p);
+            int w1 = CrossProduct(p2, p3, p);
+            int w2 = CrossProduct(p3, p1, p);
+
+            bool inside = (w0 <= 0 && w1 <= 0 && w2 <= 0);
+
+            if (inside)
+            {
+              DrawPoint(p, colorMask);
+            }
+          }
+        }
       }
 
       // -----------------------------------------------------------------------
 
-      void FillTriangle(int x1, int y1,
-                        int x2, int y2,
-                        int x3, int y3,
-                        uint32_t colorMask)
+      void FillTriangleOld(int x1, int y1,
+                           int x2, int y2,
+                           int x3, int y3,
+                           uint32_t colorMask)
       {
         TriangleType tt = GetTriangleType(x1, y1, x2, y2, x3, y3);
 
@@ -751,9 +849,9 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      const uint8_t& PixelSize()
+      const uint32_t& FrameBufferSize()
       {
-        return _pixelSize;
+        return _frameBufferSize;
       }
 
     protected:
@@ -784,6 +882,18 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      int32_t CrossProduct(const SDL_Point& p1,
+                           const SDL_Point& p2,
+                           const SDL_Point& p)
+      {
+        static SDL_Point v1, v2;
+        v1 = { p2.x - p1.x, p2.y - p1.y };
+        v2 = { p.x  - p1.x, p.y  - p1.y };
+        return (v1.x * v2.y - v1.y * v2.x);
+      }
+
+      // -----------------------------------------------------------------------
+
       void SaveColor()
       {
         SDL_GetRenderDrawColor(_renderer,
@@ -808,18 +918,13 @@ namespace SW3D
 
       void DrawGrid()
       {
-        if (_pixelSize < 4)
-        {
-          return;
-        }
-
         SaveColor();
 
-        SDL_SetRenderDrawColor(_renderer, 128, 128, 128, 255);
+        SDL_SetRenderDrawColor(_renderer, 64, 64, 64, 255);
 
-        for (int x = 0; x < _windowWidth; x += _pixelSize)
+        for (int x = 0; x <= _windowWidth; x += 10)
         {
-          for (int y = 0; y < _windowHeight; y += _pixelSize)
+          for (int y = 0; y <= _windowHeight; y += 10)
           {
             SDL_RenderDrawPoint(_renderer, x, y);
           }
@@ -906,7 +1011,7 @@ namespace SW3D
         {
           for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
           {
-            DrawPoint(lineX, scanline, colorMask);
+            DrawPoint({ lineX, scanline }, colorMask);
           }
 
           curx1 += invSlope1;
@@ -941,7 +1046,7 @@ namespace SW3D
         {
           for (int lineX = (int)curx2; lineX <= (int)curx1; lineX++)
           {
-            DrawPoint(lineX, scanline, colorMask);
+            DrawPoint({ lineX, scanline }, colorMask);
           }
 
           //
@@ -1208,7 +1313,9 @@ namespace SW3D
       SDL_Renderer* _renderer = nullptr;
       SDL_Window* _window     = nullptr;
 
-      uint8_t _pixelSize = 1;
+      SDL_Texture* _framebuffer = nullptr;
+
+      uint32_t _frameBufferSize = 0;
 
       uint16_t _windowWidth  = 0;
       uint16_t _windowHeight = 0;
@@ -1232,6 +1339,8 @@ namespace SW3D
       bool _running = true;
 
       TriangleType _triangleType = TriangleType::FLAT_TOP;
+
+      char _buf[128];
 
       const std::unordered_map<TriangleType, std::string> _triangleTypeToString =
       {

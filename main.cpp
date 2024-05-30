@@ -2,11 +2,18 @@
 
 using namespace SW3D;
 
-const uint32_t WW = 800;
+const uint32_t WW = 600;
 const uint32_t WH = 600;
+const uint32_t RESOLUTION = 100;
 
 int x = 0;
 int y = 0;
+
+double DX = 0.0;
+double DY = 0.0;
+double DZ = 0.0;
+
+bool wireframe = false;
 
 const uint32_t DebugColor = 0xAAAAAA;
 
@@ -306,17 +313,74 @@ class Drawer : public DrawWrapper
       {
         y++;
       }
+
+      switch (evt.type)
+      {
+        case SDL_KEYDOWN:
+        {
+          switch (evt.key.keysym.sym)
+          {
+            case SDLK_TAB:
+              wireframe = !wireframe;
+              break;
+
+            case SDLK_p:
+              SDL_Log("%d %d", x, y);
+              break;
+
+            case SDLK_e:
+              DZ += 0.1;
+              break;
+
+            case SDLK_q:
+              DZ -= 0.1;
+              break;
+
+            case SDLK_d:
+              DX += 0.1;
+              break;
+
+            case SDLK_a:
+              DX -= 0.1;
+              break;
+
+            case SDLK_w:
+              DY -= 0.1;
+              break;
+
+            case SDLK_s:
+              DY += 0.1;
+              break;
+          }
+        }
+        break;
+      }
     }
 
     void DebugDraw()
     {
+      DrawPoint({ 10, 10 }, 0xFFFFFF);
+      DrawLine({ 10, 0 }, { 20, 5 }, 0xFF0000);
+
+      DrawTriangle(SDL_Point{ 10 + x,  20 + y },
+                   SDL_Point{  0, 40 },
+                   SDL_Point{ 30, 40 },
+                   DebugColor,
+                   wireframe);
+
+      DrawTriangle(SDL_Point{ 10 + x,  20 + y },
+                   SDL_Point{ 30, 40 },
+                   SDL_Point{ 30, 20 },
+                   0x00FFFF,
+                   wireframe);
+
       //
-      // DEBUG:
+      // NOTE: old
       //
       // Flat bottom
       //
 
-      FillTriangle(10 + x,  0 + y,  0, 20, 30, 20, DebugColor);
+      //FillTriangle(10 + x,  0 + y,  0, 20, 30, 20, DebugColor);
       //FillTriangle(0 + x,  20 + y, 30, 20, 10,  0, DebugColor);
       //FillTriangle(30 + x, 20 + y, 10,  0,  0, 20, DebugColor);
 
@@ -341,19 +405,16 @@ class Drawer : public DrawWrapper
     void Draw() override
     {
       // DEBUG:
-      {
-        DebugDraw();
-        return;
-      }
+      //{
+      //  DebugDraw();
+      //  return;
+      //}
 
       Triangle t;
-      //t.Points[2] = {  0.0, 1.0, 0.0 };
-      //t.Points[1] = { -1.0, 0.0, 0.0 };
-      //t.Points[0] = {  1.0, 0.0, 0.0 };
 
-      t.Points[0] = {  1.0, 0.0, 20.0 };
-      t.Points[1] = {  1.0, 1.0, 20.0 };
-      t.Points[2] = { -1.0, 0.0, 20.0 };
+      t.Points[0] = {  0.0 + DX, 0.0 + DY, -1.0 + DZ };
+      t.Points[1] = {  0.0 + DX, 1.0 + DY, -1.0 + DZ };
+      t.Points[2] = {  1.0 + DX, 1.0 + DY, -1.0 + DZ };
 
       Triangle tp;
 
@@ -374,23 +435,14 @@ class Drawer : public DrawWrapper
         //
         // Now we need to scale it properly into viewscreen.
         //
-        tp.Points[i] *= 0.5 * ((double)WW / (double)PixelSize());
+        tp.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
       }
 
-
-      //
-      // FIXME: triangle is projected mirrored along X or Y axis,
-      // winding order gets changed depending on order of points in Points array.
-      //
-      //FillTriangle(tp.Points[0].X, tp.Points[0].Y,
-      //             tp.Points[1].X, tp.Points[1].Y,
-      //             tp.Points[2].X, tp.Points[2].Y,
-      //             0xFFFFFF);
-
-      //DrawTriangle(tp.Points[0].X, tp.Points[0].Y,
-      //             tp.Points[1].X, tp.Points[1].Y,
-      //             tp.Points[2].X, tp.Points[2].Y,
-      //             0xFFFFFF);
+      DrawTriangle(tp.Points[0],
+                    tp.Points[1],
+                    tp.Points[2],
+                    0xFFFFFF,
+                    wireframe);
 
       //for (auto& t : _cube.Triangles)
       //{
@@ -401,10 +453,11 @@ class Drawer : public DrawWrapper
       //    triProj.Points[i] = _projection * t.Points[i];
       //  }
       //
-      //  FillTriangle(triProj.Points[0].X, triProj.Points[0].Y,
-      //               triProj.Points[1].X, triProj.Points[1].Y,
-      //               triProj.Points[2].X, triProj.Points[2].Y,
-      //               0xFFFFFF);
+      //  DrawTriangle(triProj.Points[0],
+      //                triProj.Points[1],
+      //                triProj.Points[2],
+      //                0xFFFFFF,
+      //                wireframe);
       //}
     }
 
@@ -417,7 +470,7 @@ int main(int argc, char* argv[])
 {
   Drawer d;
 
-  if ( d.Init(WW, WH, 12) )
+  if ( d.Init(WW, WH, RESOLUTION) )
   {
     d.Run(true);
   }

@@ -194,7 +194,10 @@ namespace SW3D
   struct Matrix
   {
     public:
-      Matrix() = default;
+      Matrix() : _rows(4), _cols(4)
+      {
+        Init();
+      }
 
       // -----------------------------------------------------------------------
 
@@ -214,6 +217,13 @@ namespace SW3D
       // -----------------------------------------------------------------------
 
       Matrix(uint32_t rows, uint32_t cols) : _rows(rows), _cols(cols)
+      {
+        Init();
+      }
+
+      // -----------------------------------------------------------------------
+
+      void Init()
       {
         _matrix.resize(_rows);
 
@@ -403,28 +413,6 @@ namespace SW3D
                    _matrix[3][1] * in.Y +
                    _matrix[3][2] * in.Z +
                    _matrix[3][3];
-
-        /*
-        res.X = _matrix[0][0] * in.X +
-                _matrix[1][0] * in.Y +
-                _matrix[2][0] * in.Z +
-                _matrix[3][0];
-
-        res.Y = _matrix[0][1] * in.X +
-                _matrix[1][1] * in.Y +
-                _matrix[2][1] * in.Z +
-                _matrix[3][1];
-
-        res.Z = _matrix[0][2] * in.X +
-                _matrix[1][2] * in.Y +
-                _matrix[2][2] * in.Z +
-                _matrix[3][2];
-
-        double w = _matrix[0][3] * in.X +
-                   _matrix[1][3] * in.Y +
-                   _matrix[2][3] * in.Z +
-                   _matrix[3][3];
-        */
 
         if (w != 0.0)
         {
@@ -979,6 +967,96 @@ namespace SW3D
 
   // ===========================================================================
 
+  Vec3 RotateX(const Vec3& p, double angle)
+  {
+    Matrix r;
+
+    r[0][0] = 1.0;
+    r[0][1] = 0.0;
+    r[0][2] = 0.0;
+    r[0][3] = 0.0;
+
+    r[1][0] = 0.0;
+    r[1][1] = std::cos(angle * DEG2RAD);
+    r[1][2] = -std::sin(angle * DEG2RAD);
+    r[1][3] = 0.0;
+
+    r[2][0] = 0.0;
+    r[2][1] = std::sin(angle * DEG2RAD);
+    r[2][2] = std::cos(angle * DEG2RAD);
+    r[2][3] = 0.0;
+
+    r[3][0] = 0.0;
+    r[3][1] = 0.0;
+    r[3][2] = 0.0;
+    r[3][3] = 1.0;
+
+    return r * p;
+  }
+
+  // ===========================================================================
+
+  Vec3 RotateY(const Vec3& p, double angle)
+  {
+    Matrix r;
+
+    r[0][0] = std::cos(angle * DEG2RAD);
+    r[0][1] = 0.0;
+    r[0][2] = std::sin(angle * DEG2RAD);
+    r[0][3] = 0.0;
+
+    r[1][0] = 0.0;
+    r[1][1] = 1.0;
+    r[1][2] = 0.0;
+    r[1][3] = 0.0;
+
+    r[2][0] = -std::sin(angle * DEG2RAD);
+    r[2][1] = 0.0;
+    r[2][2] = std::cos(angle * DEG2RAD);
+    r[2][3] = 0.0;
+
+    r[3][0] = 0.0;
+    r[3][1] = 0.0;
+    r[3][2] = 0.0;
+    r[3][3] = 1.0;
+
+    return r * p;
+  }
+
+  // ===========================================================================
+
+  Vec3 RotateZ(const Vec3& p, double angle)
+  {
+    Matrix r;
+
+    r[0][0] = std::cos(angle * DEG2RAD);
+    r[0][1] = -std::sin(angle * DEG2RAD);
+    r[0][2] = 0.0;
+    r[0][3] = 0.0;
+
+    r[1][0] = std::sin(angle * DEG2RAD);
+    r[1][1] = std::cos(angle * DEG2RAD);
+    r[1][2] = 0.0;
+    r[1][3] = 0.0;
+
+    r[2][0] = 0.0;
+    r[2][1] = 0.0;
+    r[2][2] = 1.0;
+    r[2][3] = 0.0;
+
+    r[3][0] = 0.0;
+    r[3][1] = 0.0;
+    r[3][2] = 0.0;
+    r[3][3] = 1.0;
+
+    return r * p;
+  }
+
+  // ===========================================================================
+
+  //
+  // FIXME: doesn't work :-(
+  //
   Vec3 Rotate(const Vec3& p, const Vec3& around, double angleDeg)
   {
     Vec3 res;

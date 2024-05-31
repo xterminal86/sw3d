@@ -2,8 +2,8 @@
 
 using namespace SW3D;
 
-const uint32_t WW = 1000;
-const uint32_t WH = 1000;
+const uint32_t WW = 600;
+const uint32_t WH = 600;
 const uint32_t RESOLUTION = 200;
 
 int KeyboardX = 0;
@@ -393,18 +393,47 @@ class Drawer : public DrawWrapper
     {
       static double angle = 0.0;
 
+      //
+      // Original model.
+      //
       Triangle t;
 
-      t.Points[0] = {  0.0 + DX, 0.0 + DY, -1.0 + DZ };
-      t.Points[1] = {  0.0 + DX, 1.0 + DY, -1.0 + DZ };
-      t.Points[2] = {  1.0 + DX, 1.0 + DY, -1.0 + DZ };
+      t.Points[0] = { 0.0, 0.0, -1.0 };
+      t.Points[1] = { 0.0, 1.0, -1.0 };
+      t.Points[2] = { 1.0, 1.0, -1.0 };
 
+      //
+      // Rotated.
+      //
       Triangle tr;
 
-      tr.Points[0] = Rotate(t.Points[0], Directions::DOWN, angle);
-      tr.Points[1] = Rotate(t.Points[1], Directions::DOWN, angle);
-      tr.Points[2] = Rotate(t.Points[2], Directions::DOWN, angle);
+      for (size_t i = 0; i < 3; i++)
+      {
+        // FIXME: doesn' work.
+        //tr.Points[i] = Rotate(t.Points[i], Directions::RIGHT, angle);
 
+        // FIXME: these don't work either
+        //tr.Points[i] = RotateX(t.Points[i], angle);
+        //tr.Points[i] = RotateY(t.Points[i], angle);
+
+        tr.Points[i] = RotateZ(t.Points[i], angle);
+      }
+
+      //
+      // Translated.
+      //
+      Triangle tt = tr;
+
+      for (size_t i = 0; i < 3; i++)
+      {
+        tt.Points[i].X += DX;
+        tt.Points[i].Y += DY;
+        tt.Points[i].Z += DZ;
+      }
+
+      //
+      // Projected.
+      //
       Triangle tp;
 
       for (size_t i = 0; i < 3; i++)
@@ -413,7 +442,7 @@ class Drawer : public DrawWrapper
         // The resulting coordinates will be in range [ -1 ; 1 ].
         // So leftmost part will be offscreen.
         //
-        tp.Points[i] = _projection * tr.Points[i];
+        tp.Points[i] = _projection * tt.Points[i];
 
         //
         // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
@@ -453,7 +482,7 @@ class Drawer : public DrawWrapper
       }
       */
 
-      angle += 0.1;
+      angle += (100.0 * DeltaTime());
     }
 
     // -------------------------------------------------------------------------

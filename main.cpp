@@ -2,12 +2,12 @@
 
 using namespace SW3D;
 
-const uint32_t WW = 600;
-const uint32_t WH = 600;
-const uint32_t RESOLUTION = 100;
+const uint32_t WW = 1000;
+const uint32_t WH = 1000;
+const uint32_t RESOLUTION = 200;
 
-int x = 0;
-int y = 0;
+int KeyboardX = 0;
+int KeyboardY = 0;
 
 double DX = 0.0;
 double DY = 0.0;
@@ -53,9 +53,9 @@ class Drawer : public DrawWrapper
 
       for (auto& i : _cube.Triangles)
       {
-        i.Points[0].Z += 20;
-        i.Points[1].Z += 20;
-        i.Points[2].Z += 20;
+        i.Points[0].Z += -1.0;
+        i.Points[1].Z += -1.0;
+        i.Points[2].Z += -1.0;
       }
 
       //
@@ -280,11 +280,13 @@ class Drawer : public DrawWrapper
       //      a
       //
 
-      _projection = GetProjection(90.0,
+      _projection = GetProjection(60.0,
                                  (double)WW / (double)WH,
                                  0.1,
                                  1000.0);
     }
+
+    // -------------------------------------------------------------------------
 
     void HandleEvent(const SDL_Event& evt) override
     {
@@ -296,22 +298,22 @@ class Drawer : public DrawWrapper
 
       if (kb[SDL_SCANCODE_RIGHT])
       {
-        x++;
+        KeyboardX++;
       }
 
       if (kb[SDL_SCANCODE_LEFT])
       {
-        x--;
+        KeyboardX--;
       }
 
       if (kb[SDL_SCANCODE_UP])
       {
-        y--;
+        KeyboardY--;
       }
 
       if (kb[SDL_SCANCODE_DOWN])
       {
-        y++;
+        KeyboardY++;
       }
 
       switch (evt.type)
@@ -325,7 +327,7 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_p:
-              SDL_Log("%d %d", x, y);
+              SDL_Log("%d %d", KeyboardX, KeyboardY);
               break;
 
             case SDLK_e:
@@ -357,64 +359,51 @@ class Drawer : public DrawWrapper
       }
     }
 
+    // -------------------------------------------------------------------------
+
     void DebugDraw()
     {
       DrawPoint({ 10, 10 }, 0xFFFFFF);
       DrawLine({ 10, 0 }, { 20, 5 }, 0xFF0000);
 
-      DrawTriangle(SDL_Point{ 10 + x,  20 + y },
+      DrawTriangle(SDL_Point{ 10 + KeyboardX,  20 + KeyboardY },
                    SDL_Point{  0, 40 },
                    SDL_Point{ 30, 40 },
                    DebugColor,
                    wireframe);
 
-      DrawTriangle(SDL_Point{ 10 + x,  20 + y },
+      DrawTriangle(SDL_Point{ 10 + KeyboardX,  20 + KeyboardY },
                    SDL_Point{ 30, 40 },
                    SDL_Point{ 30, 20 },
                    0x00FFFF,
                    wireframe);
-
-      //
-      // NOTE: old
-      //
-      // Flat bottom
-      //
-
-      //FillTriangle(10 + x,  0 + y,  0, 20, 30, 20, DebugColor);
-      //FillTriangle(0 + x,  20 + y, 30, 20, 10,  0, DebugColor);
-      //FillTriangle(30 + x, 20 + y, 10,  0,  0, 20, DebugColor);
-
-      //
-      // Flat top
-      //
-
-      //FillTriangle(20 + x, 20 + y, 10,  0,  0,  0, DebugColor);
-      //FillTriangle(30 + x,  0 + y,  0,  0, 20, 10, DebugColor);
-      //FillTriangle(0,   0, 20, 10, 30,  0, DebugColor);
-
-      //
-      // Composite
-      //
-      //FillTriangle(20,  0, 10, 10, 30, 20, DebugColor);
-      //FillTriangle(10, 10, 30, 20, 20,  0, DebugColor);
-      //FillTriangle(30, 20, 20,  0, 10, 10, DebugColor);
-      //FillTriangle(10,  0,  0, 10, 20,  5, DebugColor);
-      //
     }
 
-    void Draw() override
+
+    // -------------------------------------------------------------------------
+
+    void Draw2D()
     {
-      // DEBUG:
-      //{
-      //  DebugDraw();
-      //  return;
-      //}
+      DrawLine({ 80, 20 }, { 85, 40 }, 0x00FF00);
+    }
+
+    // -------------------------------------------------------------------------
+
+    void Draw3D()
+    {
+      static double angle = 0.0;
 
       Triangle t;
 
       t.Points[0] = {  0.0 + DX, 0.0 + DY, -1.0 + DZ };
       t.Points[1] = {  0.0 + DX, 1.0 + DY, -1.0 + DZ };
       t.Points[2] = {  1.0 + DX, 1.0 + DY, -1.0 + DZ };
+
+      Triangle tr;
+
+      tr.Points[0] = Rotate(t.Points[0], Directions::DOWN, angle);
+      tr.Points[1] = Rotate(t.Points[1], Directions::DOWN, angle);
+      tr.Points[2] = Rotate(t.Points[2], Directions::DOWN, angle);
 
       Triangle tp;
 
@@ -424,7 +413,7 @@ class Drawer : public DrawWrapper
         // The resulting coordinates will be in range [ -1 ; 1 ].
         // So leftmost part will be offscreen.
         //
-        tp.Points[i] = _projection * t.Points[i];
+        tp.Points[i] = _projection * tr.Points[i];
 
         //
         // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
@@ -439,26 +428,46 @@ class Drawer : public DrawWrapper
       }
 
       DrawTriangle(tp.Points[0],
-                    tp.Points[1],
-                    tp.Points[2],
-                    0xFFFFFF,
-                    wireframe);
+                   tp.Points[1],
+                   tp.Points[2],
+                   0xFFFFFF,
+                   wireframe);
 
-      //for (auto& t : _cube.Triangles)
+      /*
+      for (auto& t : _cube.Triangles)
+      {
+        Triangle triProj;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          triProj.Points[i] = _projection * t.Points[i];
+          triProj.Points[i] += 1.0;
+          triProj.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
+        }
+
+        DrawTriangle(triProj.Points[0],
+                      triProj.Points[1],
+                      triProj.Points[2],
+                      0xFFFFFF,
+                      wireframe);
+      }
+      */
+
+      angle += 0.1;
+    }
+
+    // -------------------------------------------------------------------------
+
+    void Draw() override
+    {
+      // DEBUG:
       //{
-      //  Triangle triProj;
-      //
-      //  for (size_t i = 0; i < 3; i++)
-      //  {
-      //    triProj.Points[i] = _projection * t.Points[i];
-      //  }
-      //
-      //  DrawTriangle(triProj.Points[0],
-      //                triProj.Points[1],
-      //                triProj.Points[2],
-      //                0xFFFFFF,
-      //                wireframe);
+      //  DebugDraw();
+      //  return;
       //}
+
+      //Draw2D();
+      Draw3D();
     }
 
   private:

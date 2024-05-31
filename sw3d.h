@@ -10,19 +10,69 @@
 
 #include <SDL2/SDL.h>
 
+#define INIT_CHECK()                                           \
+  if (not _initialized)                                        \
+  {                                                            \
+    SDL_Log("Drawer is not initialized - call Init() first!"); \
+    return;                                                    \
+  }
+
 namespace SW3D
 {
+  enum class FrontFaceWinding
+  {
+    CW = 0,
+    CCW
+  };
+
+  enum class FaceCullMode
+  {
+    FRONT = 0,
+    BACK,
+    BOTH
+  };
+
   constexpr double DEG2RAD = M_PI / 180.0;
 
   using Clock = std::chrono::steady_clock;
-  using ns = std::chrono::nanoseconds;
+  using ns    = std::chrono::nanoseconds;
 
-  enum class TriangleType
+  // ===========================================================================
+
+  struct Vec2
   {
-    UNDEFINED = -1,
-    FLAT_TOP,
-    FLAT_BOTTOM,
-    COMPOSITE
+    double X = 0.0;
+    double Y = 0.0;
+
+    void operator*=(double value)
+    {
+      X *= value;
+      Y *= value;
+    }
+
+    void operator+=(double value)
+    {
+      X += value;
+      Y += value;
+    }
+
+    double Length()
+    {
+      return std::sqrt(X * X + Y * Y);
+    }
+
+    void Normalize()
+    {
+      double l = Length();
+
+      if (l == 0)
+      {
+        return;
+      }
+
+      X /= l;
+      Y /= l;
+    }
   };
 
   // ===========================================================================
@@ -46,6 +96,25 @@ namespace SW3D
       Y += value;
       Z += value;
     }
+
+    double Length()
+    {
+      return std::sqrt(X * X + Y * Y + Z * Z);
+    }
+
+    void Normalize()
+    {
+      double l = Length();
+
+      if (l == 0)
+      {
+        return;
+      }
+
+      X /= l;
+      Y /= l;
+      Z /= l;
+    }
   };
 
   // ===========================================================================
@@ -56,7 +125,53 @@ namespace SW3D
     double Y = 0.0;
     double Z = 0.0;
     double W = 1.0;
+
+    void operator*=(double value)
+    {
+      X *= value;
+      Y *= value;
+      Z *= value;
+      W *= value;
+    }
+
+    void operator+=(double value)
+    {
+      X += value;
+      Y += value;
+      Z += value;
+      W += value;
+    }
+
+    double Length()
+    {
+      return std::sqrt(X * X + Y * Y + Z * Z + W * W);
+    }
+
+    void Normalize()
+    {
+      double l = Length();
+
+      if (l == 0)
+      {
+        return;
+      }
+
+      X /= l;
+      Y /= l;
+      Z /= l;
+      W /= l;
+    }
   };
+
+  namespace Directions
+  {
+    const Vec3 UP    = {  0.0,  1.0,  0.0 };
+    const Vec3 DOWN  = {  0.0, -1.0,  0.0 };
+    const Vec3 RIGHT = {  1.0,  0.0,  0.0 };
+    const Vec3 LEFT  = { -1.0,  0.0,  0.0 };
+    const Vec3 IN    = {  0.0,  0.0, -1.0 };
+    const Vec3 OUT   = {  0.0,  0.0,  1.0 };
+  }
 
   // ===========================================================================
 
@@ -476,11 +591,7 @@ namespace SW3D
 
       void Run(bool debugMode = false)
       {
-        if (not _initialized)
-        {
-          SDL_Log("Renderer is not initialized - call Init() first!");
-          return;
-        }
+        INIT_CHECK();
 
         SDL_Event evt;
 
@@ -505,8 +616,6 @@ namespace SW3D
           if (debugMode)
           {
             DrawGrid();
-            ::snprintf(_buf, sizeof(_buf), "%f", _deltaTime);
-            SDL_SetWindowTitle(_window, _buf);
           }
 
           Draw();
@@ -516,10 +625,24 @@ namespace SW3D
 
           SDL_RenderPresent(_renderer);
 
+          _fps++;
+
           measureEnd = Clock::now();
           dt = measureEnd - measureStart;
 
           _deltaTime = std::chrono::duration<double>(dt).count();
+          _dtAcc += _deltaTime;
+
+          if (_dtAcc > 1.0)
+          {
+            static char buf[128];
+
+            ::snprintf(buf, sizeof(buf), "FPS: %u", _fps);
+            SDL_SetWindowTitle(_window, buf);
+
+            _dtAcc = 0.0;
+            _fps = 0;
+          }
         }
 
         SDL_Log("Goodbye!");
@@ -541,6 +664,8 @@ namespace SW3D
 
       void DrawPoint(const SDL_Point& p, uint32_t colorMask)
       {
+        INIT_CHECK();
+
         SaveColor();
 
         if (HasAlpha(colorMask))
@@ -571,6 +696,8 @@ namespace SW3D
                     const SDL_Point& p2,
                     uint32_t colorMask)
       {
+        INIT_CHECK();
+
         SaveColor();
 
         if (HasAlpha(colorMask))
@@ -593,54 +720,6 @@ namespace SW3D
         SDL_RenderDrawLine(_renderer, p1.x, p1.y, p2.x, p2.y);
 
         RestoreColor();
-
-        //
-        // Bresenham line rendering implementation using points.
-        //
-        #if 0
-        bool steep = fabs(y2 - y1) > fabs(x2 - x1);
-
-        if (steep)
-        {
-          std::swap(x1, y1);
-          std::swap(x2, y2);
-        }
-
-        if (x1 > x2)
-        {
-          std::swap(x1, x2);
-          std::swap(y1, y2);
-        }
-
-        double dx = x2 - x1;
-        double dy = fabs(y2 - y1);
-
-        double error = dx / 2.0;
-
-        int yStep = (y1 < y2) ? 1 : -1;
-
-        int y = y1;
-
-        for (int x = x1; x <= x2; x++)
-        {
-          if (steep)
-          {
-            DrawPoint(y, x, colorMask);
-          }
-          else
-          {
-            DrawPoint(x, y, colorMask);
-          }
-
-          error -= dy;
-
-          if (error < 0)
-          {
-            y += yStep;
-            error += dx;
-          }
-        }
-        #endif
       }
 
       // -----------------------------------------------------------------------
@@ -651,6 +730,8 @@ namespace SW3D
                         uint32_t colorMask,
                         bool wireframe = false)
       {
+        INIT_CHECK();
+
         if (wireframe)
         {
           DrawLine(p1, p2, colorMask);
@@ -680,11 +761,16 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      //
+      // Simple rasterizer based on point inside triangle test.
+      //
       void FillTriangle(const SDL_Point& p1,
                         const SDL_Point& p2,
                         const SDL_Point& p3,
                         uint32_t colorMask)
       {
+        INIT_CHECK();
+
         int xMin = std::min( std::min(p1.x, p2.x), p3.x);
         int yMin = std::min( std::min(p1.y, p2.y), p3.y);
         int xMax = std::max( std::max(p1.x, p2.x), p3.x);
@@ -700,143 +786,18 @@ namespace SW3D
             int w1 = CrossProduct(p2, p3, p);
             int w2 = CrossProduct(p3, p1, p);
 
-            bool inside = (w0 <= 0 && w1 <= 0 && w2 <= 0);
+            //
+            // TODO: add user configurable front face vertex winding order into
+            // account.
+            //
+            bool inside = (w0 <= 0 and w1 <= 0 and w2 <= 0)
+                       or (w0 >= 0 and w1 >= 0 and w2 >= 0);
 
             if (inside)
             {
               DrawPoint(p, colorMask);
             }
           }
-        }
-      }
-
-      // -----------------------------------------------------------------------
-
-      void FillTriangleOld(int x1, int y1,
-                           int x2, int y2,
-                           int x3, int y3,
-                           uint32_t colorMask)
-      {
-        TriangleType tt = GetTriangleType(x1, y1, x2, y2, x3, y3);
-
-        if (_triangleType != tt)
-        {
-          printf("Before: %s\n", _triangleTypeToString.at(_triangleType).data());
-          _triangleType = tt;
-        }
-
-        SwapCoords(x1, y1, x2, y2, x3, y3, tt);
-
-        switch (tt)
-        {
-          case TriangleType::FLAT_BOTTOM:
-            FillFlatBottomTriangle(x1, y1, x2, y2, x3, y3, colorMask);
-            break;
-
-          case TriangleType::FLAT_TOP:
-            FillFlatTopTriangle(x1, y1, x2, y2, x3, y3, colorMask);
-            break;
-
-          case TriangleType::COMPOSITE:
-          {
-            int x4;
-            int y4;
-
-            if (y3 > y2)
-            {
-              //
-              // In order to split composite triangle in two we need to find out
-              // the x coordinate of the new point that lies on the longest side
-              // (it's written as 4 here).
-              //
-              // x4 is derived from Intercept Theorem:
-              //
-              // "The ratio of the two segments on the same ray starting at S
-              // equals the ratio of the segments on the parallels:"
-              //
-              // So, given this:
-              //
-              // +---------------> x
-              // |
-              // |        1
-              // |
-              // |     2  z  4
-              // |
-              // |        w    3
-              // ▼
-              // y
-              //
-              // the following holds true:
-              //
-              // [1 to z]   [z to 4]
-              // -------- = --------
-              // [1 to w]   [w to 3]
-              //
-              // which gives us:
-              //
-              // (y2 - y1)   (x4 - x1)
-              // --------- = ---------
-              // (y3 - y1)   (x3 - x1)
-              //
-              //
-              // Solving for x4 yields:
-              //
-              // (y2 - y1)
-              // --------- * (x3 - x1) = (x4 - x1)
-              // (y3 - y1)
-              //
-              //           (y2 - y1)
-              // x4 = x1 + --------- * (x3 - x1)
-              //           (y3 - y1)
-              //
-
-              x4 = x1 + ( (double)(y2 - y1) / (double)(y3 - y1) ) * (x3 - x1);
-              y4 = y2;
-
-              FillFlatBottomTriangle(x1, y1, x2, y2, x4, y4, colorMask, false);
-              FillFlatTopTriangle(x3, y3, x4, y4, x2, y2, colorMask);
-            }
-            else if (y2 > y3)
-            {
-              //
-              // For mirror-image situation the process is the same.
-              //
-              // +------------> x
-              // |
-              // |        1
-              // |
-              // |     4  z  3
-              // |
-              // |   2    w
-              // |
-              // ▼
-              // y
-              //
-              // [1 to z]   [z to 4]
-              // -------- = --------
-              // [1 to w]   [w to 3]
-              //
-              // (y3 - y1)   (x1 - x4)
-              // --------- = ---------
-              // (y2 - y1)   (x1 - x2)
-              //
-              //             (y3 - y1)
-              // (x1 - x2) * --------- = (x1 - x4)
-              //             (y2 - y1)
-              //
-              //           (y3 - y1)
-              // x4 = x1 - --------- * (x1 - x2)
-              //           (y2 - y1)
-              //
-
-              x4 = x1 - ( (double)(y3 - y1) / (double)(y2 - y1) ) * (x1 - x2);
-              y4 = y3;
-
-              FillFlatBottomTriangle(x1, y1, x4, y4, x3, y3, colorMask, false);
-              FillFlatTopTriangle(x2, y2, x3, y3, x4, y4, colorMask);
-            }
-          }
-          break;
         }
       }
 
@@ -854,9 +815,20 @@ namespace SW3D
         return _frameBufferSize;
       }
 
+    // *************************************************************************
+    //
+    //                               PROTECTED
+    //
+    // *************************************************************************
+
     protected:
       std::string _windowName = "DrawService window";
 
+    // *************************************************************************
+    //
+    //                               PRIVATE
+    //
+    // *************************************************************************
     private:
       const SDL_Color& HTML2RGB(const uint32_t& colorMask)
       {
@@ -935,377 +907,9 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      void FillFlatBottomTriangle(int x1, int y1,
-                                  int x2, int y2,
-                                  int x3, int y3,
-                                  uint32_t colorMask,
-                                  bool includeLastPoint = true)
-      {
-        //
-        // For any type of winding one invSlope will be negative, one positive.
-        //
-        // You can do the same with "classic" slope as well, but then
-        // you'll have to scanline vertically instead. I left the original
-        // algorithm I found in the Internet, since it's more natural to think
-        // of scanlines in terms of a line going from left to right,
-        // top to bottom, like in CRT television.
-        //
-        // Since we're controlling y here, we have to find out next X coordinate
-        // when Y has increased by one. That's why we use inverted slope.
-        // Because k*x is the same as (k + k + k + k) x times, we can see that
-        // by solving for x we'll get x = y/k. So we can calculate 1/k
-        // beforehand and then just add it in every iteration of the loop.
-        //
-        // Since:
-        //
-        // y
-        //
-        // ^
-        // |     * p2
-        // |    /
-        // |   /
-        // |  /
-        // | * p1
-        // |
-        // +----------------------> x
-        //
-        // p1: (x1, y1), p2: (x2, y2)
-        //
-        // dy = (y2 - y1)
-        // dx = (x2 - x1)
-        //
-        //      dy      1     1       1     dx
-        // k = ----,   --- = ----,   --- = ----
-        //      dx      k     dy      k     dy
-        //                   ----
-        //                    dx
-        //
-        // In case of our triangle on the screen:
-        //
-        // +-----------------------> x
-        // |
-        // |
-        // |            p1 (x1, y1)
-        // |            / \
-        // |           /   \
-        // |          /     \
-        // | (x2, y2)p2-----p3 (x3, y3)
-        // |
-        // |
-        // ▼
-        // y
-        //
-        // It's easy to see, that one invSlope will be negative, thus no need
-        // to bother with + or - during increment, it will be handled
-        // automatically in += depending on the sign of the term.
-        //
-        double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
-        double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
-
-        double curx1 = x1;
-        double curx2 = x1;
-
-        for (int scanline = y1;
-             (includeLastPoint ? scanline <= y3 : scanline < y3);
-             scanline++)
-        {
-          for (int lineX = (int)curx1; lineX <= (int)curx2; lineX++)
-          {
-            DrawPoint({ lineX, scanline }, colorMask);
-          }
-
-          curx1 += invSlope1;
-          curx2 += invSlope2;
-        }
-      }
-
-      // -----------------------------------------------------------------------
-
-      void FillFlatTopTriangle(int x1, int y1,
-                               int x2, int y2,
-                               int x3, int y3,
-                               uint32_t colorMask,
-                               bool includeLastPoint = true)
-      {
-        //
-        // The idea is exactly the same as above,
-        // just in this case we go from bottom to top.
-        //
-        double invSlope1 = (double)(x2 - x1) / (double)(y2 - y1);
-        double invSlope2 = (double)(x3 - x1) / (double)(y3 - y1);
-
-        double curx1 = x1;
-        double curx2 = x1;
-
-        //
-        // Bottom-up from lowest point.
-        //
-        for (int scanline = y1;
-             (includeLastPoint ? scanline >= y3 : scanline > y3);
-             scanline--)
-        {
-          for (int lineX = (int)curx2; lineX <= (int)curx1; lineX++)
-          {
-            DrawPoint({ lineX, scanline }, colorMask);
-          }
-
-          //
-          // And since we go up, we need to decrement y.
-          // Again, the sign will be handled automatically since this is
-          // basically the mirror image operation of the flat bottom triangle.
-          //
-          curx1 -= invSlope1;
-          curx2 -= invSlope2;
-        }
-      }
-
-      // -----------------------------------------------------------------------
-
       bool HasAlpha(uint32_t colorMask)
       {
         return (colorMask & _maskA) != 0x0;
-      }
-
-      // -----------------------------------------------------------------------
-
-      TriangleType GetTriangleType(int x1, int y1,
-                                   int x2, int y2,
-                                   int x3, int y3)
-      {
-        //
-        // There are 3 cases of 2D triangles.
-        //
-        // BASIC:
-        // ------
-        //
-        // 1) Flat-bottom
-        //
-        //       1
-        //
-        //     2   3
-        //
-        // 2) Flat-top:
-        //
-        //     3   2
-        //
-        //       1
-        //
-        // SPECIAL:
-        // --------
-        //
-        // 3) Composite, which comes in two forms:
-        //
-        //       1              1
-        //
-        //     2        ->    2   3
-        //                      +
-        //          3         3     2
-        //
-        //                            1
-        //
-        // Its mirror image:
-        //
-        //     1                1
-        //
-        //        3     ->    2   3
-        //                      +
-        //  2               3     2
-        //
-        //
-        //                1
-        //
-        //
-        // and which can be split into two basic ones.
-        //
-        bool isFlatBottom = ( (y2 == y3) and (y1 < y2) ) or
-                            ( (y1 == y2) and (y3 < y2) ) or
-                            ( (y3 == y1) and (y2 < y3) );
-
-        bool isFlatTop = ( (y1 == y3) and (y2 > y1) ) or
-                         ( (y3 == y2) and (y1 > y3) ) or
-                         ( (y2 == y1) and (y3 > y2) );
-
-        return isFlatTop ? TriangleType::FLAT_TOP
-                         : isFlatBottom ? TriangleType::FLAT_BOTTOM
-                         : TriangleType::COMPOSITE;
-      }
-
-      // -----------------------------------------------------------------------
-
-      void SwapCoords(int& x1, int& y1,
-                      int& x2, int& y2,
-                      int& x3, int& y3,
-                      TriangleType tt)
-      {
-        //
-        // There are two main methods of specifying the order of vertices:
-        // ClockWise (CW) and Counter ClockWise (CCW). Its main purpose
-        // is to determine which faces are considered "front" faces,
-        // i.e. the ones that should be drawn.
-        //
-        // For a simple drawing of a 2D filled triangle on the screen
-        // winding doesn't matter, but it will matter if you plan to do
-        // shading and back face culling for example.
-        // At design phase you can choose CW or CCW winding order,
-        // it won't make a difference for the end result, as long as you're
-        // consistent with it.
-        //
-        // We'll be using CCW in this project.
-        //
-        // So we'll be assuming that the user is responsible for supplying
-        // vertices in the correct winding order for the object.
-        // But it may be possible to specify points in the correct winding order
-        // but different relative order. Our rasterization algorithms assume
-        // that triangle points have *specific* relative order, so if user
-        // specified points in the wrong relative order, rasterization will fail.
-        // So we need to account for that by swapping the corresponding coordinates.
-        // Finding out if relative order of points was wrong is just a matter of
-        // bruteforcing the coordinates' location against one another.
-        //
-        switch (tt)
-        {
-          //
-          // Proper order:
-          //
-          //       1
-          //
-          //     2   3
-          //
-          case TriangleType::FLAT_BOTTOM:
-          {
-            //
-            //     3          1
-            //          ->
-            //   1   2      2   3
-            //
-            if ( (x1 < x2) and (y1 > y3) )
-            {
-              std::swap(x1, x2);
-              std::swap(y1, y2);
-              std::swap(x1, x3);
-              std::swap(y1, y3);
-            }
-            //
-            //     2          1
-            //          ->
-            //   3   1      2   3
-            //
-            else if ( (x3 < x1) and (y3 > y2) )
-            {
-              std::swap(x1, x3);
-              std::swap(y1, y3);
-              std::swap(x1, x2);
-              std::swap(y1, y2);
-            }
-          }
-          break;
-
-          //
-          // Proper order:
-          //
-          //    3   2
-          //
-          //      1
-          //
-          case TriangleType::FLAT_TOP:
-          {
-            //
-            //   2   1     3   2
-            //          ->
-            //     3         1
-            //
-            if ( (x1 > x2) and (y1 < y3) )
-            {
-              std::swap(x1, x2);
-              std::swap(y1, y2);
-              std::swap(x1, x3);
-              std::swap(y1, y3);
-            }
-            //
-            //   1   3     3   2
-            //          ->
-            //     2         1
-            //
-            else if ( (x3 > x1) and (y2 > y3) )
-            {
-              std::swap(x1, x2);
-              std::swap(y1, y2);
-              std::swap(x2, x3);
-              std::swap(y2, y3);
-            }
-          }
-          break;
-
-          //
-          // Since we'll be splitting this triangle in two later on there is
-          // no proper relative order for this one, but we can prepare certain
-          // relative order beforehand just to make everything sort of standard.
-          // So when we'll be splitting this in two later we can be sure that
-          // point 1 is always at the top, point 2 is to the left and point 3 is
-          // to the right.
-          //
-          case TriangleType::COMPOSITE:
-          {
-            //
-            //
-            //      3           1
-            //
-            //    1      ->   2
-            //
-            //         2           3
-            //
-            if ( (y1 > y3) and (y1 < y2) )
-            {
-              std::swap(x1, x3);
-              std::swap(y1, y3);
-              std::swap(x2, x3);
-              std::swap(y2, y3);
-            }
-            //
-            //      2           1
-            //
-            //    3      ->   2
-            //
-            //         1           3
-            //
-            else if ( (y3 > y2) and (y3 < y1) )
-            {
-              std::swap(x1, x2);
-              std::swap(y1, y2);
-              std::swap(x2, x3);
-              std::swap(y2, y3);
-            }
-            //
-            //      3           1
-            //
-            //        2  ->       3
-            //
-            //   1           2
-            //
-            else if ( (y1 > y2) and (y2 > y3) )
-            {
-              std::swap(x1, x3);
-              std::swap(y1, y3);
-              std::swap(x2, x3);
-              std::swap(y2, y3);
-            }
-            //
-            //      2           1
-            //
-            //        1  ->       3
-            //
-            //   3           2
-            //
-            else if ( (y3 > y1) and (y1 > y2) )
-            {
-              std::swap(x1, x2);
-              std::swap(y1, y2);
-              std::swap(x2, x3);
-              std::swap(y2, y3);
-            }
-          }
-          break;
-        }
       }
 
       // -----------------------------------------------------------------------
@@ -1320,11 +924,15 @@ namespace SW3D
       uint16_t _windowWidth  = 0;
       uint16_t _windowHeight = 0;
 
+      uint32_t _fps = 0;
+
       double _deltaTime = 0.0;
+      double _dtAcc = 0.0;
 
       double _aspectRatio = 0.0;
 
-      bool _initialized = false;
+      bool _initialized        = false;
+      bool _faceCullingEnabled = true;
 
       const uint32_t _maskR = 0x00FF0000;
       const uint32_t _maskG = 0x0000FF00;
@@ -1338,20 +946,17 @@ namespace SW3D
 
       bool _running = true;
 
-      TriangleType _triangleType = TriangleType::FLAT_TOP;
+      FrontFaceWinding _frontFaceWinding = FrontFaceWinding::CCW;
 
-      char _buf[128];
-
-      const std::unordered_map<TriangleType, std::string> _triangleTypeToString =
-      {
-        { TriangleType::UNDEFINED,   "UNDEFINED"   },
-        { TriangleType::FLAT_BOTTOM, "FLAT_BOTTOM" },
-        { TriangleType::FLAT_TOP,    "FLAT_TOP"    },
-        { TriangleType::COMPOSITE,   "COMPOSITE"   },
-      };
+      FaceCullMode _faceCullMode = FaceCullMode::BACK;
   };
 
-  // ===========================================================================
+  // ***************************************************************************
+  //
+  //                           HELPER FUNCTIONS
+  //
+  // ***************************************************************************
+
 
   Matrix GetProjection(double fov,
                        double aspectRatio,
@@ -1372,6 +977,59 @@ namespace SW3D
     return proj;
   }
 
+  // ===========================================================================
+
+  Vec3 Rotate(const Vec3& p, const Vec3& around, double angleDeg)
+  {
+    Vec3 res;
+
+    Vec3 n = around;
+
+    n.Normalize();
+
+    double x = p.X;
+    double y = p.Y;
+    double z = p.Z;
+
+    double x2 = p.X * p.X;
+    double y2 = p.Y * p.Y;
+    double z2 = p.Z * p.Z;
+
+    double c = std::cos(angleDeg * DEG2RAD);
+    double s = std::sin(angleDeg * DEG2RAD);
+
+    double omc = 1.0 - c;
+
+    double xs = p.X * s;
+    double ys = p.Y * s;
+    double zs = p.Z * s;
+
+    Matrix r(4, 4);
+
+    r[0][0] = x2 * omc + c;
+    r[0][1] = x * y * omc - zs;
+    r[0][2] = x * z * omc + ys;
+    r[0][3] = 0.0;
+
+    r[1][0] = y * x * omc + zs;
+    r[1][1] = y2 * omc + c;
+    r[1][2] = y * z * omc + xs;
+    r[1][3] = 0.0;
+
+    r[2][0] = x * z * omc - ys;
+    r[2][1] = y * z * omc + xs;
+    r[2][2] = z2 * omc + c;
+    r[2][3] = 0.0;
+
+    r[3][0] = 0.0;
+    r[3][1] = 0.0;
+    r[3][2] = 0.0;
+    r[3][3] = 1.0;
+
+    res = r * p;
+
+    return res;
+  }
 } // namespace sw3d
 
 #endif // SW3D_H

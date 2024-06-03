@@ -280,10 +280,10 @@ class Drawer : public DrawWrapper
       //      a
       //
 
-      _projection = GetProjection(60.0,
-                                 (double)WW / (double)WH,
-                                 0.1,
-                                 1000.0);
+      SetPerspective(60.0,
+                     (double)WW / (double)WH,
+                     0.1,
+                     1000.0);
     }
 
     // -------------------------------------------------------------------------
@@ -398,9 +398,9 @@ class Drawer : public DrawWrapper
       //
       Triangle t;
 
-      t.Points[0] = { 0.0, 0.0, -1.0 };
-      t.Points[1] = { 0.0, 1.0, -1.0 };
-      t.Points[2] = { 1.0, 1.0, -1.0 };
+      t.Points[0] = {  0.0,                 2*SW3D::SQRT3OVER4, -1.0 };
+      t.Points[1] = { -2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, -1.0 };
+      t.Points[2] = {  2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, -1.0 };
 
       //
       // Rotated.
@@ -442,7 +442,7 @@ class Drawer : public DrawWrapper
         // The resulting coordinates will be in range [ -1 ; 1 ].
         // So leftmost part will be offscreen.
         //
-        tp.Points[i] = _projection * tt.Points[i];
+        tp.Points[i] = _projectionMatrix * tt.Points[i];
 
         //
         // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
@@ -501,7 +501,7 @@ class Drawer : public DrawWrapper
 
   private:
     Mesh _cube;
-    Matrix _projection;
+    Matrix _projectionStack;
 };
 
 int main(int argc, char* argv[])

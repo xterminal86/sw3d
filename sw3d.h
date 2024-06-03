@@ -7,6 +7,7 @@
 #include <cmath>
 #include <sstream>
 #include <unordered_map>
+#include <stack>
 
 #include <SDL2/SDL.h>
 
@@ -32,7 +33,59 @@ namespace SW3D
     BOTH
   };
 
-  constexpr double DEG2RAD = M_PI / 180.0;
+  enum class MatrixMode_
+  {
+    PROJECTION = 0,
+    MODELVIEW
+  };
+
+  enum class EngineError
+  {
+    OK = 0,
+    DIVISION_BY_ZERO,
+    MATRIX_NOT_SQUARE,
+    MATRIX_DIMENSIONS_ERROR,
+    STACK_OVERFLOW,
+    STACK_UNDERFLOW,
+    INVALID_MODE
+  };
+
+  EngineError Error = EngineError::OK;
+
+  const char* ErrorToString()
+  {
+    switch (Error)
+    {
+      case EngineError::OK:
+        return "OK";
+
+      case EngineError::DIVISION_BY_ZERO:
+        return "Division by zero";
+
+      case EngineError::MATRIX_NOT_SQUARE:
+        return "Matrix is not a square one";
+
+      case EngineError::MATRIX_DIMENSIONS_ERROR:
+        return "Matrix / matrices have incompatible dimensions";
+
+      case EngineError::STACK_OVERFLOW:
+        return "Stack overflow";
+
+      case EngineError::STACK_UNDERFLOW:
+        return "Stack underflow";
+
+      case EngineError::INVALID_MODE:
+        return "Invalid mode";
+
+      default:
+        return "Unknown error";
+    }
+  }
+
+  constexpr double DEG2RAD    = M_PI / 180.0;
+  constexpr double SQRT3OVER4 = 0.4330127018922193;
+
+  const uint8_t kMatrixStackLimit = 32;
 
   using Clock = std::chrono::steady_clock;
   using ns    = std::chrono::nanoseconds;
@@ -67,11 +120,36 @@ namespace SW3D
 
       if (l == 0)
       {
+        SW3D::Error = EngineError::DIVISION_BY_ZERO;
         return;
       }
 
       X /= l;
       Y /= l;
+    }
+
+    static Vec2 Up()
+    {
+      static Vec2 v = { 0.0, 1.0 };
+      return v;
+    }
+
+    static Vec2 Down()
+    {
+      static Vec2 v = { 0.0, -1.0 };
+      return v;
+    }
+
+    static Vec2 Left()
+    {
+      static Vec2 v = { -1.0, 0.0 };
+      return v;
+    }
+
+    static Vec2 Right()
+    {
+      static Vec2 v = { 1.0, 0.0 };
+      return v;
     }
   };
 
@@ -108,12 +186,49 @@ namespace SW3D
 
       if (l == 0)
       {
+        SW3D::Error = EngineError::DIVISION_BY_ZERO;
         return;
       }
 
       X /= l;
       Y /= l;
       Z /= l;
+    }
+
+    static Vec3 Up()
+    {
+      static Vec3 v = { 0.0, 1.0, 0.0 };
+      return v;
+    }
+
+    static Vec3 Down()
+    {
+      static Vec3 v = { 0.0, -1.0, 0.0 };
+      return v;
+    }
+
+    static Vec3 Left()
+    {
+      static Vec3 v = { -1.0, 0.0, 0.0 };
+      return v;
+    }
+
+    static Vec3 Right()
+    {
+      static Vec3 v = { 1.0, 0.0, 0.0 };
+      return v;
+    }
+
+    static Vec3 In()
+    {
+      static Vec3 v = { 0.0, 0.0, -1.0 };
+      return v;
+    }
+
+    static Vec3 Out()
+    {
+      static Vec3 v = { 0.0, 0.0, 1.0 };
+      return v;
     }
   };
 
@@ -125,6 +240,10 @@ namespace SW3D
     double Y = 0.0;
     double Z = 0.0;
     double W = 1.0;
+
+    Vec4() = default;
+    Vec4(double x, double y, double z) : X(x), Y(y), Z(z), W(1.0) {}
+    Vec4(double x, double y, double z, double w) : X(x), Y(y), Z(z), W(w) {}
 
     void operator*=(double value)
     {
@@ -153,6 +272,7 @@ namespace SW3D
 
       if (l == 0)
       {
+        SW3D::Error = EngineError::DIVISION_BY_ZERO;
         return;
       }
 
@@ -232,7 +352,7 @@ namespace SW3D
           _matrix[i].resize(_cols);
         }
 
-        Clear();
+        SetIdentity();
       }
 
       // -----------------------------------------------------------------------
@@ -250,10 +370,11 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      void Identity()
+      void SetIdentity()
       {
         if (_rows != _cols)
         {
+          SW3D::Error = EngineError::MATRIX_NOT_SQUARE;
           return;
         }
 
@@ -364,6 +485,7 @@ namespace SW3D
       {
         if (_cols != rhs._rows)
         {
+          SW3D::Error = EngineError::MATRIX_DIMENSIONS_ERROR;
           return *this;
         }
 
@@ -391,6 +513,7 @@ namespace SW3D
 
         if (_cols != 4)
         {
+          SW3D::Error = EngineError::MATRIX_DIMENSIONS_ERROR;
           return res;
         }
 
@@ -420,6 +543,45 @@ namespace SW3D
           res.Y /= w;
           res.Z /= w;
         }
+        else
+        {
+          SW3D::Error = EngineError::DIVISION_BY_ZERO;
+        }
+
+        return res;
+      }
+
+      // -----------------------------------------------------------------------
+
+      Vec4 operator*(const Vec4& in)
+      {
+        Vec4 res;
+
+        if (_cols != 4)
+        {
+          SW3D::Error = EngineError::MATRIX_DIMENSIONS_ERROR;
+          return res;
+        }
+
+        res.X = _matrix[0][0] * in.X +
+                _matrix[0][1] * in.Y +
+                _matrix[0][2] * in.Z +
+                _matrix[0][3];
+
+        res.Y = _matrix[1][0] * in.X +
+                _matrix[1][1] * in.Y +
+                _matrix[1][2] * in.Z +
+                _matrix[1][3];
+
+        res.Z = _matrix[2][0] * in.X +
+                _matrix[2][1] * in.Y +
+                _matrix[2][2] * in.Z +
+                _matrix[2][3];
+
+        res.W = _matrix[3][0] * in.X +
+                _matrix[3][1] * in.Y +
+                _matrix[3][2] * in.Z +
+                _matrix[3][3];
 
         return res;
       }
@@ -445,6 +607,7 @@ namespace SW3D
       {
         if ( (_rows != rhs._rows) or (_cols != rhs._cols) )
         {
+          SW3D::Error = EngineError::MATRIX_DIMENSIONS_ERROR;
           return *this;
         }
 
@@ -468,6 +631,12 @@ namespace SW3D
         _matrix = rhs._matrix;
         _rows   = rhs._rows;
         _cols   = rhs._cols;
+      }
+
+      static Matrix Identity()
+      {
+        static Matrix m(4, 4);
+        return m;
       }
 
     private:
@@ -570,9 +739,111 @@ namespace SW3D
 
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 
+        _projectionStack.push(Matrix::Identity());
+        _modelViewStack.push(Matrix::Identity());
+
         _initialized = true;
 
         return true;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void FrontFace(FrontFaceWinding windingToSet)
+      {
+        _frontFaceWinding = windingToSet;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void CullFace(FaceCullMode mode)
+      {
+        _faceCullMode = mode;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void MatrixMode(MatrixMode_ mode)
+      {
+        _matrixMode = mode;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void PushMatrix()
+      {
+        switch (_matrixMode)
+        {
+          case MatrixMode_::PROJECTION:
+          {
+            if (_projectionStack.size() < kMatrixStackLimit)
+            {
+              _projectionStack.push(_projectionMatrix);
+            }
+            else
+            {
+              SW3D::Error = EngineError::STACK_OVERFLOW;
+            }
+          }
+          break;
+
+          case MatrixMode_::MODELVIEW:
+          {
+            if (_modelViewStack.size() < kMatrixStackLimit)
+            {
+              _modelViewStack.push(_modelViewMatrix);
+            }
+            else
+            {
+              SW3D::Error = EngineError::STACK_OVERFLOW;
+            }
+          }
+          break;
+
+          default:
+            SW3D::Error = EngineError::INVALID_MODE;
+            break;
+        }
+      }
+
+      // -----------------------------------------------------------------------
+
+      void PopMatrix()
+      {
+        switch (_matrixMode)
+        {
+          case MatrixMode_::PROJECTION:
+          {
+            if (_projectionStack.size() > 1)
+            {
+              _projectionStack.pop();
+              _projectionMatrix = _projectionStack.top();
+            }
+            else
+            {
+              SW3D::Error = EngineError::STACK_UNDERFLOW;
+            }
+          }
+          break;
+
+          case MatrixMode_::MODELVIEW:
+          {
+            if (_modelViewStack.size() > 1)
+            {
+              _modelViewStack.pop();
+              _modelViewMatrix = _modelViewStack.top();
+            }
+            else
+            {
+              SW3D::Error = EngineError::STACK_UNDERFLOW;
+            }
+          }
+          break;
+
+          default:
+            SW3D::Error = EngineError::INVALID_MODE;
+            break;
+        }
       }
 
       // -----------------------------------------------------------------------
@@ -803,6 +1074,57 @@ namespace SW3D
         return _frameBufferSize;
       }
 
+      // -----------------------------------------------------------------------
+
+      void LoadIdentity()
+      {
+        _projectionMatrix.SetIdentity();
+      }
+
+      // -----------------------------------------------------------------------
+
+      void SetPerspective(double fov,
+                          double aspectRatio,
+                          double zNear,
+                          double zFar)
+      {
+        double f = 1.0 / tan( (fov / 2) * DEG2RAD );
+        double q = zFar / (zFar - zNear);
+
+        _projectionMatrix[0][0] = (aspectRatio > 1.0) ? (f / aspectRatio) : (f * aspectRatio);
+        _projectionMatrix[1][1] = f;
+        _projectionMatrix[2][2] = q;
+        _projectionMatrix[3][2] = -zNear * q;
+        _projectionMatrix[2][3] = 1.0;
+        _projectionMatrix[3][3] = 0.0;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void SetOrthographic(double left, double right,
+                           double top,  double bottom,
+                           double near, double far)
+      {
+        if ( (right - left   == 0.0)
+          or (top   - bottom == 0.0)
+          or (far   - near   == 0.0) )
+        {
+          SW3D::Error = EngineError::DIVISION_BY_ZERO;
+          return;
+        }
+
+        _projectionMatrix[0][0] = 2.0             / (right - left);
+        _projectionMatrix[0][3] = -(right + left) / (right - left);
+        _projectionMatrix[1][1] = 2.0             / (top   - bottom);
+        _projectionMatrix[1][3] = -(top + bottom) / (top   - bottom);
+        _projectionMatrix[2][2] = -2.0            / (far   - near);
+        _projectionMatrix[2][3] = -(far + near)   / (far   - near);
+        _projectionMatrix[3][3] = 1.0;
+      }
+
+
+      // -----------------------------------------------------------------------
+
     // *************************************************************************
     //
     //                               PROTECTED
@@ -811,6 +1133,9 @@ namespace SW3D
 
     protected:
       std::string _windowName = "DrawService window";
+
+      Matrix _projectionMatrix;
+      Matrix _modelViewMatrix;
 
     // *************************************************************************
     //
@@ -937,6 +1262,11 @@ namespace SW3D
       FrontFaceWinding _frontFaceWinding = FrontFaceWinding::CCW;
 
       FaceCullMode _faceCullMode = FaceCullMode::BACK;
+
+      std::stack<Matrix> _projectionStack;
+      std::stack<Matrix> _modelViewStack;
+
+      MatrixMode_ _matrixMode = MatrixMode_::PROJECTION;
   };
 
   // ***************************************************************************
@@ -944,26 +1274,6 @@ namespace SW3D
   //                           HELPER FUNCTIONS
   //
   // ***************************************************************************
-
-
-  Matrix GetProjection(double fov,
-                       double aspectRatio,
-                       double zNear,
-                       double zFar)
-  {
-    double f = 1.0 / tan( (fov / 2) * DEG2RAD );
-    double q = zFar / (zFar - zNear);
-
-    Matrix proj(4, 4);
-
-    proj[0][0] = (aspectRatio > 1.0) ? (f / aspectRatio) : (f * aspectRatio);
-    proj[1][1] = f;
-    proj[2][2] = q;
-    proj[3][2] = -zNear * q;
-    proj[2][3] = 1.0;
-
-    return proj;
-  }
 
   // ===========================================================================
 

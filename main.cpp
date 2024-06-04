@@ -21,7 +21,7 @@ const uint32_t DebugColor = 0xAAAAAA;
 class Drawer : public DrawWrapper
 {
   public:
-    Drawer()
+    void PostInit() override
     {
       _windowName = "Software 3D renderer";
 
@@ -51,6 +51,15 @@ class Drawer : public DrawWrapper
         { 0.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 0.0 },
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
+
+      /*
+      for (auto& v : _cube.Triangles)
+      {
+        v.Points[0].Z += 0.0;
+        v.Points[1].Z += 0.0;
+        v.Points[2].Z += 0.0;
+      }
+      */
 
       SetPerspective(60.0,
                      (double)WW / (double)WH,
@@ -245,17 +254,15 @@ class Drawer : public DrawWrapper
 
       for (auto& t : _cube.Triangles)
       {
-        /*
         Triangle tr;
 
         for (size_t i = 0; i < 3; i++)
         {
           tr.Points[i] = RotateZ(t.Points[i], angle);
         }
-        */
 
-        //Triangle tt = tr;
-        Triangle tt = t;
+        Triangle tt = tr;
+        //Triangle tt = t;
 
         for (size_t i = 0; i < 3; i++)
         {

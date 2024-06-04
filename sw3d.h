@@ -184,7 +184,7 @@ namespace SW3D
     {
       double l = Length();
 
-      if (l == 0)
+      if (l == 0.0)
       {
         SW3D::Error = EngineError::DIVISION_BY_ZERO;
         return;
@@ -270,7 +270,7 @@ namespace SW3D
     {
       double l = Length();
 
-      if (l == 0)
+      if (l == 0.0)
       {
         SW3D::Error = EngineError::DIVISION_BY_ZERO;
         return;
@@ -352,7 +352,7 @@ namespace SW3D
           _matrix[i].resize(_cols);
         }
 
-        SetIdentity();
+        Clear();
       }
 
       // -----------------------------------------------------------------------
@@ -413,6 +413,8 @@ namespace SW3D
 
         _ss.str(std::string());
 
+        _ss << "\n";
+
         for (uint32_t x = 0; x < _rows; x++)
         {
           _ss << "[ ";
@@ -421,7 +423,7 @@ namespace SW3D
           {
             ::snprintf(_buf, sizeof(_buf), "%.4f", _matrix[x][y]);
 
-            for (int spaces = 0;
+            for (uint32_t spaces = 0;
                  spaces < (_maxColumnLengthByColumn[y] - ::strlen(_buf));
                  spaces++)
             {
@@ -511,55 +513,78 @@ namespace SW3D
       {
         Vec3 res;
 
-        if (_cols != 4)
+        if (not (_rows == 3 or _rows == 4) )
         {
           SW3D::Error = EngineError::MATRIX_DIMENSIONS_ERROR;
           return res;
         }
 
-        //                   0 1 2 3
-        //                 0 . . . .
-        //                 1 . . . .
-        // [ x y z 1 ]  X  2 . . . .
-        //                 3 . . . .
         //
-        res.X = in.X * _matrix[0][0] +
-                in.Y * _matrix[1][0] +
-                in.Z * _matrix[2][0] +
-                       _matrix[3][0];
-
-        res.Y = in.X * _matrix[0][1] +
-                in.Y * _matrix[1][1] +
-                in.Z * _matrix[2][1] +
-                       _matrix[3][1];
-
-        res.Z = in.X * _matrix[0][2] +
-                in.Y * _matrix[1][2] +
-                in.Z * _matrix[2][2] +
-                       _matrix[3][2];
-
+        // Simple multiplication.
         //
-        // Implicit conversion to so-called "homogeneous coordinates".
-        // This will allow us to multiply 4x4 matrix by basically
-        // Vec4(x, y, z, 1).
-        //
-        double w = in.X * _matrix[0][3] +
-                   in.Y * _matrix[1][3] +
-                   in.Z * _matrix[2][3] +
-                          _matrix[3][3];
-
-        //
-        // Back to Cartesian.
-        //
-        if (w != 0.0)
+        if (_rows == 3)
         {
-          res.X /= w;
-          res.Y /= w;
-          res.Z /= w;
+          res.X = in.X * _matrix[0][0] +
+                  in.Y * _matrix[1][0] +
+                  in.Z * _matrix[2][0];
+
+          res.Y = in.X * _matrix[0][1] +
+                  in.Y * _matrix[1][1] +
+                  in.Z * _matrix[2][1];
+
+          res.Z = in.X * _matrix[0][2] +
+                  in.Y * _matrix[1][2] +
+                  in.Z * _matrix[2][2];
         }
+        //
+        // Homo stuff.
+        //
         else
         {
-          SW3D::Error = EngineError::DIVISION_BY_ZERO;
+          //                   0 1 2 3
+          //                 0 . . . .
+          //                 1 . . . .
+          // [ x y z 1 ]  X  2 . . . .
+          //                 3 . . . .
+          //
+          res.X = in.X * _matrix[0][0] +
+                  in.Y * _matrix[1][0] +
+                  in.Z * _matrix[2][0] +
+                         _matrix[3][0];
+
+          res.Y = in.X * _matrix[0][1] +
+                  in.Y * _matrix[1][1] +
+                  in.Z * _matrix[2][1] +
+                         _matrix[3][1];
+
+          res.Z = in.X * _matrix[0][2] +
+                  in.Y * _matrix[1][2] +
+                  in.Z * _matrix[2][2] +
+                         _matrix[3][2];
+
+          //
+          // Implicit conversion to so-called "homogeneous coordinates".
+          // This will allow us to multiply 4x4 matrix by basically
+          // Vec4(x, y, z, 1).
+          //
+          double w = in.X * _matrix[0][3] +
+                     in.Y * _matrix[1][3] +
+                     in.Z * _matrix[2][3] +
+                            _matrix[3][3];
+
+          //
+          // Back to Cartesian.
+          //
+          if (w != 0.0)
+          {
+            res.X /= w;
+            res.Y /= w;
+            res.Z /= w;
+          }
+          else
+          {
+            SW3D::Error = EngineError::DIVISION_BY_ZERO;
+          }
         }
 
         return res;
@@ -627,9 +652,9 @@ namespace SW3D
 
         Matrix res(_rows, _cols);
 
-        for (int x = 0; x < _rows; x++)
+        for (uint32_t x = 0; x < _rows; x++)
         {
-          for (int y = 0; y < _cols; y++)
+          for (uint32_t y = 0; y < _cols; y++)
           {
             res[x][y] = _matrix[x][y] + rhs._matrix[x][y];
           }
@@ -646,6 +671,8 @@ namespace SW3D
         _rows   = rhs._rows;
         _cols   = rhs._cols;
       }
+
+      // -----------------------------------------------------------------------
 
       static Matrix Identity()
       {
@@ -665,7 +692,7 @@ namespace SW3D
       //
       std::unordered_map<uint32_t, size_t> _maxColumnLengthByColumn;
 
-      char _buf[32];
+      char _buf[128];
 
       std::stringstream _ss;
       // -----------------------------------------------------------------------
@@ -753,12 +780,85 @@ namespace SW3D
 
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 
+        _projectionMatrix.SetIdentity();
+        _modelViewMatrix.SetIdentity();
+
         _projectionStack.push(Matrix::Identity());
         _modelViewStack.push(Matrix::Identity());
 
         _initialized = true;
 
+        PostInit();
+
         return true;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void Run(bool debugMode = false)
+      {
+        INIT_CHECK();
+
+        SDL_Event evt;
+
+        Clock::time_point measureStart;
+        Clock::time_point measureEnd;
+
+        ns dt = ns{0};
+
+        while (_running)
+        {
+          measureStart = Clock::now();
+          measureEnd = measureStart;
+
+          while (SDL_PollEvent(&evt))
+          {
+            HandleEvent(evt);
+          }
+
+          SDL_SetRenderTarget(_renderer, _framebuffer);
+          SDL_RenderClear(_renderer);
+
+          if (debugMode)
+          {
+            DrawGrid();
+          }
+
+          Draw();
+
+          SDL_SetRenderTarget(_renderer, nullptr);
+          SDL_RenderCopy(_renderer, _framebuffer, nullptr, nullptr);
+
+          SDL_RenderPresent(_renderer);
+
+          _fps++;
+
+          measureEnd = Clock::now();
+          dt = measureEnd - measureStart;
+
+          _deltaTime = std::chrono::duration<double>(dt).count();
+          _dtAcc += _deltaTime;
+
+          if (_dtAcc > 1.0)
+          {
+            static char buf[128];
+
+            ::snprintf(buf, sizeof(buf), "FPS: %u", _fps);
+            SDL_SetWindowTitle(_window, buf);
+
+            _dtAcc = 0.0;
+            _fps = 0;
+          }
+        }
+
+        SDL_Log("Goodbye!");
+      }
+
+      // -----------------------------------------------------------------------
+
+      void Stop()
+      {
+        _running = false;
       }
 
       // -----------------------------------------------------------------------
@@ -859,79 +959,6 @@ namespace SW3D
             break;
         }
       }
-
-      // -----------------------------------------------------------------------
-
-      void Run(bool debugMode = false)
-      {
-        INIT_CHECK();
-
-        SDL_Event evt;
-
-        Clock::time_point measureStart;
-        Clock::time_point measureEnd;
-
-        ns dt = ns{0};
-
-        while (_running)
-        {
-          measureStart = Clock::now();
-          measureEnd = measureStart;
-
-          while (SDL_PollEvent(&evt))
-          {
-            HandleEvent(evt);
-          }
-
-          SDL_SetRenderTarget(_renderer, _framebuffer);
-          SDL_RenderClear(_renderer);
-
-          if (debugMode)
-          {
-            DrawGrid();
-          }
-
-          Draw();
-
-          SDL_SetRenderTarget(_renderer, nullptr);
-          SDL_RenderCopy(_renderer, _framebuffer, nullptr, nullptr);
-
-          SDL_RenderPresent(_renderer);
-
-          _fps++;
-
-          measureEnd = Clock::now();
-          dt = measureEnd - measureStart;
-
-          _deltaTime = std::chrono::duration<double>(dt).count();
-          _dtAcc += _deltaTime;
-
-          if (_dtAcc > 1.0)
-          {
-            static char buf[128];
-
-            ::snprintf(buf, sizeof(buf), "FPS: %u", _fps);
-            SDL_SetWindowTitle(_window, buf);
-
-            _dtAcc = 0.0;
-            _fps = 0;
-          }
-        }
-
-        SDL_Log("Goodbye!");
-      }
-
-      // -----------------------------------------------------------------------
-
-      void Stop()
-      {
-        _running = false;
-      }
-
-      // -----------------------------------------------------------------------
-
-      virtual void Draw() = 0;
-      virtual void HandleEvent(const SDL_Event& evt) = 0;
 
       // -----------------------------------------------------------------------
 
@@ -1086,13 +1113,6 @@ namespace SW3D
       const uint32_t& FrameBufferSize()
       {
         return _frameBufferSize;
-      }
-
-      // -----------------------------------------------------------------------
-
-      void LoadIdentity()
-      {
-        _projectionMatrix.SetIdentity();
       }
 
       // -----------------------------------------------------------------------
@@ -1475,6 +1495,11 @@ namespace SW3D
 
       Matrix _projectionMatrix;
       Matrix _modelViewMatrix;
+
+      virtual void PostInit() {}
+
+      virtual void Draw() = 0;
+      virtual void HandleEvent(const SDL_Event& evt) = 0;
 
     // *************************************************************************
     //

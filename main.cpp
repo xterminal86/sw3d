@@ -52,13 +52,6 @@ class Drawer : public DrawWrapper
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
 
-      for (auto& i : _cube.Triangles)
-      {
-        i.Points[0].Z += -1.0;
-        i.Points[1].Z += -1.0;
-        i.Points[2].Z += -1.0;
-      }
-
       SetPerspective(60.0,
                      (double)WW / (double)WH,
                      0.1,
@@ -110,27 +103,27 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_e:
-              DZ += 0.1;
+              DZ += 0.01;
               break;
 
             case SDLK_q:
-              DZ -= 0.1;
+              DZ -= 0.01;
               break;
 
             case SDLK_d:
-              DX += 0.1;
+              DX += 1;
               break;
 
             case SDLK_a:
-              DX -= 0.1;
+              DX -= 1;
               break;
 
             case SDLK_w:
-              DY -= 0.1;
+              DY -= 1;
               break;
 
             case SDLK_s:
-              DY += 0.1;
+              DY += 1;
               break;
           }
         }
@@ -168,7 +161,7 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void Draw3D()
+    void DrawTestTriangle()
     {
       static double angle = 0.0;
 
@@ -229,7 +222,7 @@ class Drawer : public DrawWrapper
         //
         tp.Points[i] += 1.0;
 
-        //
+        //`
         // Now we need to scale it properly into viewscreen.
         //
         tp.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
@@ -241,27 +234,61 @@ class Drawer : public DrawWrapper
                    0xFFFFFF,
                    wireframe);
 
-      /*
+      angle += (100.0 * DeltaTime());
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawTestCube()
+    {
+      static double angle = 0.0;
+
       for (auto& t : _cube.Triangles)
       {
-        Triangle triProj;
+        /*
+        Triangle tr;
 
         for (size_t i = 0; i < 3; i++)
         {
-          triProj.Points[i] = _projection * t.Points[i];
-          triProj.Points[i] += 1.0;
-          triProj.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
+          tr.Points[i] = RotateZ(t.Points[i], angle);
+        }
+        */
+
+        //Triangle tt = tr;
+        Triangle tt = t;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          tt.Points[i].X += DX;
+          tt.Points[i].Y += DY;
+          tt.Points[i].Z += DZ;
         }
 
-        DrawTriangle(triProj.Points[0],
-                      triProj.Points[1],
-                      triProj.Points[2],
-                      0xFFFFFF,
-                      wireframe);
+        Triangle tp;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          tp.Points[i] = _projectionMatrix * tt.Points[i];
+          tp.Points[i] += 1.0;
+          tp.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
+        }
+
+        DrawTriangle(tp.Points[0],
+                     tp.Points[1],
+                     tp.Points[2],
+                     0xFFFFFF,
+                     wireframe);
       }
-      */
 
       angle += (100.0 * DeltaTime());
+    }
+
+    // -------------------------------------------------------------------------
+
+    void Draw3D()
+    {
+      //DrawTestTriangle();
+      DrawTestCube();
     }
 
     // -------------------------------------------------------------------------

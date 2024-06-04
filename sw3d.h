@@ -517,30 +517,36 @@ namespace SW3D
           return res;
         }
 
-        res.X = _matrix[0][0] * in.X +
-                _matrix[0][1] * in.Y +
-                _matrix[0][2] * in.Z +
-                _matrix[0][3];
+        //                   0 1 2 3
+        //                 0 . . . .
+        //                 1 . . . .
+        // [ x y z 1 ]  X  2 . . . .
+        //                 3 . . . .
+        //
+        res.X = in.X * _matrix[0][0] +
+                in.Y * _matrix[1][0] +
+                in.Z * _matrix[2][0] +
+                       _matrix[3][0];
 
-        res.Y = _matrix[1][0] * in.X +
-                _matrix[1][1] * in.Y +
-                _matrix[1][2] * in.Z +
-                _matrix[1][3];
+        res.Y = in.X * _matrix[0][1] +
+                in.Y * _matrix[1][1] +
+                in.Z * _matrix[2][1] +
+                       _matrix[3][1];
 
-        res.Z = _matrix[2][0] * in.X +
-                _matrix[2][1] * in.Y +
-                _matrix[2][2] * in.Z +
-                _matrix[2][3];
+        res.Z = in.X * _matrix[0][2] +
+                in.Y * _matrix[1][2] +
+                in.Z * _matrix[2][2] +
+                       _matrix[3][2];
 
         //
         // Implicit conversion to so-called "homogeneous coordinates".
         // This will allow us to multiply 4x4 matrix by basically
         // Vec4(x, y, z, 1).
         //
-        double w = _matrix[3][0] * in.X +
-                   _matrix[3][1] * in.Y +
-                   _matrix[3][2] * in.Z +
-                   _matrix[3][3];
+        double w = in.X * _matrix[0][3] +
+                   in.Y * _matrix[1][3] +
+                   in.Z * _matrix[2][3] +
+                          _matrix[3][3];
 
         //
         // Back to Cartesian.
@@ -571,25 +577,25 @@ namespace SW3D
           return res;
         }
 
-        res.X = _matrix[0][0] * in.X +
-                _matrix[0][1] * in.Y +
-                _matrix[0][2] * in.Z +
-                _matrix[0][3];
+        res.X = in.X * _matrix[0][0] +
+                in.Y * _matrix[1][0] +
+                in.Z * _matrix[2][0] +
+                in.W * _matrix[3][0];
 
-        res.Y = _matrix[1][0] * in.X +
-                _matrix[1][1] * in.Y +
-                _matrix[1][2] * in.Z +
-                _matrix[1][3];
+        res.Y = in.X * _matrix[0][1] +
+                in.Y * _matrix[1][1] +
+                in.Z * _matrix[2][1] +
+                in.W * _matrix[3][1];
 
-        res.Z = _matrix[2][0] * in.X +
-                _matrix[2][1] * in.Y +
-                _matrix[2][2] * in.Z +
-                _matrix[2][3];
+        res.Z = in.X * _matrix[0][2] +
+                in.Y * _matrix[1][2] +
+                in.Z * _matrix[2][2] +
+                in.W * _matrix[3][2];
 
-        res.W = _matrix[3][0] * in.X +
-                _matrix[3][1] * in.Y +
-                _matrix[3][2] * in.Z +
-                _matrix[3][3];
+        res.W = in.X * _matrix[0][3] +
+                in.Y * _matrix[1][3] +
+                in.Z * _matrix[2][3] +
+                in.W * _matrix[3][3];
 
         return res;
       }
@@ -1092,23 +1098,79 @@ namespace SW3D
       // -----------------------------------------------------------------------
 
       //
-      // The objects exist in 3D space, but our screen is 2D space.
+      // During research I found that it's quite common to introduce the
+      // so-called "pinhole camera model" concept to explain how you can project
+      // 3D objects onto 2D screen. Because if you just go straight to the point
+      // and say "oh, you just take this matrix and multiply it by every
+      // point / vertex, and you'll effectively put those vertices onto the
+      // computer screen in proper places", I (personally) find it very
+      // counterintuitive because it doesn't answer the question "why?". Why do
+      // you need to use a matrix and more importantly where did all those
+      // values come from?
+      // If you have a darkroom with a pinhole in the wall, rays of light that
+      // come through it will form an upside down image on the opposite wall.
+      // The clarity of the resulting image will depend on pinhole size, with it
+      // being too large results in blurry image due to several light rays
+      // ending up at around the same point on the "projection" wall. And also
+      // if pinhole is too small, resulting image will also become blurry due to
+      // laws of physics (light can't go properly through a very small hole
+      // because light rays start to diffract).
+      // More detailed explanation - (https://www.youtube.com/watch?v=_EhY31MSbNM)
+      //
+      // So, looking from the side, it looks like this:
+      //
+      //
+      //        darkroom     world
+      //         _______
+      //        |       |
+      //        | ----  |  ----
+      //        | |   --|--  #
+      //        |###    o   ###
+      //        | #   --|--  |
+      //        | ----  |  ----
+      //        |       |
+      //         -------
+      //
+      // So objects exist in 3D space, but our screen is 2D space.
       // In order to draw 3D object onto the screen we need to find a way to
       // transform 3D coordinates to the 2D screen.
       // This is called a projection.
       //
-      // To do this several steps need to be performed. First of which is
-      // normalization of our screen space to be [-1; 1] along the x axis
-      // and [-1; 1] along the y axis. This is called Normalized Device
-      // Coordinates (or NDC for short).
+      // Continuing with pinhole camera model analogy, we already can project
+      // 3D object on the screen ("wall" that is), but it ends up upside down.
+      // If only we could somehow capture light rays *before* they invert
+      // themselves after passing through the hole... Obviously we can't do that
+      // in real life - we can't put anything inside the hole, and we can't put
+      // a wall in front of it. But suppose we have some magic material (maybe
+      // kinda like photographic film) which we can cut and make a plane that we
+      // can put before the hole and "capture" image from the world before it
+      // goes into the hole and invert itself.
+      // Now we get something like this:
       //
-      // (NOTE: need details in the following section, research more)
+      //      magic     world
+      // _    plane -----
+      //  |   ------
+      //  |--- # |     #
+      //  o   ###|    ###
+      //  |--- | |     |
+      //  |   ------
+      // -          -----
+      //
+      // So our "magic plane" becomes our computer screen if you will.
+      // Now we can try and work something out in terms of mathematics and shit.
+      //
+      // Because displays have different aspect ratio, we need to convert
+      // object's coordinates to so-called Normalized Device
+      // Coordinates (or NDC for short). In NDC everything is clamped in
+      // [ -1 ; 1 ] range on every axis. Roughly speaking, this is done so that
+      // object appears at the same place on any device screen.
       //
       // Since desktop screens usually have their width greater than height,
-      // we'll define aspect ratio as w / h. It really is just a matter of
+      // we'll define aspect ratio as w / h. It's really just a matter of
       // convention, we could've easily defined aspect ratio as h / w, just like
-      // in OLC video, it would just resulted in multiplying aspect ratio by
-      // coordinate in the matrix instead of dividing coordinate over it.
+      // in OLC video and some others I saw, it would just resulted in
+      // multiplying aspect ratio by coordinate in the matrix instead of
+      // dividing coordinate over it.
       //
       //      w
       // a = ---
@@ -1122,67 +1184,110 @@ namespace SW3D
       // That would make the object stretch across X axis. So, to prevent that
       // we will divide its projected X coordinate over aspect ratio to bring it
       // back into [ -1 ; 1 ] of normalized space.
-      // Conversely, if resolution would've been 1000x2000 the projected Y
-      // coordinates would have to be squeezed into 2000 pixels of height.
-      // Since aspect ratio would be less than 1, by dividing Y over it we will
-      // bring it back into [ -1 ; 1 ] for Y.
+      // Conversely, if resolution would've been 1000x2000 aspect ratio would be
+      // less than 1, so we would effectively multiply X by something and thus
+      // "squaring" everything back again.
+      // We could've also changed everything the other way around by leaving x
+      // unaffected and multiplying 'a' by 'y' instead of dividing 'x' by 'a',
+      // but in all learning materials aspect ratio is affecting 'x', so we'll
+      // use the same approach here.
       //
       //                x
       // [x, y, z] = [ ---, y, z];
       //                a
       //
       // Next, we need to take into account Field Of View (FOV), which is
-      // defined by angle theta (TH).
+      // defined by angle theta (TH). You can also define perspective projection
+      // using different matrix, by specifying 6 planes (left, right, bottom,
+      // top, near, far), but with field of view it's much more intuitive.
+      //
+      // (not to scale)
+      //
+      // -1                  +1
+      //  ___________________    far plane
+      //  \        |C       / D
+      //   \       |       /
+      //    \      |      /
+      //     \     |     /
+      //      \    |    /
+      //       \   |A  / B
+      //     -1 \-----/+1        near plane
+      //         \ TH/
+      //          \|/
+      //           o
+      //          eye
+      //
+      // Using intercept theorem we can see that:
+      //
+      // AB   oB
+      // -- = --
+      // CD   oD
+      //
+      // which is tangent of (TH / 2).
+      //
+      // One can think of FOV as zooming in (decreasing FOV) or zooming out
+      // (increasing FOV). When zoomed in our objects occupy more space and
+      // appear larger. When zoomed out it's the opposite. But if we use just
+      // the tan value we'd displace all our objects outside of FOV if it's
+      // increasing, and scale them less conversely, which contradicts to
+      // previous statements. So we actually need to use inverse of the tan
+      // function. Basically one can think of it as just a global scaling
+      // factor so to speak.
       //
       //                1          1              1
       // [x, y, z] = [ ---  *  --------- * x, --------- * y, z];
       //                a      tan(TH/2)      tan(TH/2)
       //
+      // We could also normalize 'z' at this point as well, but it's better to
+      // leave it unaffected so that it may participate in further calculations
+      // (z-buffer and transparency).
       //
-      // Next, position of object in depth:
+      // Nevertheless, we need to consider position of object in depth:
       //
+      //           x - point in space
       //
       //      10
-      // Z+ ^    ----------------- Zfar
-      //    |    \               /    |
-      //    |     \   x         /     |
-      //    |      \           /      |
-      //    |       \         /       |
-      //    |        \_______/        |
+      // Z+ ^    ----------------- Zfar  -
+      //    |    \               /    |   |
+      //    |     \   x         /     |   |
+      //    |      \           /      |   | (Zfar - Znear)
+      //    |       \         /       |   |
+      //    |        \_______/        |  _|
       //      1             | Znear   |
       //                    |         |
       //                 *__|_________|
       //                 ^
       //               (eye)
       //
-      // We need to normalize point's z coordinate. We do this by dividing over
+      // To work out where position of point 'x' in a plane really is, we need
+      // to scale it to normalized system. We do this by dividing over
       // (Zfar - Znear):
       //
       //       z
       // --------------
       // (Zfar - Znear)
       //
-      // which will give us z in range from 0 to 1. But our Zfar in this example
-      // is 10, so we need to scale back up again. We do this by multiplying
-      // over Zfar:
+      // which will give us 'z' in range from 0 to 1. But our Zfar in this
+      // example is 10, so we need to scale it back up again. We do this by
+      // multiplying over Zfar:
       //
       //          Zfar
       // z * --------------
       //     (Zfar - Znear)
       //
       // But we also need to offset our scaled point back closer to the eye
-      // by the distance amount from the eye to Znear:
+      // by the distance amount from the eye to Znear (which is Znear):
       //
-      // (Zfar * Znear)
-      // --------------
-      // (Zfar - Znear)
+      //   (Zfar * Znear)
+      // - --------------
+      //   (Zfar - Znear)
       //
       // This is basically equivalent to taking point Znear, normalizing it
-      // like we just did above, and then just subtracting its value from our z
-      // point's value:
+      // like we just did above, and then just subtracting its value from our
+      // 'z' point's value:
       //
       //         Zfar         (Znear * Zfar)
-      // z * -------------- - -------------- ];
+      // z * -------------- - --------------
       //     (Zfar - Znear)   (Zfar - Znear)
       //
       //
@@ -1201,9 +1306,10 @@ namespace SW3D
       //                   (Zfar - Znear)   (Zfar - Znear)
       //
       //
-      // When things are further away, they appear less, so this implies a
-      // change in x coordinate is somehow related to z depth, more specifically
-      // it's inversely proportional:
+      // When things are further away, they appear to move less, so this implies
+      // a change in 'x' coordinate is somehow related to 'z' depth, more
+      // specifically it's inversely proportional, as 'z' gets larger it makes
+      // changes in 'x' smaller:
       //
       //           1
       // x' = x * ---
@@ -1216,7 +1322,8 @@ namespace SW3D
       //           z
       //
       //
-      // So our formula becomes:
+      // So our final scaling that we need to do to 'x' and 'y' coordinates is
+      // to divide them by 'z', and so our formula becomes:
       //
       //
       //                1        1        x
@@ -1274,20 +1381,25 @@ namespace SW3D
       // information, but there will be no Z saved in the resulting vector after
       // multiplication by this matrix. To solve this we need to add another
       // column to our matrix, thus making it 4 dimensional, as well as add
-      // another coordinate to our original vector, which is conventionally
-      // called W. We will put a 1 into cell [3][4] (one based index) of the
-      // projection matrix which will allow us to put original Z value of a
-      // vector into 4th element W of a resulting vector. Then we can divide
-      // by it to correct for depth.
+      // another component to our original 3D vector, which is conventionally
+      // called W, and set it equal to 1. It is said that such vector is now in
+      // homogeneous coordinates. We will put a 1 into cell [3][4] (one based
+      // index) of the projection matrix which will allow us to put original Z
+      // value of a vector into 4th element W of a resulting vector. Then we can
+      // divide by it to correct for depth.
       // We can explicitly add another coordinate into vector class, or
       // calculate W implicitly during matrix-vector multiplication and
-      // performing divide by W there (which exactly how it's done now).
-      // But I believe this W coordinate also comes in handy in other situations
-      // so usually people operate directly on Vec4.
+      // performing divide by W there, which exactly how it's done here.
+      // I believe this is a general practice. Operation on actual Vec4 is
+      // commonly encountered in shaders.
+      //
+      //
+      // v = [ x, y, z, 1 ]
       //
       //      -                    -
-      //     |                      |
-      //     | F/a 0  0           0 |
+      //     | F                    |
+      //     | -   0  0           0 |
+      //     | a                    |
       //     |                      |
       //     | 0   F  0           0 |
       // M = |                      |
@@ -1297,19 +1409,17 @@ namespace SW3D
       //     |                      |
       //      -                    -
       //
-      // v4 = [ x, y, z, 0 ]
-      //
-      // projected = M * v;
+      // projected = v * M;
       //
       //        F
-      // [ x * ---   y * F   z * q - z * (Znear * q)   z ]
+      // [ x * ---     y * F     (z * q - Znear * q)     z ]
       //        a
       //
-      //
-      // Divide everything over 4th coordinate W (which is effectively Z):
+      // Divide everything over 4th coordinate W (which is effectively Z) to get
+      // back from homogeneous coordinates to Cartesian space.
       //
       //      xF
-      // [ ( ---- ) / z   (y * F) / z   (z * q - z * (Znear * q)) / z   1 ]
+      // [ ( ---- ) / z     (y * F) / z     (z * q - z * (Znear * q)) / z     1 ]
       //      a
       //
       void SetPerspective(double fov,
@@ -1320,7 +1430,7 @@ namespace SW3D
         double f = 1.0 / tan( (fov / 2) * DEG2RAD );
         double q = zFar / (zFar - zNear);
 
-        _projectionMatrix[0][0] = (aspectRatio > 1.0) ? (f / aspectRatio) : (f * aspectRatio);
+        _projectionMatrix[0][0] = (f / aspectRatio);
         _projectionMatrix[1][1] = f;
         _projectionMatrix[2][2] = q;
         _projectionMatrix[3][2] = -zNear * q;

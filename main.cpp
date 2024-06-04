@@ -4,6 +4,7 @@ using namespace SW3D;
 
 const uint32_t WW = 600;
 const uint32_t WH = 600;
+
 const uint32_t RESOLUTION = 200;
 
 int KeyboardX = 0;
@@ -61,7 +62,7 @@ class Drawer : public DrawWrapper
       SetPerspective(60.0,
                      (double)WW / (double)WH,
                      0.1,
-                     1000.0);
+                     10.0);
     }
 
     // -------------------------------------------------------------------------
@@ -176,9 +177,9 @@ class Drawer : public DrawWrapper
       //
       Triangle t;
 
-      t.Points[0] = {  0.0,                 2*SW3D::SQRT3OVER4, -1.0 };
-      t.Points[1] = { -2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, -1.0 };
-      t.Points[2] = {  2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, -1.0 };
+      t.Points[0] = {  0.0,                 2*SW3D::SQRT3OVER4, 0.1 };
+      t.Points[1] = { -2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, 0.1 };
+      t.Points[2] = {  2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, 0.1 };
 
       //
       // Rotated.
@@ -279,7 +280,6 @@ class Drawer : public DrawWrapper
 
   private:
     Mesh _cube;
-    Matrix _projectionStack;
 };
 
 int main(int argc, char* argv[])

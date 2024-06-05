@@ -61,10 +61,24 @@ class Drawer : public DrawWrapper
       }
       */
 
+      /*
       SetPerspective(60.0,
                      (double)WW / (double)WH,
                      0.1,
                      10.0);
+      */
+
+      //
+      // Works for orthographic.
+      //
+      for (auto& v : _cube.Triangles)
+      {
+        v.Points[0] *= 100.0;
+        v.Points[1] *= 100.0;
+        v.Points[2] *= 100.0;
+      }
+
+      SetOrthographic(-2.0, 2.0, 2.0, -2.0, 2.0, -2.0);
     }
 
     // -------------------------------------------------------------------------
@@ -195,9 +209,9 @@ class Drawer : public DrawWrapper
 
         // FIXME: these don't work either
         //tr.Points[i] = RotateX(t.Points[i], angle);
-        //tr.Points[i] = RotateY(t.Points[i], angle);
+        //tr.Points[i] = RotateY(tr.Points[i], angle);
 
-        tr.Points[i] = RotateZ(t.Points[i], angle);
+        //tr.Points[i] = RotateZ(t.Points[i], angle);
       }
 
       //
@@ -258,7 +272,11 @@ class Drawer : public DrawWrapper
 
         for (size_t i = 0; i < 3; i++)
         {
-          tr.Points[i] = RotateZ(t.Points[i], angle);
+          //tr.Points[i] = Rotate(t.Points[i], Directions::RIGHT, angle);
+
+          tr.Points[i] = RotateZ(t.Points[i],  0.5   * angle);
+          tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
+          tr.Points[i] = RotateX(tr.Points[i], 0.125 * angle);
         }
 
         Triangle tt = tr;

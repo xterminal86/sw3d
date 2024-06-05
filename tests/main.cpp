@@ -175,6 +175,67 @@ void MatrixPositiveCases()
 
   // ---------------------------------------------------------------------------
   {
+    SW3D::Matrix m1(3, 3);
+
+    m1.SetIdentity();
+
+    SW3D::Matrix m2
+    {
+      {
+        { 1, 2, 3 },
+        { 4, 5, 6 },
+        { 7, 8, 9 },
+      }
+    };
+
+    SW3D::Matrix r = m1 * m2;
+
+    if (r.Columns() != 3 and r.Rows() != 3)
+    {
+      EMIT_FAIL();
+    }
+
+    size_t counter = 1;
+    for (size_t x = 0; x < 3; x++)
+    {
+      for (size_t y = 0; y < 3; y++)
+      {
+        if ((int)r[x][y] != counter)
+        {
+          EMIT_FAIL();
+        }
+
+        counter++;
+      }
+    }
+
+    SDL_Log(r.ToString().data());
+
+    r = m2 * m1;
+
+    if (r.Columns() != 3 and r.Rows() != 3)
+    {
+      EMIT_FAIL();
+    }
+
+    counter = 1;
+    for (size_t x = 0; x < 3; x++)
+    {
+      for (size_t y = 0; y < 3; y++)
+      {
+        if ((int)r[x][y] != counter)
+        {
+          EMIT_FAIL();
+        }
+
+        counter++;
+      }
+    }
+
+    SDL_Log(r.ToString().data());
+  }
+  // ---------------------------------------------------------------------------
+  {
     SW3D::Matrix m1
     {
       {

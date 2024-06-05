@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cmath>
 #include <sstream>
+#include <iomanip>
 #include <unordered_map>
 #include <stack>
 
@@ -399,9 +400,13 @@ namespace SW3D
 
           for (uint32_t x = 0; x < _rows; x++)
           {
-            ::snprintf(_buf, sizeof(_buf), "%.4f", _matrix[x][y]);
+            std::stringstream ss;
 
-            size_t ln = ::strlen(_buf);
+            ss << std::fixed << std::setprecision(4);
+
+            ss << _matrix[x][y];
+
+            size_t ln = ss.str().length();
             if (ln > maxLength)
             {
               maxLength = ln;
@@ -413,6 +418,8 @@ namespace SW3D
 
         _ss.str(std::string());
 
+        _ss << std::fixed << std::setprecision(4);
+
         _ss << "\n";
 
         for (uint32_t x = 0; x < _rows; x++)
@@ -421,16 +428,20 @@ namespace SW3D
 
           for (uint32_t y = 0; y < _cols; y++)
           {
-            ::snprintf(_buf, sizeof(_buf), "%.4f", _matrix[x][y]);
+            std::stringstream ss;
+
+            ss << std::fixed << std::setprecision(4);
+
+            ss << _matrix[x][y];
 
             for (uint32_t spaces = 0;
-                 spaces < (_maxColumnLengthByColumn[y] - ::strlen(_buf));
+                 spaces < (_maxColumnLengthByColumn[y] - ss.str().length());
                  spaces++)
             {
               _ss << " ";
             }
 
-            _ss << _buf << " ";
+            _ss << _matrix[x][y] << " ";
           }
 
           _ss << "]\n";
@@ -691,8 +702,6 @@ namespace SW3D
       // For printf debug logs.
       //
       std::unordered_map<uint32_t, size_t> _maxColumnLengthByColumn;
-
-      char _buf[128];
 
       std::stringstream _ss;
       // -----------------------------------------------------------------------
@@ -1178,6 +1187,40 @@ namespace SW3D
       //
       // So our "magic plane" becomes our computer screen if you will.
       // Now we can try and work something out in terms of mathematics and shit.
+      //
+      //
+      //            f
+      // |--------------------|
+      //
+      // image
+      // plane
+      // |                                  P0
+      // |                                 ----
+      // |                         r0  ---- #  .
+      // |optical             |    ----    ### .
+      // |axis           z    |----         |  .
+      // |---------------<----o--------------------
+      // |.               ----|pinhole
+      // |.           ----    |
+      // |.       ----
+      // |.   ----    ri
+      // |----
+      //  Pi
+      // _
+      // r0 = (x0, y0, z0)
+      //
+      // It is obvious that zi = f, so any z of original point will be have the
+      // same projected z.
+      // _
+      // ri = (xi, yi, f)
+      //
+      // Using similar triangles:
+      //
+      // ri   r0      xi   x0  yi   y0
+      // -- = --  ->  -- = --, -- = --
+      // f    z0      f    z0  f    z0
+      //
+      // (N.B. I think this is what's called "weak projection")
       //
       // Because displays have different aspect ratio, we need to convert
       // object's coordinates to so-called Normalized Device

@@ -61,13 +61,12 @@ class Drawer : public DrawWrapper
       }
       */
 
-      /*
-      SetPerspective(60.0,
+      SetPerspective(90.0,
                      (double)WW / (double)WH,
                      0.1,
-                     10.0);
-      */
+                     1000.0);
 
+      /*
       //
       // Works for orthographic.
       //
@@ -78,7 +77,8 @@ class Drawer : public DrawWrapper
         v.Points[2] *= 100.0;
       }
 
-      SetOrthographic(-2.0, 2.0, 2.0, -2.0, 2.0, -2.0);
+      SetOrthographic(-1.0, 1.0, 1.0, -1.0, 1.0, -1.0);
+      */
     }
 
     // -------------------------------------------------------------------------
@@ -127,26 +127,32 @@ class Drawer : public DrawWrapper
 
             case SDLK_e:
               DZ += 0.01;
+              SDL_Log("DZ: %.2f", DZ);
               break;
 
             case SDLK_q:
               DZ -= 0.01;
+              SDL_Log("DZ: %.2f", DZ);
               break;
 
             case SDLK_d:
               DX += 1;
+              SDL_Log("DX: %.2f", DX);
               break;
 
             case SDLK_a:
               DX -= 1;
+              SDL_Log("DX: %.2f", DX);
               break;
 
             case SDLK_w:
               DY -= 1;
+              SDL_Log("DY: %.2f", DY);
               break;
 
             case SDLK_s:
               DY += 1;
+              SDL_Log("DY: %.2f", DY);
               break;
           }
         }
@@ -193,31 +199,31 @@ class Drawer : public DrawWrapper
       //
       Triangle t;
 
-      t.Points[0] = {  0.0,                 2*SW3D::SQRT3OVER4, 0.1 };
-      t.Points[1] = { -2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, 0.1 };
-      t.Points[2] = {  2*SW3D::SQRT3OVER4, -2*SW3D::SQRT3OVER4, 0.1 };
+      t.Points[0] = {  0.0,                   2.0*SW3D::SQRT3OVER4, 3.0 };
+      t.Points[1] = { -2.0*SW3D::SQRT3OVER4, -2.0*SW3D::SQRT3OVER4, 3.0 };
+      t.Points[2] = {  2.0*SW3D::SQRT3OVER4, -2.0*SW3D::SQRT3OVER4, 3.0 };
 
       //
       // Rotated.
       //
-      Triangle tr;
+      //Triangle tr;
 
       for (size_t i = 0; i < 3; i++)
       {
         // FIXME: doesn' work.
         //tr.Points[i] = Rotate(t.Points[i], Directions::RIGHT, angle);
 
-        // FIXME: these don't work either
-        //tr.Points[i] = RotateX(t.Points[i], angle);
-        //tr.Points[i] = RotateY(tr.Points[i], angle);
-
-        //tr.Points[i] = RotateZ(t.Points[i], angle);
+        // NOTE: works for orthographic.
+        //tr.Points[i] = RotateX(t.Points[i], 0.5   * angle);
+        //tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
+        //tr.Points[i] = RotateZ(tr.Points[i], 0.125 * angle);
       }
 
       //
       // Translated.
       //
-      Triangle tt = tr;
+      //Triangle tt = tr;
+      Triangle tt = t;
 
       for (size_t i = 0; i < 3; i++)
       {
@@ -243,12 +249,14 @@ class Drawer : public DrawWrapper
         // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
         // and thus visible.
         //
-        tp.Points[i] += 1.0;
+        tp.Points[i].X += 1.0;
+        tp.Points[i].Y += 1.0;
 
-        //`
+        //
         // Now we need to scale it properly into viewscreen.
         //
-        tp.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
+        tp.Points[i].X *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
+        tp.Points[i].Y *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
       }
 
       DrawTriangle(tp.Points[0],
@@ -312,8 +320,8 @@ class Drawer : public DrawWrapper
 
     void Draw3D()
     {
-      //DrawTestTriangle();
-      DrawTestCube();
+      DrawTestTriangle();
+      //DrawTestCube();
     }
 
     // -------------------------------------------------------------------------

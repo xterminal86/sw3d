@@ -691,6 +691,55 @@ namespace SW3D
         return m;
       }
 
+      // -----------------------------------------------------------------------
+
+      static Matrix Orthographic(double left, double right,
+                                 double top,  double bottom,
+                                 double near, double far)
+      {
+        static Matrix m(4, 4);
+
+        if ( (right - left   == 0.0)
+          or (top   - bottom == 0.0)
+          or (far   - near   == 0.0) )
+        {
+          SW3D::Error = EngineError::DIVISION_BY_ZERO;
+          return m;
+        }
+
+        m[0][0] = 2.0               / (right - left);
+        m[0][3] = -( (right + left) / (right - left) );
+        m[1][1] = 2.0               / (top   - bottom);
+        m[1][3] = -( (top + bottom) / (top   - bottom) );
+        m[2][2] = -2.0              / (far   - near);
+        m[2][3] = -( (far + near)   / (far   - near) );
+        m[3][3] = 1.0;
+
+        return m;
+      }
+
+      // -----------------------------------------------------------------------
+
+      static Matrix Perspective(double fov,
+                                double aspectRatio,
+                                double zNear,
+                                double zFar)
+      {
+        static Matrix m(4, 4);
+
+        double f = 1.0 / tan( (fov / 2) * DEG2RAD );
+        double q = zFar / (zFar - zNear);
+
+        m[0][0] = (f / aspectRatio);
+        m[1][1] = f;
+        m[2][2] = q;
+        m[3][2] = -zNear * q;
+        m[2][3] = 1.0;
+        m[3][3] = 0.0;
+
+        return m;
+      }
+
     private:
       VV _matrix;
 
@@ -1523,7 +1572,6 @@ namespace SW3D
         _projectionMatrix[2][3] = -(far + near)   / (far   - near);
         _projectionMatrix[3][3] = 1.0;
       }
-
 
       // -----------------------------------------------------------------------
 

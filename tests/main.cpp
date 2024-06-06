@@ -426,20 +426,21 @@ void ProjectionTests()
 {
   SDL_Log(__func__);
 
+  // ---------------------------------------------------------------------------
   {
     SDL_Log("Orthographic\n");
 
     SW3D::Matrix m = SW3D::Matrix::Orthographic(-2.0,  2.0,
-                                                  2.0, -2.0,
-                                                 -2.0,  2.0);
+                                                 2.0, -2.0,
+                                                -2.0,  2.0);
 
     SDL_Log("%s\n", m.ToString().data());
 
     std::vector<SW3D::Vec3> tri =
     {
-      { 0.0, 0.0, 0.0 },
-      { 1.0, 0.0, 0.0 },
-      { 0.0, 1.0, 0.0 }
+      { -1.0, 0.0, 0.0 },
+      {  1.0, 0.0, 0.0 },
+      {  0.0, 1.0, 0.0 }
     };
 
     SDL_Log("Triangle before:\n");
@@ -457,6 +458,40 @@ void ProjectionTests()
       SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
     }
   }
+  // ---------------------------------------------------------------------------
+  {
+    SDL_Log("Perspective\n");
+
+    SW3D::Matrix m = SW3D::Matrix::Perspective(90.0,
+                                               1.0,
+                                               0.1,
+                                               1000.0);
+
+    SDL_Log("%s\n", m.ToString().data());
+
+    std::vector<SW3D::Vec3> tri =
+    {
+      { -1.0, 0.0, 0.0 },
+      {  1.0, 0.0, 0.0 },
+      { -1.0, 1.0, 0.0 }
+    };
+
+    SDL_Log("Triangle before:\n");
+
+    for (auto& v : tri)
+    {
+      SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
+      v = m * v;
+    }
+
+    SDL_Log("Triangle after:\n");
+
+    for (auto& v : tri)
+    {
+      SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
+    }
+  }
+  // ---------------------------------------------------------------------------
 
   SDL_Log("OK");
 }

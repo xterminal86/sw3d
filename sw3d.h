@@ -196,6 +196,12 @@ namespace SW3D
       Z /= l;
     }
 
+    static Vec3 Zero()
+    {
+      static Vec3 v = { 0.0, 0.0, 0.0 };
+      return v;
+    }
+
     static Vec3 Up()
     {
       static Vec3 v = { 0.0, 1.0, 0.0 };
@@ -727,7 +733,7 @@ namespace SW3D
       {
         static Matrix m(4, 4);
 
-        double f = 1.0 / tan( (fov / 2) * DEG2RAD );
+        double f = 1.0 / std::tan( (fov * 0.5) * DEG2RAD );
         double q = zFar / (zFar - zNear);
 
         m[0][0] = (f / aspectRatio);
@@ -1539,7 +1545,7 @@ namespace SW3D
                           double zNear,
                           double zFar)
       {
-        double f = 1.0 / tan( (fov / 2) * DEG2RAD );
+        double f = 1.0 / std::tan( (fov / 2.0) * DEG2RAD );
         double q = zFar / (zFar - zNear);
 
         _projectionMatrix[0][0] = (f / aspectRatio);
@@ -1734,27 +1740,19 @@ namespace SW3D
 
   Vec3 RotateX(const Vec3& p, double angle)
   {
-    Matrix r;
+    Matrix r(3, 3);
 
     r[0][0] = 1.0;
     r[0][1] = 0.0;
     r[0][2] = 0.0;
-    r[0][3] = 0.0;
 
     r[1][0] = 0.0;
     r[1][1] = std::cos(angle * DEG2RAD);
     r[1][2] = -std::sin(angle * DEG2RAD);
-    r[1][3] = 0.0;
 
     r[2][0] = 0.0;
     r[2][1] = std::sin(angle * DEG2RAD);
     r[2][2] = std::cos(angle * DEG2RAD);
-    r[2][3] = 0.0;
-
-    r[3][0] = 0.0;
-    r[3][1] = 0.0;
-    r[3][2] = 0.0;
-    r[3][3] = 1.0;
 
     return r * p;
   }
@@ -1763,27 +1761,19 @@ namespace SW3D
 
   Vec3 RotateY(const Vec3& p, double angle)
   {
-    Matrix r;
+    Matrix r(3, 3);
 
     r[0][0] = std::cos(angle * DEG2RAD);
     r[0][1] = 0.0;
     r[0][2] = std::sin(angle * DEG2RAD);
-    r[0][3] = 0.0;
 
     r[1][0] = 0.0;
     r[1][1] = 1.0;
     r[1][2] = 0.0;
-    r[1][3] = 0.0;
 
     r[2][0] = -std::sin(angle * DEG2RAD);
     r[2][1] = 0.0;
     r[2][2] = std::cos(angle * DEG2RAD);
-    r[2][3] = 0.0;
-
-    r[3][0] = 0.0;
-    r[3][1] = 0.0;
-    r[3][2] = 0.0;
-    r[3][3] = 1.0;
 
     return r * p;
   }
@@ -1792,27 +1782,19 @@ namespace SW3D
 
   Vec3 RotateZ(const Vec3& p, double angle)
   {
-    Matrix r;
+    Matrix r(3, 3);
 
     r[0][0] = std::cos(angle * DEG2RAD);
     r[0][1] = -std::sin(angle * DEG2RAD);
     r[0][2] = 0.0;
-    r[0][3] = 0.0;
 
     r[1][0] = std::sin(angle * DEG2RAD);
     r[1][1] = std::cos(angle * DEG2RAD);
     r[1][2] = 0.0;
-    r[1][3] = 0.0;
 
     r[2][0] = 0.0;
     r[2][1] = 0.0;
     r[2][2] = 1.0;
-    r[2][3] = 0.0;
-
-    r[3][0] = 0.0;
-    r[3][1] = 0.0;
-    r[3][2] = 0.0;
-    r[3][3] = 1.0;
 
     return r * p;
   }
@@ -1847,27 +1829,19 @@ namespace SW3D
     double ys = p.Y * s;
     double zs = p.Z * s;
 
-    Matrix r(4, 4);
+    Matrix r(3, 3);
 
     r[0][0] = x2 * omc + c;
     r[0][1] = x * y * omc - zs;
     r[0][2] = x * z * omc + ys;
-    r[0][3] = 0.0;
 
     r[1][0] = y * x * omc + zs;
     r[1][1] = y2 * omc + c;
-    r[1][2] = y * z * omc + xs;
-    r[1][3] = 0.0;
+    r[1][2] = y * z * omc - xs;
 
     r[2][0] = x * z * omc - ys;
     r[2][1] = y * z * omc + xs;
     r[2][2] = z2 * omc + c;
-    r[2][3] = 0.0;
-
-    r[3][0] = 0.0;
-    r[3][1] = 0.0;
-    r[3][2] = 0.0;
-    r[3][3] = 1.0;
 
     res = r * p;
 

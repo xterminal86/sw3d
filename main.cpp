@@ -14,6 +14,8 @@ double DX = 0.0;
 double DY = 0.0;
 double DZ = 0.0;
 
+const double RotationSpeed = 100.0;
+
 bool wireframe = false;
 
 const uint32_t DebugColor = 0xAAAAAA;
@@ -52,31 +54,12 @@ class Drawer : public DrawWrapper
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
 
-      /*
-      for (auto& v : _cube.Triangles)
-      {
-        v.Points[0].Z += 0.0;
-        v.Points[1].Z += 0.0;
-        v.Points[2].Z += 0.0;
-      }
-      */
-
       SetPerspective(90.0,
                      (double)WW / (double)WH,
                      0.1,
                      1000.0);
 
       /*
-      //
-      // Works for orthographic.
-      //
-      for (auto& v : _cube.Triangles)
-      {
-        v.Points[0] *= 100.0;
-        v.Points[1] *= 100.0;
-        v.Points[2] *= 100.0;
-      }
-
       SetOrthographic(-1.0, 1.0, 1.0, -1.0, 1.0, -1.0);
       */
     }
@@ -126,12 +109,12 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_e:
-              DZ += 0.01;
+              DZ += 0.1;
               SDL_Log("DZ: %.2f", DZ);
               break;
 
             case SDLK_q:
-              DZ -= 0.01;
+              DZ -= 0.1;
               SDL_Log("DZ: %.2f", DZ);
               break;
 
@@ -199,37 +182,41 @@ class Drawer : public DrawWrapper
       //
       Triangle t;
 
-      t.Points[0] = {  0.0,                   2.0*SW3D::SQRT3OVER4, 3.0 };
-      t.Points[1] = { -2.0*SW3D::SQRT3OVER4, -2.0*SW3D::SQRT3OVER4, 3.0 };
-      t.Points[2] = {  2.0*SW3D::SQRT3OVER4, -2.0*SW3D::SQRT3OVER4, 3.0 };
+      t.Points[0] = {  0.0,                   1.0*SW3D::SQRT3OVER4, 0.0 };
+      t.Points[1] = { -1.0*SW3D::SQRT3OVER4, -1.0*SW3D::SQRT3OVER4, 0.0 };
+      t.Points[2] = {  1.0*SW3D::SQRT3OVER4, -1.0*SW3D::SQRT3OVER4, 0.0 };
 
       //
       // Rotated.
       //
-      //Triangle tr;
+      Triangle tr = t;
 
       for (size_t i = 0; i < 3; i++)
       {
         // FIXME: doesn' work.
         //tr.Points[i] = Rotate(t.Points[i], Directions::RIGHT, angle);
 
-        // NOTE: works for orthographic.
-        //tr.Points[i] = RotateX(t.Points[i], 0.5   * angle);
-        //tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
-        //tr.Points[i] = RotateZ(tr.Points[i], 0.125 * angle);
+        tr.Points[i] = RotateX(tr.Points[i], 0.5   * angle);
+        tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
+        tr.Points[i] = RotateZ(tr.Points[i], 0.125 * angle);
       }
 
       //
       // Translated.
       //
-      //Triangle tt = tr;
-      Triangle tt = t;
+      Triangle tt = tr;
 
       for (size_t i = 0; i < 3; i++)
       {
         tt.Points[i].X += DX;
         tt.Points[i].Y += DY;
-        tt.Points[i].Z += DZ;
+
+        //
+        // We'll translate our object further into the screen to avoid divisions
+        // by values closer to 0 due to values that projection matrix will
+        // produce if we don't.
+        //
+        tt.Points[i].Z += (5.0 + DZ);
       }
 
       //
@@ -240,8 +227,7 @@ class Drawer : public DrawWrapper
       for (size_t i = 0; i < 3; i++)
       {
         //
-        // The resulting coordinates will be in range [ -1 ; 1 ].
-        // So leftmost part will be offscreen.
+        // NOTE: projection actually *does not* transform coordinates to NDC.
         //
         tp.Points[i] = _projectionMatrix * tt.Points[i];
 
@@ -249,14 +235,17 @@ class Drawer : public DrawWrapper
         // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
         // and thus visible.
         //
-        tp.Points[i].X += 1.0;
-        tp.Points[i].Y += 1.0;
+        //tp.Points[i].X += 1.0;
+        //tp.Points[i].Y += 1.0;
 
         //
         // Now we need to scale it properly into viewscreen.
         //
-        tp.Points[i].X *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
-        tp.Points[i].Y *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
+        //tp.Points[i].X *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
+        //tp.Points[i].Y *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
+
+        tp.Points[i].X *= (double)FrameBufferSize();
+        tp.Points[i].Y *= (double)FrameBufferSize();
       }
 
       DrawTriangle(tp.Points[0],
@@ -265,7 +254,7 @@ class Drawer : public DrawWrapper
                    0xFFFFFF,
                    wireframe);
 
-      angle += (100.0 * DeltaTime());
+      angle += (RotationSpeed * DeltaTime());
     }
 
     // -------------------------------------------------------------------------
@@ -274,36 +263,49 @@ class Drawer : public DrawWrapper
     {
       static double angle = 0.0;
 
-      for (auto& t : _cube.Triangles)
+      for (Triangle& t : _cube.Triangles)
       {
-        Triangle tr;
+        //
+        // Rotate.
+        //
+        Triangle tr = t;
 
         for (size_t i = 0; i < 3; i++)
         {
-          //tr.Points[i] = Rotate(t.Points[i], Directions::RIGHT, angle);
+          // FIXME: doesn't work :-(
+          //tr.Points[i] = Rotate(t.Points[i], Directions::UP, angle);
 
-          tr.Points[i] = RotateZ(t.Points[i],  0.5   * angle);
+          tr.Points[i] = RotateZ(tr.Points[i], 0.5   * angle);
           tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
           tr.Points[i] = RotateX(tr.Points[i], 0.125 * angle);
         }
 
+        //
+        // Translate.
+        //
         Triangle tt = tr;
-        //Triangle tt = t;
 
         for (size_t i = 0; i < 3; i++)
         {
           tt.Points[i].X += DX;
           tt.Points[i].Y += DY;
-          tt.Points[i].Z += DZ;
+          tt.Points[i].Z += (5.0 + DZ);
         }
 
+        //
+        // Project.
+        //
         Triangle tp;
 
         for (size_t i = 0; i < 3; i++)
         {
           tp.Points[i] = _projectionMatrix * tt.Points[i];
-          tp.Points[i] += 1.0;
-          tp.Points[i] *= (0.5 * ((double)WW / (double)FrameBufferSize()));
+
+          //
+          // Scale into view.
+          //
+          tp.Points[i].X *= (double)FrameBufferSize();
+          tp.Points[i].Y *= (double)FrameBufferSize();
         }
 
         DrawTriangle(tp.Points[0],
@@ -313,15 +315,15 @@ class Drawer : public DrawWrapper
                      wireframe);
       }
 
-      angle += (100.0 * DeltaTime());
+      angle += (RotationSpeed * DeltaTime());
     }
 
     // -------------------------------------------------------------------------
 
     void Draw3D()
     {
-      DrawTestTriangle();
-      //DrawTestCube();
+      //DrawTestTriangle();
+      DrawTestCube();
     }
 
     // -------------------------------------------------------------------------

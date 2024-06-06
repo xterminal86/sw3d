@@ -2,10 +2,10 @@
 
 using namespace SW3D;
 
-const uint32_t WW = 600;
-const uint32_t WH = 600;
+const uint16_t WW = 600;
+const uint16_t WH = 600;
 
-const uint8_t QualityReductionFactor = 2;
+const uint16_t QualityReductionFactor = 2;
 
 int KeyboardX = 0;
 int KeyboardY = 0;
@@ -54,7 +54,7 @@ class Drawer : public DrawWrapper
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
 
-      SetPerspective(90.0,
+      SetPerspective(60.0,
                      (double)WW / (double)WH,
                      0.1,
                      1000.0);

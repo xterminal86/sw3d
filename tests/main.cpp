@@ -8,17 +8,6 @@
 
 // =============================================================================
 
-void DumpVector(const SW3D::Vec3& v)
-{
-  static char buf[1024];
-
-  ::snprintf(buf, sizeof(buf), "<%.2f, %.2f, %.2f>\n", v.X, v.Y, v.Z);
-
-  SDL_Log(buf);
-}
-
-// =============================================================================
-
 void CheckAssign()
 {
   SDL_Log(__func__);
@@ -47,7 +36,7 @@ void CheckAssign()
     }
   }
 
-  SDL_Log(m.ToString().data());
+  SDL_Log(SW3D::ToString(m).data());
 
   SDL_Log("OK");
 }
@@ -209,7 +198,7 @@ void MatrixPositiveCases()
       }
     }
 
-    SDL_Log(r.ToString().data());
+    SDL_Log(SW3D::ToString(r).data());
 
     r = m2 * m1;
 
@@ -232,7 +221,7 @@ void MatrixPositiveCases()
       }
     }
 
-    SDL_Log(r.ToString().data());
+    SDL_Log(SW3D::ToString(r).data());
   }
   // ---------------------------------------------------------------------------
   {
@@ -264,7 +253,7 @@ void MatrixPositiveCases()
       EMIT_FAIL();
     }
 
-    SDL_Log(r.ToString().data());
+    SDL_Log(SW3D::ToString(r).data());
   }
   // ---------------------------------------------------------------------------
   {
@@ -303,7 +292,7 @@ void MatrixPositiveCases()
       }
     }
 
-    SDL_Log(r.ToString().data());
+    SDL_Log(SW3D::ToString(r).data());
   }
   // ---------------------------------------------------------------------------
   {
@@ -332,7 +321,7 @@ void MatrixPositiveCases()
       }
     }
 
-    SDL_Log(m.ToString().data());
+    SDL_Log(SW3D::ToString(m).data());
   }
   // ---------------------------------------------------------------------------
   {
@@ -371,7 +360,7 @@ void MatrixPositiveCases()
       EMIT_FAIL();
     }
 
-    SDL_Log(r.ToString().data());
+    SDL_Log(SW3D::ToString(r).data());
   }
   // ---------------------------------------------------------------------------
   {
@@ -394,7 +383,7 @@ void MatrixPositiveCases()
       EMIT_FAIL();
     }
 
-    DumpVector(r);
+    SDL_Log("%s", SW3D::ToString(r).data());
   }
   // ---------------------------------------------------------------------------
   {
@@ -434,7 +423,7 @@ void ProjectionTests()
                                                  2.0, -2.0,
                                                 -2.0,  2.0);
 
-    SDL_Log("%s\n", m.ToString().data());
+    SDL_Log("%s\n", SW3D::ToString(m).data());
 
     std::vector<SW3D::Vec3> tri =
     {
@@ -447,7 +436,7 @@ void ProjectionTests()
 
     for (auto& v : tri)
     {
-      SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
+      SDL_Log("%s", SW3D::ToString(v).data());
       v = m * v;
     }
 
@@ -455,32 +444,45 @@ void ProjectionTests()
 
     for (auto& v : tri)
     {
-      SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
+      SDL_Log("%s", SW3D::ToString(v).data());
     }
   }
   // ---------------------------------------------------------------------------
   {
     SDL_Log("Perspective\n");
 
-    SW3D::Matrix m = SW3D::Matrix::Perspective(90.0,
+    SW3D::Matrix m = SW3D::Matrix::Perspective(60.0,
                                                1.0,
                                                0.1,
                                                1000.0);
 
-    SDL_Log("%s\n", m.ToString().data());
+    SDL_Log("%s\n", SW3D::ToString(m).data());
 
+    //
+    // The bigger the value of z in object space, the closer it is to 1 in world
+    // space which can lead to infamous Z-fighting if two objects are too close
+    // to far plane even though quite apart from each other in object space.
+    // Like in example below: two points differ by the whole 10 in Z axis, but
+    // projected values yield:
+    //
+    // < -0.0693, 0.0000, 0.9981 >
+    // <  0.0866, 0.0000, 0.9976 >
+    // < -0.0693, 0.0693, 0.9981 >
+    //
+    // which makes the difference minuscule in world space.
+    //
     std::vector<SW3D::Vec3> tri =
     {
-      { -1.0, 0.0, 0.0 },
-      {  1.0, 0.0, 0.0 },
-      { -1.0, 1.0, 0.0 }
+      { -2.0, 0.0, 50 },
+      {  2.0, 0.0, 40 },
+      { -2.0, 2.0, 50 }
     };
 
     SDL_Log("Triangle before:\n");
 
     for (auto& v : tri)
     {
-      SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
+      SDL_Log("%s", SW3D::ToString(v).data());
       v = m * v;
     }
 
@@ -488,7 +490,7 @@ void ProjectionTests()
 
     for (auto& v : tri)
     {
-      SDL_Log("%.4f %.4f %.4f\n", v.X, v.Y, v.Z);
+      SDL_Log("%s", SW3D::ToString(v).data());
     }
   }
   // ---------------------------------------------------------------------------

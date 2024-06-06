@@ -776,7 +776,7 @@ namespace SW3D
 
       bool Init(uint16_t windowWidth,
                 uint16_t windowHeight,
-                uint32_t frameBufferSize = 100)
+                uint8_t qualityReductionFactor = 1)
       {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
         {
@@ -786,11 +786,21 @@ namespace SW3D
 
         SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
+        uint16_t canvasSize = std::min(windowWidth, windowHeight);
+
         //
-        // Extra 1 to account for last screen column in DrawGrid()
-        // since we go from 0 to frameBufferSize.
+        // Cannot add extra 1 to account for pretty debug grid size because
+        // it will actually downscale texture into screen by 1 pixel and thus
+        // introduce artifacts when in full resolution
+        // (frameBufferSize == windowWidth == windowHeight).
         //
-        _frameBufferSize = frameBufferSize + 1;
+        _frameBufferSize = canvasSize / qualityReductionFactor;
+
+        if (_frameBufferSize == 0)
+        {
+          SDL_Log("Canvas size is zero - decrease zoom factor!");
+          return false;
+        }
 
         _windowWidth  = windowWidth;
         _windowHeight = windowHeight;

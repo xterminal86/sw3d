@@ -5,7 +5,7 @@ using namespace SW3D;
 const uint32_t WW = 600;
 const uint32_t WH = 600;
 
-const uint32_t RESOLUTION = 200;
+const uint8_t QualityReductionFactor = 2;
 
 int KeyboardX = 0;
 int KeyboardY = 0;
@@ -348,7 +348,7 @@ int main(int argc, char* argv[])
 {
   Drawer d;
 
-  if ( d.Init(WW, WH, RESOLUTION) )
+  if ( d.Init(WW, WH, QualityReductionFactor) )
   {
     d.Run(true);
   }

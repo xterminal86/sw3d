@@ -652,17 +652,44 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      // ***********************************************************************
       //
-      // During research I found that it's quite common to introduce the
-      // so-called "pinhole camera model" concept to explain how you can project
-      // 3D objects onto 2D screen. Because if you just go straight to the point
-      // and say "oh, you just take this matrix and multiply it by every
-      // point / vertex, and you'll effectively put those vertices onto the
-      // computer screen in proper places", I (personally) find it very
-      // counterintuitive because it doesn't answer the question "why?". Why do
-      // you need to use a matrix and more importantly where did all those
-      // values come from?
+      // OK, so I just wanted to make a detailed comment on why projection
+      // matrix looks the way it is, but this is turning into a fucking article
+      // now...
       //
+      // Anyway, I'm kinda following along with OneLoneCoder videos on software
+      // 3D renderer and recreating what he did, if possible without "cheating"
+      // (not looking into his source code), and maybe add something from myself
+      // as well.
+      //
+      // ***********************************************************************
+      //
+      //                               PROLOGUE
+      //
+      // Usually there's always a shortcut. You want to write a software 3D
+      // renderer? Well, that's simple: you just take this matrix and
+      // multiply every point / vertex by it, and you'll effectively put those
+      // vertices onto the computer screen in proper places. (#makingapoint)
+      // And while such approach might be acceptable or even required at certain
+      // times, you won't get understanding from it.
+      // I (personally) find it very counterintuitive because it doesn't answer
+      // the question "why?". Why do you need to use a matrix and more
+      // importantly where did all those values come from? Also (as it hopefully
+      // will be demonstrated further and not even to a half of a possible
+      // extent), the whole process of producing pixels on the screen from some
+      // 3D vertices defined in a std::vector of doubles or something is not
+      // that simple, and you'll have to follow down the rabbit hole for quite a
+      // while if you want to understand the theory behind everything, and it
+      // might hurt your head / be a waste of time or be a satisfying experience
+      // depending on your background.
+      // So, let's start the journey, shall we? :-)
+      //
+      //                                 INTRO
+      //
+      // During research of the subject I found that it's quite common to
+      // introduce the concept of so-called "pinhole camera model" to explain
+      // how you can project 3D objects onto 2D screen.
       // If you have a darkroom with a pinhole in the wall, rays of light that
       // come through it will form an upside down image on the opposite wall.
       // The clarity of the resulting image will depend on pinhole size, with it
@@ -675,8 +702,7 @@ namespace SW3D
       // More detailed explanation:
       // (https://www.youtube.com/watch?v=_EhY31MSbNM)
       //
-      // So, looking from the side, it looks like this:
-      //
+      // Looking from the side, it looks like this:
       //
       //        darkroom     world
       //         _______
@@ -689,35 +715,9 @@ namespace SW3D
       //        |       |
       //         -------
       //
-      // So objects exist in 3D space, but our screen is 2D space.
-      // In order to draw 3D object onto the screen we need to find a way to
-      // transform 3D coordinates to the 2D screen.
-      // This is called a projection.
-      //
-      // Continuing with pinhole camera model analogy, we already can project
-      // 3D object on the screen ("wall" that is), but it ends up upside down.
-      // If only we could somehow capture light rays *before* they invert
-      // themselves after passing through the hole... Obviously we can't do that
-      // in real life - we can't put anything inside the hole, and we can't put
-      // a wall in front of it. But suppose we have some magic material (maybe
-      // kinda like photographic film) that only captures light from our object
-      // of interest, that we can cut and make a piece of which we can then put
-      // before the hole and "capture" image from the world before it goes into
-      // the hole and invert itself.
-      //
-      // Now we get something like this:
-      //
-      //      magic     world
-      // _    plane -----
-      //  |   ------
-      //  |--- # |     #
-      //  o   ###|    ###
-      //  |--- | |     |
-      //  |   ------
-      // -          -----
-      //
-      // So our "magic plane" becomes our computer screen if you will.
-      // Now we can try and work something out in terms of mathematics and shit.
+      // We can try and work something out in terms of mathematics and shit if
+      // we really want to, but that's actually not that important for this
+      // particular topic of software 3D rendering:
       //
       // image
       // plane
@@ -750,51 +750,167 @@ namespace SW3D
       // -- = --  ->  -- = --, -- = --
       // f    z0      f    z0  f    z0
       //
-      // (N.B. I think this is what's called "weak projection")
+      // So objects exist in 3D space, but our screen is 2D space.
+      // In order to draw 3D object onto the screen we need to find a way to
+      // transform 3D coordinates to the 2D screen.
+      // This is called a projection.
       //
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      // (FIXME: research mode about NDC since projection matrix does not
-      // convert to them)
+      // Continuing with pinhole camera model analogy, we already can project
+      // 3D object on the screen ("wall" that is), but it ends up upside down.
+      // If only we could somehow capture light rays *before* they invert
+      // themselves after passing through the hole... Obviously we can't do that
+      // in real life - we can't put anything inside the hole, and we can't put
+      // a wall in front of it. But we can do it in virtual life. So, suppose we
+      // have some magic material (maybe kinda like photographic film) that only
+      // captures light from our object of interest, that we can cut and make a
+      // piece of which we can then put before the hole and "capture" image from
+      // the world before it goes into the hole and invert itself.
       //
-      // Because displays have different aspect ratio, we need to convert
+      // Now we get something like this:
+      //
+      //      magic     world
+      // _    plane -----
+      //  |   ------
+      //  |--- # |     #
+      //  o   ###|    ###
+      //  |--- | |     |
+      //  |   ------
+      // -          -----
+      //
+      // Out "magic plane" actually becomes our computer screen.
+      //
+      //                         RENDERING PIPELINE
+      //
+      // To have a conceptual understanding on how 3D vertex becomes a pixel on
+      // the screen one has to consider some stages that every vertex goes
+      // through. Although this might look and sound like some general bullshit
+      // accompanied by some not so fancy ASCII graphics, they're actually very
+      // important. Some of which are so important that without it we'll have
+      // one pixel instead of our 3D object or we won't get any image at all.
+      // I'll specifically mention them in the code.
+      //
+      // +-------------+ 3D coordinates of an object relative to its own origin
+      // | MODEL SPACE | (which usually is the center of an object itself).
+      // +-------------+ These are the coordinates of _cube.Triangles in this
+      //       ||        project, for example, or coordinates of 3D model
+      //       ||        loaded from .obj file. Basically this is your
+      //       ||        aforementioned "std::vector of doubles".
+      //       ||
+      //       \/
+      // +-------------+ This is where your vertices end up after applying
+      // | WORLD SPACE | translation / rotation matrices. This is where you
+      // +-------------+ position your object inside the scene (aka "world").
+      //       ||
+      //       ||
+      //       \/
+      // +------------+ Also known as "camera space" or "eye space".
+      // | VIEW SPACE | Additional rotation that's applied to world space
+      // +------------+ coordinates  that sets up the virtual camera. Basically
+      //       ||       this stage is kinda optional, nothing stops you from
+      //       ||       defining object the way you want in the first place, but
+      //       ||       if you plan to move around it with virtual camera, it is
+      //       ||       more convenient to apply additional step instead of
+      //       ||       manually redefining vertices every frame so to speak.
+      //       ||
+      //       \/
+      // +------------+ This is actually where your vertices end up after
+      // | CLIP SPACE | multiplication with projection matrix. This is *not* the
+      // +------------+ same as Normalized Device Coordinates (or NDC, more on
+      //       ||       that later). Here you can check if your vertices go
+      //       ||       outside NDC space which is defined by -w <= x <= w,
+      //       ||       -w <= y <= w, 0 <= z <= w and recreate additional
+      //       ||       vertices on clip boundaries if needed and only *after*
+      //       ||       that you can compress everything to NDC by dividing by w.
+      //       ||       For some reason in OLC videos he implies that projection
+      //       ||       itself gets you to NDC which is not true, but since he
+      //       ||       uses 1 unit cube with all vertex components having 0 to
+      //       ||       1 values it "kinda" works, but actually it might be
+      //       ||       really confusing if you're trying to understand the
+      //       ||       whole theory behind rendering. Especially since he
+      //       ||       introduces conecpt of clipping only in part 3 or
+      //       ||       something of his video series.
+      //       ||
+      //       ||       More details:
+      //       ||       https://learnopengl.com/Getting-started/Coordinate-Systems
+      //       ||       https://carmencincotti.com/2022-05-02/homogeneous-coordinates-clip-space-ndc/
+      //       \/
+      // +------------+ Since now all our vertices are normalized to [-1; 1] we
+      // | SCREEN MAP | need to scale them back up to fit to the screen. To do
+      // +------------+ that we need to shift coordinates by 1 first to bring
+      //                them from [-1 ; 1] to [0 ; 2] and then divide by 2 to
+      //                clamp them back to normalized screen space. Now we can
+      //                just treat x and y components like a scaling
+      //                coefficients for 2D point and multiply them by screen
+      //                width and height respectively to get the final screen
+      //                coordinates of a vertex where it ends up as a pixel.
+      //                E.g. given x = [ 0.3 ; 0.1 ] in NDC space and screen
+      //                dimensions of 600x600:
+      //
+      //                (not to scale)
+      //
+      //                -1          1
+      //                 +----------+  1
+      //                 |          |
+      //                 |      x   |
+      //                 |          |
+      //                 |          |
+      //                 +----------+ -1
+      //
+      //                x += 1.0   -> x = [ 1.3  ; 1.1  ]
+      //                x /= 2.0   -> x = [ 0.65 ; 0.55 ]
+      //                x * Screen -> x = [ 390  ; 330  ]
+      //                DrawPixel(390, 330);
+      //
+      // All these stage transformations are done using matrices and they can
+      // all be easily combined into one matrix by successive multiplication.
+      // And since order of multiplication for matrices is important, the result
+      // will look roughly like this:
+      //
+      // pixel = Mp * Mv * Mw * vertex
+      //
+      // where
+      //
+      // Mw - model to world matrix
+      // Mv - world to view matrix
+      // Mp - projection matrix
+      //
+      // We need to apply transformations in reverse order to that in which we
+      // want them applied. So, if our desired order is MODEL-VIEW-PROJECTION,
+      // we need to multiply by Mp first, then Mv and finally Mw. It is
+      // perfectly fine to combine however many transformations you like this
+      // way, like three translations followed by three rotations and so on,
+      // just be mindful of the correct order of operations. For example, IIRC,
+      // it was common to combine model and view matrix into one back in the
+      // days of so-called "fixed function pipeline" (no, I'm not going down
+      // this one!).
+      //
+      //                    PERSPECTIVE MATRIX EXPLAINED
+      //
+      // Because displays have different aspect ratios, we need to convert
       // object's coordinates to so-called Normalized Device
       // Coordinates (or NDC for short). In NDC everything is clamped in
-      // [ -1 ; 1 ] range on every axis. Roughly speaking, this is done so that
-      // object appears at the same place on any device screen.
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      // [ -1 ; 1 ] range on every axis except z, where it's from 0 to 1.
+      // Roughly speaking, this is done so that object appears at the same place
+      // on any device screen.
       //
       // Since desktop screens usually have their width greater than height,
-      // we'll define aspect ratio as w / h. It's really just a matter of
-      // convention, we could've easily defined aspect ratio as h / w, just like
-      // in OLC video and some others I saw, it would just resulted in
+      // we'll define aspect ratio as 'w' / 'h'. It's really just a matter of
+      // convention, we could've easily defined aspect ratio as 'h' / 'w', just
+      // like in OLC video and some others I saw, it would just resulted in
       // multiplying aspect ratio by coordinate in the matrix instead of
-      // dividing coordinate over it. Since they're basically equations, I guess
-      // you can literally turn the whole matrix "upside down" by rearranging
-      // signs and operations if you wanted to and the result will still be the
-      // same. Anyway, I like w / h better so that's what we're going to use.
+      // dividing coordinate over it. Since every term is basically an equation,
+      // I guess you can literally turn the whole matrix "upside down" by
+      // rearranging signs and operations if you wanted to and the result will
+      // still be the same. Anyway, I like 'w' / 'h' better so that's what we're
+      // going to use.
       //
       //      w
       // a = ---
       //      h
       //
-      // First step is to divide x coordinate of a given 3D point over aspect
+      // First step is to divide 'x' coordinate of a given 3D point over aspect
       // ratio to take into account different screen width.
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      //
-      // FIXME: clarification needed, see above
-      //
-      // Since we'll be "condensing" all points into NDC, we need to take into
-      // account different screen resolutions. E.g. resolution 2000x1000 would
-      // mean that we have to map all [ -1 ; 1 ] into 2000 pixels wide.
-      //
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      // That would make the object stretch across X axis. So, to prevent that
-      // we will divide its projected X coordinate over aspect ratio to bring it
-      // back into [ -1 ; 1 ] of normalized space.
-      // Conversely, if resolution would've been 1000x2000 aspect ratio would be
-      // less than 1, so we would effectively multiply X by something and thus
-      // "squaring" everything back again.
-      // We could've also changed everything the other way around by leaving x
+      // We could've also changed everything the other way around by leaving 'x'
       // unaffected and multiplying 'a' by 'y' instead of dividing 'x' by 'a',
       // but in all learning materials aspect ratio is affecting 'x', so we'll
       // use the same approach here.
@@ -806,8 +922,8 @@ namespace SW3D
       // Next, we need to take into account Field Of View (FOV), which is
       // defined by angle theta (TH). You can also define perspective projection
       // matrix using different method (e.g. check glFrustum at docs.gl), by
-      // specifying 6 planes (left, right, bottom, top, near, far), but using
-      // field of view is much more intuitive and I believe uniquitous.
+      // specifying 6 planes, but using field of view is much more intuitive and
+      // I believe uniquitous.
       //
       // (not to scale)
       //
@@ -879,20 +995,23 @@ namespace SW3D
       // example is 10, so we need to scale it back up again. We do this by
       // multiplying over Zfar:
       //
-      //          Zfar
-      // z * --------------
-      //     (Zfar - Znear)
+      //   z * Zfar
+      // --------------
+      // (Zfar - Znear)
       //
       // But we also need to offset our scaled point back closer to the eye
-      // by the distance amount from the eye to Znear (which is Znear):
+      // by the distance amount from the eye to Znear, which is Znear itself.
+      // Since we've already normalized 'z' the offset should be in "normalized
+      // mode" as well:
       //
-      //   (Zfar * Znear)
+      //
+      //   (Znear * Zfar)
       // - --------------
       //   (Zfar - Znear)
       //
-      // This is basically equivalent to taking point Znear, normalizing it
-      // like we just did above, and then just subtracting its value from our
-      // 'z' point's value:
+      //
+      // The end result will look like this:
+      //
       //
       //         Zfar         (Znear * Zfar)
       // z * -------------- - --------------
@@ -985,19 +1104,19 @@ namespace SW3D
       // Given like this, it is called the projection matrix. By multiplying
       // our 3D coordinates by this matrix we will transform them into
       // coordinates on the screen. But there is a problem.
-      // We need to divide everything by Z in order to take into account depth
-      // information, but there will be no Z saved in the resulting vector after
-      // multiplication by this matrix. To solve this we need to add another
-      // column to our matrix, thus making it 4 dimensional, as well as add
-      // another component to our original 3D vector, which is conventionally
-      // called W, and set it equal to 1. It is said that such vector is now in
-      // homogeneous coordinates. We will put a 1 into cell [3][4] (one based
-      // index) of the projection matrix which will allow us to put original Z
-      // value of a vector into 4th element W of a resulting vector. Then we can
-      // divide by it to correct for depth.
+      // We need to divide everything by 'z' in order to take into account depth
+      // information, but there will be no 'z' saved in the resulting vector
+      // after multiplication by this matrix. To solve this we need to add
+      // another column to our matrix, thus making it 4 dimensional, as well as
+      // add another component to our original 3D vector, which is
+      // conventionally called 'w', and set it equal to 1. It is said that such
+      // vector is now in "homogeneous coordinates". We will put a 1 into cell
+      // [3][4] (one based index) of the projection matrix which will allow us
+      // to put original 'z' value of a vector into 4th element 'w' of a
+      // resulting vector. Then we can divide by it to correct for depth.
       // We can explicitly add another coordinate into vector class, or
-      // calculate W implicitly during matrix-vector multiplication and
-      // performing divide by W there, which exactly how it's done here.
+      // calculate 'w' implicitly during matrix-vector multiplication and
+      // performing divide by 'w' there, which exactly how it's done here.
       // I believe this is a general practice. Operation on actual Vec4 is
       // commonly encountered in shaders.
       //
@@ -1023,8 +1142,8 @@ namespace SW3D
       // [ x * ---     y * F     (z * q - Znear * q)     z ]
       //        a
       //
-      // Divide everything over 4th coordinate W (which is effectively Z) to get
-      // back from homogeneous coordinates to Cartesian space.
+      // Divide everything over 4th coordinate 'w' (which is effectively 'w') to
+      // get back from homogeneous coordinates to Cartesian space.
       //
       //      xF
       // [ ( ---- ) / z     (y * F) / z     (z * q - z * (Znear * q)) / z     1 ]

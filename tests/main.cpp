@@ -500,12 +500,96 @@ void ProjectionTests()
 
 // =============================================================================
 
+void Various()
+{
+  const std::string ruler(80, '=');
+  // ---------------------------------------------------------------------------
+  {
+    SDL_Log("Orthographic\n");
+
+    SW3D::Matrix m = SW3D::Matrix::Orthographic(-2.0,  2.0,
+                                                 2.0, -2.0,
+                                                -2.0,  2.0);
+
+    SDL_Log("%s\n", SW3D::ToString(m).data());
+
+    for (size_t i = 0; i < 10; i++)
+    {
+      double offset = (double) i / 10;
+
+      std::vector<SW3D::Vec3> tri =
+      {
+        { -1.5 - offset, 0.0, 1.0 + offset },
+        {  1.5 + offset, 0.0, 1.0 + offset },
+        {  0.0, 1.5 + offset, 1.0 + offset }
+      };
+
+      SDL_Log("Triangle before:\n");
+
+      for (auto& v : tri)
+      {
+        SDL_Log("%s", SW3D::ToString(v).data());
+        v = m * v;
+      }
+
+      SDL_Log("\nTriangle after:\n");
+
+      for (auto& v : tri)
+      {
+        SDL_Log("%s", SW3D::ToString(v).data());
+      }
+
+      SDL_Log("%s", ruler.data());
+    }
+  }
+  // ---------------------------------------------------------------------------
+  {
+    SDL_Log("Perspective\n");
+
+    SW3D::Matrix m = SW3D::Matrix::Perspective(90.0, 1.0, 0.1, 1000.0);
+
+    SDL_Log("%s\n", SW3D::ToString(m).data());
+
+    for (size_t i = 0; i < 10; i++)
+    {
+      double offset = (double) i / 10;
+
+      std::vector<SW3D::Vec3> tri =
+      {
+        { -1.5 - offset, 0.0, 1.0 + 2 * offset },
+        {  1.5 + offset, 0.0, 1.0 + 2 * offset },
+        {  0.0, 1.5 + offset, 1.0 + 2 * offset }
+      };
+
+      SDL_Log("Triangle before:\n");
+
+      for (auto& v : tri)
+      {
+        SDL_Log("%s", SW3D::ToString(v).data());
+        v = m * v;
+      }
+
+      SDL_Log("\nTriangle after:\n");
+
+      for (auto& v : tri)
+      {
+        SDL_Log("%s", SW3D::ToString(v).data());
+      }
+
+      SDL_Log("%s", ruler.data());
+    }
+  }
+}
+
+// =============================================================================
+
 int main(int argc, char* argv[])
 {
   CheckAssign();
   MatrixNegativeCases();
   MatrixPositiveCases();
   ProjectionTests();
+  //Various();
 
   return 0;
 }

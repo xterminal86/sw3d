@@ -660,8 +660,8 @@ namespace SW3D
       //
       // Anyway, I'm kinda following along with OneLoneCoder videos on software
       // 3D renderer and recreating what he did, if possible without "cheating"
-      // (not looking into his source code), and maybe add something from myself
-      // as well.
+      // (not looking into his source code), and maybe try to add something from
+      // myself as well.
       //
       // ***********************************************************************
       //
@@ -707,11 +707,11 @@ namespace SW3D
       //        darkroom     world
       //         _______
       //        |       |
-      //        | ----  |  ----
-      //        | |   --|--  #
-      //        |###    o   ###
-      //        | #   --|--  |
-      //        | ----  |  ----
+      //        |-----  |  ----
+      //        I     --|--  #
+      //       ###      o   ###
+      //        #     --|--  I
+      //        |-----  |  ----
       //        |       |
       //         -------
       //
@@ -725,7 +725,7 @@ namespace SW3D
       // |                                 ----
       // |                         r0  ---- #  .
       // |optical             |    ----    ### .
-      // |axis           z    |----         |  .
+      // |axis           z    |----         I  .
       // |---------------<----o--------------------
       // |.               ----|pinhole
       // |.           ----    |
@@ -739,7 +739,7 @@ namespace SW3D
       // _
       // r0 = (x0, y0, z0)
       //
-      // It is obvious that zi = f, so any z of original point will be have the
+      // It is obvious that zi = f, so any z of original point will have the
       // same projected z.
       // _
       // ri = (xi, yi, f)
@@ -770,11 +770,11 @@ namespace SW3D
       //
       //      magic     world
       // _    plane -----
-      //  |   ------
-      //  |--- # |     #
-      //  o   ###|    ###
-      //  |--- | |     |
-      //  |   ------
+      //  |   ------   ##
+      //  |--- # |    ####
+      //  o   ###|    ####
+      //  |--- I |     II
+      //  |   ------   II
       // -          -----
       //
       // Out "magic plane" actually becomes our computer screen.
@@ -805,7 +805,7 @@ namespace SW3D
       //       \/
       // +------------+ Also known as "camera space" or "eye space".
       // | VIEW SPACE | Additional rotation that's applied to world space
-      // +------------+ coordinates  that sets up the virtual camera. Basically
+      // +------------+ coordinates that sets up the virtual camera. Basically
       //       ||       this stage is kinda optional, nothing stops you from
       //       ||       defining object the way you want in the first place, but
       //       ||       if you plan to move around it with virtual camera, it is
@@ -886,23 +886,28 @@ namespace SW3D
       //
       //                    PERSPECTIVE MATRIX EXPLAINED
       //
-      // Because displays have different aspect ratios, we need to convert
+      // Because displays have different aspect ratios we need to convert
       // object's coordinates to so-called Normalized Device
       // Coordinates (or NDC for short). In NDC everything is clamped in
       // [ -1 ; 1 ] range on every axis except z, where it's from 0 to 1.
       // Roughly speaking, this is done so that object appears at the same place
       // on any device screen.
       //
-      // Since desktop screens usually have their width greater than height,
+      // Since desktop screens usually have their width greater than height
       // we'll define aspect ratio as 'w' / 'h'. It's really just a matter of
       // convention, we could've easily defined aspect ratio as 'h' / 'w', just
       // like in OLC video and some others I saw, it would just resulted in
       // multiplying aspect ratio by coordinate in the matrix instead of
-      // dividing coordinate over it. Since every term is basically an equation,
-      // I guess you can literally turn the whole matrix "upside down" by
-      // rearranging signs and operations if you wanted to and the result will
-      // still be the same. Anyway, I like 'w' / 'h' better so that's what we're
-      // going to use.
+      // dividing coordinate over it. I.e.:
+      //
+      //      h          h           w
+      // a = --- -> x * --- <=> x / ---
+      //      w          w           h
+      //
+      // Since every term is basically an equation I guess you can literally
+      // turn the whole matrix "upside down" by rearranging signs and operations
+      // if you wanted to and the result will still be the same. Anyway, I like
+      // 'w' / 'h' better so that's what we're going to use.
       //
       //      w
       // a = ---
@@ -921,11 +926,9 @@ namespace SW3D
       //
       // Next, we need to take into account Field Of View (FOV), which is
       // defined by angle theta (TH). You can also define perspective projection
-      // matrix using different method (e.g. check glFrustum at docs.gl), by
+      // matrix using different method (e.g. check glFrustum at docs.gl) by
       // specifying 6 planes, but using field of view is much more intuitive and
       // I believe uniquitous.
-      //
-      // (not to scale)
       //
       // -1                  +1
       //  ___________________    far plane
@@ -947,9 +950,26 @@ namespace SW3D
       // -- = --
       // CD   oD
       //
-      // which is tangent of (TH / 2).
       //
-      // One can think of FOV as zooming in (decreasing FOV) or zooming out
+      // By doing some mathmagics:
+      //
+      //
+      // AB * oD = oB * CD     | / oB
+      //
+      //
+      // AB * oD
+      // ------- = CD          | / oD
+      //    oB
+      //
+      //
+      // AB   CD
+      // -- = --
+      // oB   oD
+      //
+      //
+      // which is a tangent of (TH / 2).
+      //
+      // One can think of FOV as zooming in (decreasing FOV) and zooming out
       // (increasing FOV). When zoomed in our objects occupy more space and
       // appear larger. When zoomed out it's the opposite. But if we use just
       // the tan value we'd displace all our objects outside of FOV if it's
@@ -1103,23 +1123,19 @@ namespace SW3D
       //
       // Given like this, it is called the projection matrix. By multiplying
       // our 3D coordinates by this matrix we will transform them into
-      // coordinates on the screen. But there is a problem.
-      // We need to divide everything by 'z' in order to take into account depth
-      // information, but there will be no 'z' saved in the resulting vector
-      // after multiplication by this matrix. To solve this we need to add
-      // another column to our matrix, thus making it 4 dimensional, as well as
-      // add another component to our original 3D vector, which is
+      // coordinates on the screen. But there is a problem. Our dimensions are
+      // wrong: we cannot multiply 1x3 vector by 4x3 matrix. To solve this we
+      // need to add another column to our matrix, thus making it 4 dimensional,
+      // as well as add another component to our original 3D vector, which is
       // conventionally called 'w', and set it equal to 1. It is said that such
-      // vector is now in "homogeneous coordinates". We will put a 1 into cell
-      // [3][4] (one based index) of the projection matrix which will allow us
-      // to put original 'z' value of a vector into 4th element 'w' of a
-      // resulting vector. Then we can divide by it to correct for depth.
-      // We can explicitly add another coordinate into vector class, or
-      // calculate 'w' implicitly during matrix-vector multiplication and
-      // performing divide by 'w' there, which exactly how it's done here.
-      // I believe this is a general practice. Operation on actual Vec4 is
-      // commonly encountered in shaders.
-      //
+      // vector is now in "homogeneous coordinates". We will also put 1 into
+      // cell [3][4] (one based index, row-major order) of the projection matrix
+      // which will allow us to save original 'z' value of a vector into 4th
+      // element 'w' of a resulting vector after multiplication. Then we can
+      // divide by it to correct for depth. We can explicitly add another
+      // coordinate into vector class or calculate 'w' implicitly during
+      // matrix-vector multiplication and perform divide by 'w' there, which
+      // exactly how it's done in this project.
       //
       // v = [ x, y, z, 1 ]
       //

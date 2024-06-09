@@ -173,98 +173,15 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void DrawTestTriangle()
-    {
-      static double angle = 0.0;
-
-      //
-      // Original model.
-      //
-      Triangle t;
-
-      t.Points[0] = {  0.0,                   1.0*SW3D::SQRT3OVER4, 0.0 };
-      t.Points[1] = { -1.0*SW3D::SQRT3OVER4, -1.0*SW3D::SQRT3OVER4, 0.0 };
-      t.Points[2] = {  1.0*SW3D::SQRT3OVER4, -1.0*SW3D::SQRT3OVER4, 0.0 };
-
-      //
-      // Rotated.
-      //
-      Triangle tr = t;
-
-      for (size_t i = 0; i < 3; i++)
-      {
-        // FIXME: doesn' work.
-        //tr.Points[i] = Rotate(t.Points[i], Directions::RIGHT, angle);
-
-        tr.Points[i] = RotateX(tr.Points[i], 0.5   * angle);
-        tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
-        tr.Points[i] = RotateZ(tr.Points[i], 0.125 * angle);
-      }
-
-      //
-      // Translated.
-      //
-      Triangle tt = tr;
-
-      for (size_t i = 0; i < 3; i++)
-      {
-        tt.Points[i].X += DX;
-        tt.Points[i].Y += DY;
-
-        //
-        // We'll translate our object further into the screen to avoid divisions
-        // by values closer to 0 due to values that projection matrix will
-        // produce if we don't.
-        //
-        tt.Points[i].Z += (5.0 + DZ);
-      }
-
-      //
-      // Projected.
-      //
-      Triangle tp;
-
-      for (size_t i = 0; i < 3; i++)
-      {
-        //
-        // NOTE: projection actually *does not* transform coordinates to NDC.
-        //
-        tp.Points[i] = _projectionMatrix * tt.Points[i];
-
-        //
-        // To move it back into view, add 1 to make it in range [ 0 ; 2 ]
-        // and thus visible.
-        //
-        //tp.Points[i].X += 1.0;
-        //tp.Points[i].Y += 1.0;
-
-        //
-        // Now we need to scale it properly into viewscreen.
-        //
-        //tp.Points[i].X *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
-        //tp.Points[i].Y *= 0.5 * ( (double)WW / (double)FrameBufferSize() );
-
-        tp.Points[i].X *= (double)FrameBufferSize();
-        tp.Points[i].Y *= (double)FrameBufferSize();
-      }
-
-      DrawTriangle(tp.Points[0],
-                   tp.Points[1],
-                   tp.Points[2],
-                   0xFFFFFF,
-                   wireframe);
-
-      angle += (RotationSpeed * DeltaTime());
-    }
-
-    // -------------------------------------------------------------------------
-
     void DrawTestCube()
     {
       static double angle = 0.0;
 
       for (Triangle& t : _cube.Triangles)
       {
+        // +-----------+
+        // |MODEL-WORLD|
+        // +-----------+
         //
         // Rotate.
         //
@@ -292,6 +209,9 @@ class Drawer : public DrawWrapper
           tt.Points[i].Z += (5.0 + DZ);
         }
 
+        // +----------+
+        // |PROJECTION|
+        // +----------+
         //
         // Project.
         //
@@ -322,7 +242,6 @@ class Drawer : public DrawWrapper
 
     void Draw3D()
     {
-      //DrawTestTriangle();
       DrawTestCube();
     }
 

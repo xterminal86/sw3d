@@ -665,12 +665,14 @@ namespace SW3D
       //
       // ***********************************************************************
       //
-      //                               PROLOGUE
+      //                           +------------+
+      //                           |  PROLOGUE  |
+      //                           +------------+
       //
       // Usually there's always a shortcut. You want to write a software 3D
       // renderer? Well, that's simple: you just take this matrix and
       // multiply every point / vertex by it, and you'll effectively put those
-      // vertices onto the computer screen in proper places. (#makingapoint)
+      // vertices onto the computer screen in proper places. #makingapoint
       // And while such approach might be acceptable or even required at certain
       // times, you won't get understanding from it.
       // I (personally) find it very counterintuitive because it doesn't answer
@@ -685,19 +687,21 @@ namespace SW3D
       // depending on your background.
       // So, let's start the journey, shall we? :-)
       //
-      //                                 INTRO
+      //                              +---------+
+      //                              |  INTRO  |
+      //                              +---------+
       //
       // During research of the subject I found that it's quite common to
       // introduce the concept of so-called "pinhole camera model" to explain
       // how you can project 3D objects onto 2D screen.
-      // If you have a darkroom with a pinhole in the wall, rays of light that
-      // come through it will form an upside down image on the opposite wall.
-      // The clarity of the resulting image will depend on pinhole size, with it
-      // being too large results in blurry image due to several light rays
-      // ending up at around the same point on the "projection" wall. And also
-      // if pinhole is too small, resulting image will also become blurry due to
-      // laws of physics (light can't go properly through a very small hole due
-      // to diffraction).
+      // If you have a darkroom with a "pinhole" (a hole of small size) in the
+      // wall, rays of light that come through it will form an upside down image
+      // on the opposite wall. The clarity of the resulting image will depend on
+      // pinhole size, with it being too large results in blurry image due to
+      // several light rays ending up at around the same point on the
+      // "projection" wall. And also if pinhole is too small, resulting image
+      // will also become blurry due to laws of physics (light can't go properly
+      // through a very small hole due to diffraction).
       //
       // More detailed explanation:
       // (https://www.youtube.com/watch?v=_EhY31MSbNM)
@@ -759,12 +763,12 @@ namespace SW3D
       // 3D object on the screen ("wall" that is), but it ends up upside down.
       // If only we could somehow capture light rays *before* they invert
       // themselves after passing through the hole... Obviously we can't do that
-      // in real life - we can't put anything inside the hole, and we can't put
-      // a wall in front of it. But we can do it in virtual life. So, suppose we
-      // have some magic material (maybe kinda like photographic film) that only
-      // captures light from our object of interest, that we can cut and make a
-      // piece of which we can then put before the hole and "capture" image from
-      // the world before it goes into the hole and invert itself.
+      // in real world - we can't put anything inside the hole, and we can't put
+      // a wall in front of it. But we can do it in virtual world. So, suppose
+      // we have some magic material (maybe kinda like photographic film) that
+      // only captures light from our object of interest, that we can cut and
+      // make a piece of which we can then put before the hole and "capture"
+      // image from the world before it goes into the hole and invert itself.
       //
       // Now we get something like this:
       //
@@ -779,21 +783,24 @@ namespace SW3D
       //
       // Out "magic plane" actually becomes our computer screen.
       //
-      //                         RENDERING PIPELINE
+      //                      +----------------------+
+      //                      |  RENDERING PIPELINE  |
+      //                      +----------------------+
       //
       // To have a conceptual understanding on how 3D vertex becomes a pixel on
       // the screen one has to consider some stages that every vertex goes
       // through. Although this might look and sound like some general bullshit
-      // accompanied by some not so fancy ASCII graphics, they're actually very
-      // important. Some of which are so important that without it we'll have
-      // one pixel instead of our 3D object or we won't get any image at all.
-      // I'll specifically mention them in the code.
+      // (that's what I thought) accompanied by some not so fancy ASCII
+      // graphics, they're actually very important. Some of which are so
+      // important that without it we'll have one pixel instead of our 3D object
+      // or we won't get any image at all. I'll specifically mention specific
+      // stages in the code.
       //
-      // +-------------+ 3D coordinates of an object relative to its own origin
-      // | MODEL SPACE | (which usually is the center of an object itself).
-      // +-------------+ These are the coordinates of _cube.Triangles in this
-      //       ||        project, for example, or coordinates of 3D model
-      //       ||        loaded from .obj file. Basically this is your
+      // +-------------+ 3D coordinates of an object relative to its own local
+      // | MODEL SPACE | origin (which usually is the center of an object
+      // +-------------+ itself). These are the coordinates of _cube.Triangles
+      //       ||        in this project, for example, or coordinates of a 3D
+      //       ||        model loaded from .obj file. Basically this is your
       //       ||        aforementioned "std::vector of doubles".
       //       ||
       //       \/
@@ -820,13 +827,13 @@ namespace SW3D
       //       ||       outside NDC space which is defined by -w <= x <= w,
       //       ||       -w <= y <= w, 0 <= z <= w and recreate additional
       //       ||       vertices on clip boundaries if needed and only *after*
-      //       ||       that you can compress everything to NDC by dividing by w.
-      //       ||       For some reason in OLC videos he implies that projection
-      //       ||       itself gets you to NDC which is not true, but since he
-      //       ||       uses 1 unit cube with all vertex components having 0 to
-      //       ||       1 values it "kinda" works, but actually it might be
-      //       ||       really confusing if you're trying to understand the
-      //       ||       whole theory behind rendering. Especially since he
+      //       ||       that you can compress everything to NDC by dividing by
+      //       ||       'w'. For some reason in OLC videos he implies that
+      //       ||       projection itself gets you to NDC which is not true, but
+      //       ||       since he uses 1 unit cube with all vertex components
+      //       ||       having 0 to 1 values it "kinda" works, but actually it
+      //       ||       might be really confusing if you're trying to understand
+      //       ||       the whole theory behind rendering. Especially since he
       //       ||       introduces conecpt of clipping only in part 3 or
       //       ||       something of his video series.
       //       ||
@@ -834,12 +841,12 @@ namespace SW3D
       //       ||       https://learnopengl.com/Getting-started/Coordinate-Systems
       //       ||       https://carmencincotti.com/2022-05-02/homogeneous-coordinates-clip-space-ndc/
       //       \/
-      // +------------+ Since now all our vertices are normalized to [-1; 1] we
-      // | SCREEN MAP | need to scale them back up to fit to the screen. To do
-      // +------------+ that we need to shift coordinates by 1 first to bring
-      //                them from [-1 ; 1] to [0 ; 2] and then divide by 2 to
-      //                clamp them back to normalized screen space. Now we can
-      //                just treat x and y components like a scaling
+      // +------------+ Since now all our vertices are normalized to [ -1; 1 ]
+      // | SCREEN MAP | we need to scale them back up to fit to the screen. To
+      // +------------+ do that we need to shift coordinates by 1 first to bring
+      //                them from [ -1 ; 1 ] to [ 0 ; 2 ] and then divide by 2
+      //                to clamp them back to normalized screen space. Now we
+      //                can just treat 'x' and 'y' components like a scaling
       //                coefficients for 2D point and multiply them by screen
       //                width and height respectively to get the final screen
       //                coordinates of a vertex where it ends up as a pixel.
@@ -884,41 +891,56 @@ namespace SW3D
       // days of so-called "fixed function pipeline" (no, I'm not going down
       // this one!).
       //
-      //                    PERSPECTIVE MATRIX EXPLAINED
+      //                    +-------------------------+
+      //                    |  INFAMOUS ASPECT RATIO  |
+      //                    +-------------------------+
       //
       // Because displays have different aspect ratios we need to convert
       // object's coordinates to so-called Normalized Device
       // Coordinates (or NDC for short). In NDC everything is clamped in
-      // [ -1 ; 1 ] range on every axis except z, where it's from 0 to 1.
-      // Roughly speaking, this is done so that object appears at the same place
-      // on any device screen.
+      // [ -1 ; 1 ] range on every axis except 'z', where it's from 0 to 1.
+      // Roughly speaking, this is done so that objects maintain the same
+      // proportions on any device screen.
       //
-      // Since desktop screens usually have their width greater than height
-      // we'll define aspect ratio as 'w' / 'h'. It's really just a matter of
-      // convention, we could've easily defined aspect ratio as 'h' / 'w', just
-      // like in OLC video and some others I saw, it would just resulted in
-      // multiplying aspect ratio by coordinate in the matrix instead of
-      // dividing coordinate over it. I.e.:
+      // For example, suppose we have display 2000x1000 which means its width is
+      // two times greater than its height, thus giving us aspect ratio of 2.
+      // This means that vertical number of pixels is less than number of
+      // horizontal ones, so our image on the screen will be stretched
+      // horizontally which is the same as being squished vertically. So we need
+      // to compensate for this stretch / squish for an object to continue
+      // remain "square" by making X coordinates smaller. The same principle
+      // goes for vertical screen - this time we need to compensate for stretch
+      // across screen height / squish across screen width by making X
+      // coordinates larger.
+      //
+      // Since desktop screens usually have their width greater than their
+      // height we'll define aspect ratio as 'w' / 'h'. It's really just a
+      // matter of convention, we could've easily defined aspect ratio as
+      // 'h' / 'w', just like in OLC video and some others I saw, it would just
+      // resulted in multiplication of aspect ratio by coordinate in the matrix
+      // instead of dividing coordinate over it. I.e.:
       //
       //      h          h           w
       // a = --- -> x * --- <=> x / ---
       //      w          w           h
       //
-      // Since every term is basically an equation I guess you can literally
-      // turn the whole matrix "upside down" by rearranging signs and operations
-      // if you wanted to and the result will still be the same. Anyway, I like
-      // 'w' / 'h' better so that's what we're going to use.
+      // I like 'w' / 'h' better so that's what we're going to use.
       //
-      //      w
-      // a = ---
-      //      h
+      // So if we have a tirangle (-1, -1), (1, -1), (0, 1)
+      //
+      // a = 2   -> (-0.5, -1) (0.5, -1), (0, 1)
+      // a = 0.5 -> (-2,   -1) (2,   -1), (0, 1)
+      //
+      // So if our screen is vertical, triangle actually becomes "bigger" (it
+      // will most likely go outside the screen), but proportions remain the
+      // same.
+      //
+      //                 +--------------------------------+
+      //                 |  PERSPECTIVE MATRIX EXPLAINED  |
+      //                 +--------------------------------+
       //
       // First step is to divide 'x' coordinate of a given 3D point over aspect
       // ratio to take into account different screen width.
-      // We could've also changed everything the other way around by leaving 'x'
-      // unaffected and multiplying 'a' by 'y' instead of dividing 'x' by 'a',
-      // but in all learning materials aspect ratio is affecting 'x', so we'll
-      // use the same approach here.
       //
       //                x
       // [x, y, z] = [ ---, y, z];
@@ -1024,7 +1046,6 @@ namespace SW3D
       // Since we've already normalized 'z' the offset should be in "normalized
       // mode" as well:
       //
-      //
       //   (Znear * Zfar)
       // - --------------
       //   (Zfar - Znear)
@@ -1072,7 +1093,6 @@ namespace SW3D
       // So our final scaling that we need to do to 'x' and 'y' coordinates is
       // to divide them by 'z', and so our formula becomes:
       //
-      //
       //                1        1        x
       // [x, y, z] = [ --- * --------- * ---,
       //                a    tan(TH/2)    z
@@ -1088,6 +1108,7 @@ namespace SW3D
       //
       // Let's simplify this a bit by making aliases:
       //
+      //
       //         1
       // F = ---------
       //     tan(TH/2)
@@ -1099,6 +1120,7 @@ namespace SW3D
       //
       //
       // With this we can rewrite the transformations above as:
+      //
       //
       //                Fx     Fy
       // [x, y, z] = [ ---- , ---- , q * (z - Znear) ]
@@ -1127,15 +1149,16 @@ namespace SW3D
       // wrong: we cannot multiply 1x3 vector by 4x3 matrix. To solve this we
       // need to add another column to our matrix, thus making it 4 dimensional,
       // as well as add another component to our original 3D vector, which is
-      // conventionally called 'w', and set it equal to 1. It is said that such
-      // vector is now in "homogeneous coordinates". We will also put 1 into
-      // cell [3][4] (one based index, row-major order) of the projection matrix
-      // which will allow us to save original 'z' value of a vector into 4th
-      // element 'w' of a resulting vector after multiplication. Then we can
-      // divide by it to correct for depth. We can explicitly add another
-      // coordinate into vector class or calculate 'w' implicitly during
-      // matrix-vector multiplication and perform divide by 'w' there, which
-      // exactly how it's done in this project.
+      // conventionally called 'w' (yes, this is that 'w' from above), and set
+      // it equal to 1. It is said that such vector is now in "homogeneous
+      // coordinates". We will also put 1 into cell [3][4] (one based index,
+      // row-major order) of the projection matrix which will allow us to save
+      // original 'z' value of a vector into 4th element 'w' of a resulting
+      // vector after multiplication. Then we can divide by it to correct for
+      // depth. We can explicitly add another coordinate into vector class or
+      // calculate 'w' implicitly during matrix-vector multiplication and
+      // perform divide by 'w' there, which exactly how it's done in this
+      // project.
       //
       // v = [ x, y, z, 1 ]
       //
@@ -1158,7 +1181,7 @@ namespace SW3D
       // [ x * ---     y * F     (z * q - Znear * q)     z ]
       //        a
       //
-      // Divide everything over 4th coordinate 'w' (which is effectively 'w') to
+      // Divide everything over 4th coordinate 'w' (which is effectively 'z') to
       // get back from homogeneous coordinates to Cartesian space.
       //
       //      xF
@@ -1249,7 +1272,7 @@ namespace SW3D
                                    dm.h / 2 - _windowHeight / 2,
                                    _windowWidth,
                                    _windowHeight,
-                                   SDL_WINDOW_SHOWN);
+                                   SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
         if (_window == nullptr)
         {

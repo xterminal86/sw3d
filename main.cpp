@@ -7,6 +7,9 @@ const uint16_t WH = 600;
 
 const uint16_t QualityReductionFactor = 2;
 
+uint16_t WindowWidth  = WW;
+uint16_t WindowHeight = WH;
+
 int KeyboardX = 0;
 int KeyboardY = 0;
 
@@ -16,13 +19,31 @@ double DZ = 0.0;
 
 const double RotationSpeed = 100.0;
 
-bool wireframe = false;
+bool Wireframe     = false;
+bool IsPerspective = true;
 
 const uint32_t DebugColor = 0xAAAAAA;
 
 class Drawer : public DrawWrapper
 {
   public:
+    void ApplyProjection()
+    {
+      if (IsPerspective)
+      {
+        SDL_Log("Perspective");
+        SetPerspective(60.0,
+                       (double)WindowWidth / (double)WindowHeight,
+                       0.1,
+                       1000.0);
+      }
+      else
+      {
+        SDL_Log("Orthographic");
+        SetOrthographic(-1.0, 1.0, 1.0, -1.0, 1.0, -1.0);
+      }
+    }
+
     void PostInit() override
     {
       _windowName = "Software 3D renderer";
@@ -54,14 +75,7 @@ class Drawer : public DrawWrapper
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
 
-      SetPerspective(60.0,
-                     (double)WW / (double)WH,
-                     0.1,
-                     1000.0);
-
-      /*
-      SetOrthographic(-1.0, 1.0, 1.0, -1.0, 1.0, -1.0);
-      */
+      ApplyProjection();
     }
 
     // -------------------------------------------------------------------------
@@ -101,7 +115,7 @@ class Drawer : public DrawWrapper
           switch (evt.key.keysym.sym)
           {
             case SDLK_TAB:
-              wireframe = !wireframe;
+              Wireframe = !Wireframe;
               break;
 
             case SDLK_p:
@@ -137,6 +151,23 @@ class Drawer : public DrawWrapper
               DY += 1;
               SDL_Log("DY: %.2f", DY);
               break;
+
+            case SDLK_SPACE:
+              IsPerspective = not IsPerspective;
+              ApplyProjection();
+              break;
+          }
+        }
+        break;
+
+        case SDL_WINDOWEVENT:
+        {
+          if (evt.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+          {
+            WindowWidth  = evt.window.data1;
+            WindowHeight = evt.window.data2;
+
+            ApplyProjection();
           }
         }
         break;
@@ -154,13 +185,13 @@ class Drawer : public DrawWrapper
                    SDL_Point{  0, 40 },
                    SDL_Point{ 30, 40 },
                    DebugColor,
-                   wireframe);
+                   Wireframe);
 
       DrawTriangle(SDL_Point{ 10 + KeyboardX,  20 + KeyboardY },
                    SDL_Point{ 30, 40 },
                    SDL_Point{ 30, 20 },
                    0x00FFFF,
-                   wireframe);
+                   Wireframe);
     }
 
 
@@ -232,7 +263,7 @@ class Drawer : public DrawWrapper
                      tp.Points[1],
                      tp.Points[2],
                      0xFFFFFF,
-                     wireframe);
+                     Wireframe);
       }
 
       angle += (RotationSpeed * DeltaTime());

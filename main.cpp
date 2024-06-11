@@ -194,14 +194,6 @@ class Drawer : public DrawWrapper
                    Wireframe);
     }
 
-
-    // -------------------------------------------------------------------------
-
-    void Draw2D()
-    {
-      DrawLine({ 80, 20 }, { 85, 40 }, 0x00FF00);
-    }
-
     // -------------------------------------------------------------------------
 
     void DrawTestCube()
@@ -286,7 +278,6 @@ class Drawer : public DrawWrapper
       //  return;
       //}
 
-      //Draw2D();
       Draw3D();
     }
 

@@ -1497,16 +1497,16 @@ namespace SW3D
 
         SaveColor();
 
-        if (HasAlpha(colorMask))
+        if (( colorMask & _maskA) != 0)
         {
           SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-          HTML2RGBA(colorMask);
         }
         else
         {
           SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_NONE);
-          HTML2RGB(colorMask);
         }
+
+        HTML2RGBA(colorMask);
 
         SDL_SetRenderDrawColor(_renderer,
                                 _drawColor.r,
@@ -1529,16 +1529,16 @@ namespace SW3D
 
         SaveColor();
 
-        if (HasAlpha(colorMask))
+        if (( colorMask & _maskA ) != 0)
         {
           SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-          HTML2RGBA(colorMask);
         }
         else
         {
           SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_NONE);
-          HTML2RGB(colorMask);
         }
+
+        HTML2RGBA(colorMask);
 
         SDL_SetRenderDrawColor(_renderer,
                                 _drawColor.r,
@@ -1693,24 +1693,22 @@ namespace SW3D
     //
     // *************************************************************************
     private:
-      const SDL_Color& HTML2RGB(const uint32_t& colorMask)
-      {
-        _drawColor.r = (colorMask & _maskR) >> 16;
-        _drawColor.g = (colorMask & _maskG) >> 8;
-        _drawColor.b = (colorMask & _maskB);
-        _drawColor.a = 0xFF;
-
-        return _drawColor;
-      }
-
-      // -----------------------------------------------------------------------
-
       const SDL_Color& HTML2RGBA(const uint32_t& colorMask)
       {
-        _drawColor.a = (colorMask & _maskA) >> 24;
-        _drawColor.r = (colorMask & _maskR) >> 16;
-        _drawColor.g = (colorMask & _maskG) >> 8;
-        _drawColor.b = (colorMask & _maskB);
+        if (colorMask <= 0xFFFFFF)
+        {
+          _drawColor.r = (colorMask & _maskR) >> 16;
+          _drawColor.g = (colorMask & _maskG) >> 8;
+          _drawColor.b = (colorMask & _maskB);
+          _drawColor.a = 0xFF;
+        }
+        else
+        {
+          _drawColor.a = (colorMask & _maskA) >> 24;
+          _drawColor.r = (colorMask & _maskR) >> 16;
+          _drawColor.g = (colorMask & _maskG) >> 8;
+          _drawColor.b = (colorMask & _maskB);
+        }
 
         return _drawColor;
       }
@@ -1766,13 +1764,6 @@ namespace SW3D
         }
 
         RestoreColor();
-      }
-
-      // -----------------------------------------------------------------------
-
-      bool HasAlpha(uint32_t colorMask)
-      {
-        return (colorMask & _maskA) != 0x0;
       }
 
       // -----------------------------------------------------------------------

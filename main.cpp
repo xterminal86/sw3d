@@ -229,7 +229,6 @@ class Drawer : public DrawWrapper
       PRINT(fb, 10, "DY: %.2f", DY);
       PRINT(fb, 20, "DZ: %.2f", DZ);
       PRINT(fb, 30, "Mode: %s", IsPerspective ? "P" : "O");
-      PRINT(fb, 40, "'Tab' to change modes");
     }
 
     // -------------------------------------------------------------------------

@@ -1239,6 +1239,12 @@ namespace SW3D
           return false;
         }
 
+        if (qualityReductionFactor == 0)
+        {
+          SDL_Log("Resolution factor cannot be zero!");
+          return false;
+        }
+
         SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
         uint16_t canvasSize = std::min(windowWidth, windowHeight);
@@ -1628,6 +1634,13 @@ namespace SW3D
             }
           }
         }
+      }
+
+      // -----------------------------------------------------------------------
+
+      SDL_Renderer* GetRenderer()
+      {
+        return _renderer;
       }
 
       // -----------------------------------------------------------------------

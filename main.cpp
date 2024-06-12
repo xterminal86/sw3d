@@ -1,4 +1,12 @@
 #include "sw3d.h"
+#include "instant-font.h"
+
+#define PRINT(x, y, format, ...) \
+  IF::Instance().Printf(x, y, \
+                        IF::TextParams::Set(0xFFFFFF, \
+                                            IF::TextAlignment::RIGHT, \
+                                            1.0), \
+                        format, ##__VA_ARGS__);
 
 using namespace SW3D;
 
@@ -9,9 +17,6 @@ const uint16_t QualityReductionFactor = 2;
 
 uint16_t WindowWidth  = WW;
 uint16_t WindowHeight = WH;
-
-int KeyboardX = 0;
-int KeyboardY = 0;
 
 double DX = 0.0;
 double DY = 0.0;
@@ -31,7 +36,6 @@ class Drawer : public DrawWrapper
     {
       if (IsPerspective)
       {
-        SDL_Log("Perspective");
         SetPerspective(60.0,
                        (double)WindowWidth / (double)WindowHeight,
                        0.1,
@@ -39,7 +43,6 @@ class Drawer : public DrawWrapper
       }
       else
       {
-        SDL_Log("Orthographic");
         SetOrthographic(-1.0, 1.0, 1.0, -1.0, 1.0, -1.0);
       }
     }
@@ -82,74 +85,42 @@ class Drawer : public DrawWrapper
 
     void HandleEvent(const SDL_Event& evt) override
     {
-      const uint8_t* kb = SDL_GetKeyboardState(nullptr);
-      if (kb[SDL_SCANCODE_ESCAPE])
-      {
-        Stop();
-      }
-
-      if (kb[SDL_SCANCODE_RIGHT])
-      {
-        KeyboardX++;
-      }
-
-      if (kb[SDL_SCANCODE_LEFT])
-      {
-        KeyboardX--;
-      }
-
-      if (kb[SDL_SCANCODE_UP])
-      {
-        KeyboardY--;
-      }
-
-      if (kb[SDL_SCANCODE_DOWN])
-      {
-        KeyboardY++;
-      }
-
       switch (evt.type)
       {
         case SDL_KEYDOWN:
         {
           switch (evt.key.keysym.sym)
           {
+            case SDLK_ESCAPE:
+              Stop();
+              break;
+
             case SDLK_TAB:
               Wireframe = !Wireframe;
               break;
 
-            case SDLK_p:
-              SDL_Log("%d %d", KeyboardX, KeyboardY);
-              break;
-
             case SDLK_e:
               DZ += 0.1;
-              SDL_Log("DZ: %.2f", DZ);
               break;
 
             case SDLK_q:
               DZ -= 0.1;
-              SDL_Log("DZ: %.2f", DZ);
               break;
 
             case SDLK_d:
               DX += 1;
-              SDL_Log("DX: %.2f", DX);
               break;
 
             case SDLK_a:
               DX -= 1;
-              SDL_Log("DX: %.2f", DX);
               break;
 
             case SDLK_w:
               DY -= 1;
-              SDL_Log("DY: %.2f", DY);
               break;
 
             case SDLK_s:
               DY += 1;
-              SDL_Log("DY: %.2f", DY);
               break;
 
             case SDLK_SPACE:
@@ -172,26 +143,6 @@ class Drawer : public DrawWrapper
         }
         break;
       }
-    }
-
-    // -------------------------------------------------------------------------
-
-    void DebugDraw()
-    {
-      DrawPoint({ 10, 10 }, 0xFFFFFF);
-      DrawLine({ 10, 0 }, { 20, 5 }, 0xFF0000);
-
-      DrawTriangle(SDL_Point{ 10 + KeyboardX,  20 + KeyboardY },
-                   SDL_Point{  0, 40 },
-                   SDL_Point{ 30, 40 },
-                   DebugColor,
-                   Wireframe);
-
-      DrawTriangle(SDL_Point{ 10 + KeyboardX,  20 + KeyboardY },
-                   SDL_Point{ 30, 40 },
-                   SDL_Point{ 30, 20 },
-                   0x00FFFF,
-                   Wireframe);
     }
 
     // -------------------------------------------------------------------------
@@ -270,15 +221,23 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void DrawGUI()
+    {
+      const uint32_t& fb = FrameBufferSize();
+
+      PRINT(fb, 0,  "DX: %.2f", DX);
+      PRINT(fb, 10, "DY: %.2f", DY);
+      PRINT(fb, 20, "DZ: %.2f", DZ);
+      PRINT(fb, 30, "Mode: %s", IsPerspective ? "P" : "O");
+      PRINT(fb, 40, "'Tab' to change modes");
+    }
+
+    // -------------------------------------------------------------------------
+
     void Draw() override
     {
-      // DEBUG:
-      //{
-      //  DebugDraw();
-      //  return;
-      //}
-
       Draw3D();
+      DrawGUI();
     }
 
   private:
@@ -291,6 +250,7 @@ int main(int argc, char* argv[])
 
   if ( d.Init(WW, WH, QualityReductionFactor) )
   {
+    IF::Instance().Init(d.GetRenderer());
     d.Run(true);
   }
 

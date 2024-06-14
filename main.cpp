@@ -1,6 +1,8 @@
 #include "sw3d.h"
 #include "instant-font.h"
 
+#include <map>
+
 #define PRINT(x, y, format, ...) \
   IF::Instance().Printf(x, y, \
                         IF::TextParams::Set(0xFFFFFF, \
@@ -10,8 +12,8 @@
 
 using namespace SW3D;
 
-const uint16_t WW = 600;
-const uint16_t WH = 600;
+const uint16_t WW = 1000;
+const uint16_t WH = 1000;
 
 const uint16_t QualityReductionFactor = 2;
 
@@ -24,7 +26,16 @@ double DZ = 0.0;
 
 const double RotationSpeed = 100.0;
 
-bool Wireframe     = false;
+RenderMode RenderMode_ = RenderMode::SOLID;
+
+size_t RenderModeIndex = 0;
+const std::map<RenderMode, std::string> RenderModes =
+{
+  { RenderMode::SOLID,     "SOLID"     },
+  { RenderMode::WIREFRAME, "WIREFRAME" },
+  { RenderMode::MIXED,     "MIXED"     }
+};
+
 bool IsPerspective = true;
 
 const uint32_t DebugColor = 0xAAAAAA;
@@ -96,8 +107,14 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_TAB:
-              Wireframe = !Wireframe;
-              break;
+            {
+              RenderModeIndex++;
+              RenderModeIndex %= RenderModes.size();
+              auto it = RenderModes.begin();
+              std::advance(it, RenderModeIndex);
+              RenderMode_ = it->first;
+            }
+            break;
 
             case SDLK_e:
               DZ += 0.1;
@@ -206,7 +223,7 @@ class Drawer : public DrawWrapper
                      tp.Points[1],
                      tp.Points[2],
                      0xFFFFFF,
-                     Wireframe);
+                     RenderMode_);
       }
 
       angle += (RotationSpeed * DeltaTime());
@@ -228,7 +245,8 @@ class Drawer : public DrawWrapper
       PRINT(fb, 0,  "DX: %.2f", DX);
       PRINT(fb, 10, "DY: %.2f", DY);
       PRINT(fb, 20, "DZ: %.2f", DZ);
-      PRINT(fb, 30, "Mode: %s", IsPerspective ? "P" : "O");
+      PRINT(fb, 30, "Projection: %s", IsPerspective ? "P" : "O");
+      PRINT(fb, 40, "Render mode: %s", RenderModes.at(RenderMode_).data());
     }
 
     // -------------------------------------------------------------------------

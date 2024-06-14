@@ -51,6 +51,13 @@ namespace SW3D
     INVALID_MODE
   };
 
+  enum class RenderMode
+  {
+    SOLID = 0,
+    WIREFRAME,
+    MIXED
+  };
+
   EngineError Error = EngineError::OK;
 
   const char* ErrorToString()
@@ -824,7 +831,7 @@ namespace SW3D
       // | CLIP SPACE | multiplication with projection matrix. This is *not* the
       // +------------+ same as Normalized Device Coordinates (or NDC, more on
       //       ||       that later). Here you can check if your vertices go
-      //       ||       outside NDC space which is defined by -w <= x <= w,
+      //       ||       outside view volume which is defined by -w <= x <= w,
       //       ||       -w <= y <= w, 0 <= z <= w and recreate additional
       //       ||       vertices on clip boundaries if needed and only *after*
       //       ||       that you can compress everything to NDC by dividing by
@@ -1563,19 +1570,32 @@ namespace SW3D
                         const SDL_Point& p2,
                         const SDL_Point& p3,
                         uint32_t colorMask,
-                        bool wireframe = false)
+                        RenderMode mode = RenderMode::SOLID)
       {
         INIT_CHECK();
 
-        if (wireframe)
+        switch (mode)
         {
-          DrawLine(p1, p2, colorMask);
-          DrawLine(p2, p3, colorMask);
-          DrawLine(p1, p3, colorMask);
-        }
-        else
-        {
-          FillTriangle(p1, p2, p3, colorMask);
+          case RenderMode::SOLID:
+            FillTriangle(p1, p2, p3, colorMask);
+            break;
+
+          case RenderMode::WIREFRAME:
+            DrawLine(p1, p2, colorMask);
+            DrawLine(p2, p3, colorMask);
+            DrawLine(p1, p3, colorMask);
+            break;
+
+          case RenderMode::MIXED:
+            FillTriangle(p1, p2, p3, colorMask);
+            DrawLine(p1, p2, 0);
+            DrawLine(p2, p3, 0);
+            DrawLine(p1, p3, 0);
+            break;
+
+          default:
+            SDL_Log("Unexpected mode %d!", (int)mode);
+            break;
         }
       }
 
@@ -1585,13 +1605,13 @@ namespace SW3D
                         const Vec3& p2,
                         const Vec3& p3,
                         uint32_t colorMask,
-                        bool wireframe = false)
+                        RenderMode mode = RenderMode::SOLID)
       {
         DrawTriangle(SDL_Point{ (int32_t)p1.X, (int32_t)p1.Y },
                      SDL_Point{ (int32_t)p2.X, (int32_t)p2.Y },
                      SDL_Point{ (int32_t)p3.X, (int32_t)p3.Y },
                      colorMask,
-                     wireframe);
+                     mode);
       }
 
       // -----------------------------------------------------------------------

@@ -246,10 +246,10 @@ class IF
         return;
       }
 
-      static size_t size = ::snprintf(nullptr,
-                                      0,
-                                      formatString.data(),
-                                      args ...);
+      size_t size = ::snprintf(nullptr,
+                               0,
+                               formatString.data(),
+                               args ...);
       if (size == 0)
       {
         return;

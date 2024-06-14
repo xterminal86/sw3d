@@ -112,6 +112,14 @@ class IF
 
       SDL_UnlockTexture(_fontAtlas);
 
+
+      res = SDL_SetTextureBlendMode(_fontAtlas, SDL_BLENDMODE_BLEND);
+      if (res < 0)
+      {
+        SDL_Log("%s", SDL_GetError());
+        return;
+      }
+
       _initialized = true;
     }
 
@@ -322,7 +330,7 @@ class IF
     bool _initialized = false;
 
     const uint8_t kColorWhite[4] = { 255, 255, 255, 255 };
-    const uint8_t kColorBlack[4] = {   0,   0,   0, 255 };
+    const uint8_t kColorBlack[4] = {   0,   0,   0,   0 };
 
     const uint8_t _numTilesH = 16;
     const uint8_t _numTilesV = 6;

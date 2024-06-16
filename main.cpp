@@ -12,8 +12,8 @@
 
 using namespace SW3D;
 
-const uint16_t WW = 1000;
-const uint16_t WH = 1000;
+const uint16_t WW = 600;
+const uint16_t WH = 600;
 
 const uint16_t QualityReductionFactor = 2;
 
@@ -25,6 +25,8 @@ double DY = 0.0;
 double DZ = 0.0;
 
 const double RotationSpeed = 100.0;
+
+bool Paused = false;
 
 RenderMode RenderMode_ = RenderMode::SOLID;
 
@@ -40,6 +42,8 @@ bool IsPerspective = true;
 
 const uint32_t DebugColor = 0xAAAAAA;
 
+const double InitialTranslation = 5.0;
+
 class Drawer : public DrawWrapper
 {
   public:
@@ -54,7 +58,9 @@ class Drawer : public DrawWrapper
       }
       else
       {
-        SetOrthographic(-1.0, 1.0, 1.0, -1.0, 1.0, -1.0);
+        SetOrthographic(-InitialTranslation * 0.5, InitialTranslation * 0.5,
+                        InitialTranslation * 0.5, -InitialTranslation * 0.5,
+                        InitialTranslation * 0.5, -InitialTranslation * 0.5);
       }
     }
 
@@ -141,6 +147,10 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_SPACE:
+              Paused = not Paused;
+              break;
+
+            case SDLK_p:
               IsPerspective = not IsPerspective;
               ApplyProjection();
               break;
@@ -197,7 +207,7 @@ class Drawer : public DrawWrapper
         {
           tt.Points[i].X += DX;
           tt.Points[i].Y += DY;
-          tt.Points[i].Z += (5.0 + DZ);
+          tt.Points[i].Z += (InitialTranslation + DZ);
         }
 
         // +----------+
@@ -213,6 +223,18 @@ class Drawer : public DrawWrapper
           tp.Points[i] = _projectionMatrix * tt.Points[i];
 
           //
+          // TODO: temporary hack to place (0;0) at the center of the screen.
+          // In future this will happen only after transformation to NDC.
+          // Right now this all "works" because our cube's coordinates span from
+          // 0 to 1.
+          //
+          tp.Points[i].X += 1;
+          tp.Points[i].Y += 1;
+
+          tp.Points[i].X /= 2.0;
+          tp.Points[i].Y /= 2.0;
+
+          //
           // Scale into view.
           //
           tp.Points[i].X *= (double)FrameBufferSize();
@@ -226,7 +248,10 @@ class Drawer : public DrawWrapper
                      RenderMode_);
       }
 
-      angle += (RotationSpeed * DeltaTime());
+      if (not Paused)
+      {
+        angle += (RotationSpeed * DeltaTime());
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -238,23 +263,38 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void DrawGUI()
+    void DrawToScreen() override
     {
-      const uint32_t& fb = FrameBufferSize();
+      PRINT(WindowWidth - 10, 10, "DX: %.2f", DX);
+      PRINT(WindowWidth - 10, 20, "DY: %.2f", DY);
+      PRINT(WindowWidth - 10, 30, "DZ: %.2f", DZ);
+      PRINT(WindowWidth - 10, 40, "Projection: %s", IsPerspective ? "P" : "O");
+      PRINT(WindowWidth - 10, 50, "Mode: %s", RenderModes.at(RenderMode_).data());
 
-      PRINT(fb, 0,  "DX: %.2f", DX);
-      PRINT(fb, 10, "DY: %.2f", DY);
-      PRINT(fb, 20, "DZ: %.2f", DZ);
-      PRINT(fb, 30, "Projection: %s", IsPerspective ? "P" : "O");
-      PRINT(fb, 40, "Render mode: %s", RenderModes.at(RenderMode_).data());
+      PRINT(WindowWidth - 10, WindowHeight - 140, "Projection matrix:");
+
+      for (uint8_t x = 0; x < 4; x++)
+      {
+        for (uint8_t y = 0; y < 4; y++)
+        {
+          PRINT(WindowWidth - 60 * (3 - y),
+                WindowHeight - 30 * (4 - x),
+                "%.2f  ",
+                _projectionMatrix[x][y]);
+        }
+      }
+
+      if (Paused)
+      {
+        IF::Instance().Print(0, 0, "PAUSED", 0xFFFF00);
+      }
     }
 
     // -------------------------------------------------------------------------
 
-    void Draw() override
+    void DrawToFrameBuffer() override
     {
       Draw3D();
-      DrawGUI();
     }
 
   private:

@@ -1229,11 +1229,6 @@ namespace SW3D
   class DrawWrapper
   {
     public:
-      virtual ~DrawWrapper()
-      {
-        SDL_Quit();
-      }
-
       // -----------------------------------------------------------------------
 
       bool Init(uint16_t windowWidth,
@@ -1292,6 +1287,8 @@ namespace SW3D
           SDL_Log("SDL_CreateWindow() error: %s", SDL_GetError());
           return false;
         }
+
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
         _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
         if (_renderer == nullptr)
@@ -1366,10 +1363,18 @@ namespace SW3D
             DrawGrid();
           }
 
-          Draw();
+          DrawToFrameBuffer();
 
           SDL_SetRenderTarget(_renderer, nullptr);
-          SDL_RenderCopy(_renderer, _framebuffer, nullptr, nullptr);
+          SDL_RenderClear(_renderer);
+
+          int ok = SDL_RenderCopy(_renderer, _framebuffer, nullptr, nullptr);
+          if (ok < 0)
+          {
+            SDL_Log("%s", SDL_GetError());
+          }
+
+          DrawToScreen();
 
           SDL_RenderPresent(_renderer);
 
@@ -1710,15 +1715,30 @@ namespace SW3D
     // *************************************************************************
 
     protected:
+      virtual ~DrawWrapper()
+      {
+        SDL_Quit();
+      }
+
+      SDL_Renderer* _renderer = nullptr;
+
       std::string _windowName = "DrawService window";
 
       Matrix _projectionMatrix;
       Matrix _modelViewMatrix;
 
+      uint16_t _windowWidth  = 0;
+      uint16_t _windowHeight = 0;
+
       virtual void PostInit() {}
 
-      virtual void Draw() = 0;
+      virtual void DrawToFrameBuffer() = 0;
       virtual void HandleEvent(const SDL_Event& evt) = 0;
+
+      //
+      // Additional draw to render target nullptr.
+      //
+      virtual void DrawToScreen() {}
 
     // *************************************************************************
     //
@@ -1801,15 +1821,11 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
-      SDL_Renderer* _renderer = nullptr;
       SDL_Window* _window     = nullptr;
 
       SDL_Texture* _framebuffer = nullptr;
 
       uint32_t _frameBufferSize = 0;
-
-      uint16_t _windowWidth  = 0;
-      uint16_t _windowHeight = 0;
 
       uint32_t _fps = 0;
 

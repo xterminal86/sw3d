@@ -38,7 +38,22 @@ const std::map<RenderMode, std::string> RenderModes =
   { RenderMode::MIXED,     "MIXED"     }
 };
 
-bool IsPerspective = true;
+enum class ProjectionMode
+{
+  ORTHOGRAPHIC,
+  WEAK_PERSPECTIVE,
+  PERSPECTIVE
+};
+
+ProjectionMode ProjectionMode_ = ProjectionMode::ORTHOGRAPHIC;
+
+size_t ProjectionModeIndex = 0;
+const std::map<ProjectionMode, std::string> ProjectionModes =
+{
+  { ProjectionMode::ORTHOGRAPHIC,     "ORTHO"        },
+  { ProjectionMode::WEAK_PERSPECTIVE, "PERSP (weak)" },
+  { ProjectionMode::PERSPECTIVE,      "PERSP (true)" }
+};
 
 const uint32_t DebugColor = 0xAAAAAA;
 
@@ -49,18 +64,24 @@ class Drawer : public DrawWrapper
   public:
     void ApplyProjection()
     {
-      if (IsPerspective)
+      switch (ProjectionMode_)
       {
-        SetPerspective(60.0,
-                       (double)WindowWidth / (double)WindowHeight,
-                       0.1,
-                       1000.0);
-      }
-      else
-      {
-        SetOrthographic(-InitialTranslation * 0.5, InitialTranslation * 0.5,
-                        InitialTranslation * 0.5, -InitialTranslation * 0.5,
-                        InitialTranslation * 0.5, -InitialTranslation * 0.5);
+        case ProjectionMode::ORTHOGRAPHIC:
+        {
+          SetOrthographic(-InitialTranslation * 0.5, InitialTranslation * 0.5,
+                          InitialTranslation * 0.5, -InitialTranslation * 0.5,
+                          InitialTranslation * 0.5, -InitialTranslation * 0.5);
+        }
+        break;
+
+        case ProjectionMode::PERSPECTIVE:
+        {
+          SetPerspective(60.0,
+                         (double)WindowWidth / (double)WindowHeight,
+                         0.1,
+                         1000.0);
+        }
+        break;
       }
     }
 
@@ -151,7 +172,11 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_p:
-              IsPerspective = not IsPerspective;
+              ProjectionModeIndex++;
+              ProjectionModeIndex %= ProjectionModes.size();
+              auto it = ProjectionModes.begin();
+              std::advance(it, ProjectionModeIndex);
+              ProjectionMode_ = it->first;
               ApplyProjection();
               break;
           }
@@ -220,7 +245,22 @@ class Drawer : public DrawWrapper
 
         for (size_t i = 0; i < 3; i++)
         {
-          tp.Points[i] = _projectionMatrix * tt.Points[i];
+          //
+          // This is actually enough to produce descent perspective effect, but
+          // it's a little bit different compared to "classic" perspective
+          // projection (lines converge more profoundly and this projection
+          // doesn't take into account display aspect ratio).
+          //
+          if (ProjectionMode_ == ProjectionMode::WEAK_PERSPECTIVE)
+          {
+            tp.Points[i].X = tt.Points[i].X / tt.Points[i].Z;
+            tp.Points[i].Y = tt.Points[i].Y / tt.Points[i].Z;
+            tp.Points[i].Z = tt.Points[i].Z;
+          }
+          else
+          {
+            tp.Points[i] = _projectionMatrix * tt.Points[i];
+          }
 
           //
           // TODO: temporary hack to place (0;0) at the center of the screen.
@@ -268,8 +308,12 @@ class Drawer : public DrawWrapper
       PRINT(WindowWidth - 10, 10, "DX: %.2f", DX);
       PRINT(WindowWidth - 10, 20, "DY: %.2f", DY);
       PRINT(WindowWidth - 10, 30, "DZ: %.2f", DZ);
-      PRINT(WindowWidth - 10, 40, "Projection: %s", IsPerspective ? "P" : "O");
-      PRINT(WindowWidth - 10, 50, "Mode: %s", RenderModes.at(RenderMode_).data());
+
+      PRINT(WindowWidth - 10, 40,
+            "Projection: %s", ProjectionModes.at(ProjectionMode_).data());
+
+      PRINT(WindowWidth - 10, 50,
+            "Mode: %s", RenderModes.at(RenderMode_).data());
 
       PRINT(WindowWidth - 10, WindowHeight - 140, "Projection matrix:");
 

@@ -55,6 +55,14 @@ const std::map<ProjectionMode, std::string> ProjectionModes =
   { ProjectionMode::PERSPECTIVE,      "PERSP (true)" }
 };
 
+enum class AppMode
+{
+  TEST = 0,
+  FROM_OBJ
+};
+
+AppMode ApplicationMode = AppMode::TEST;
+
 const uint32_t DebugColor = 0xAAAAAA;
 
 const double InitialTranslation = 5.0;
@@ -67,21 +75,21 @@ class Drawer : public DrawWrapper
       switch (ProjectionMode_)
       {
         case ProjectionMode::ORTHOGRAPHIC:
-        {
           SetOrthographic(-InitialTranslation * 0.5, InitialTranslation * 0.5,
                           InitialTranslation * 0.5, -InitialTranslation * 0.5,
                           InitialTranslation * 0.5, -InitialTranslation * 0.5);
-        }
-        break;
+          break;
+
+        case ProjectionMode::WEAK_PERSPECTIVE:
+          SetWeakPerspective();
+          break;
 
         case ProjectionMode::PERSPECTIVE:
-        {
           SetPerspective(60.0,
                          (double)WindowWidth / (double)WindowHeight,
                          0.1,
                          1000.0);
-        }
-        break;
+          break;
       }
     }
 
@@ -142,6 +150,14 @@ class Drawer : public DrawWrapper
               RenderMode_ = it->first;
             }
             break;
+
+            case SDLK_1:
+              ApplicationMode = AppMode::TEST;
+              break;
+
+            case SDLK_2:
+              ApplicationMode = AppMode::FROM_OBJ;
+              break;
 
             case SDLK_e:
               DZ += 0.1;
@@ -246,21 +262,15 @@ class Drawer : public DrawWrapper
         for (size_t i = 0; i < 3; i++)
         {
           //
-          // This is actually enough to produce descent perspective effect, but
-          // it's a little bit different compared to "classic" perspective
-          // projection (lines converge more profoundly and this projection
-          // doesn't take into account display aspect ratio).
+          // Some vertices can share several faces and here we apply the same
+          // operation to them several times. This can become quite inefficient.
+          // Instead we need to specify all vertices, apply projection to them
+          // once and then draw triangles based on those projected vertices
+          // using faces enumeration.
+          // We'll do that in .obj file loading, but I'll leave this here for
+          // history and simplicity sake.
           //
-          if (ProjectionMode_ == ProjectionMode::WEAK_PERSPECTIVE)
-          {
-            tp.Points[i].X = tt.Points[i].X / tt.Points[i].Z;
-            tp.Points[i].Y = tt.Points[i].Y / tt.Points[i].Z;
-            tp.Points[i].Z = tt.Points[i].Z;
-          }
-          else
-          {
-            tp.Points[i] = _projectionMatrix * tt.Points[i];
-          }
+          tp.Points[i] = _projectionMatrix * tt.Points[i];
 
           //
           // TODO: temporary hack to place (0;0) at the center of the screen.
@@ -296,9 +306,30 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void DrawFromObj()
+    {
+      static double angle = 0.0;
+
+      if (not Paused)
+      {
+        angle += (RotationSpeed * DeltaTime());
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
     void Draw3D()
     {
-      DrawTestCube();
+      switch (ApplicationMode)
+      {
+        case AppMode::TEST:
+          DrawTestCube();
+          break;
+
+        case AppMode::FROM_OBJ:
+          DrawFromObj();
+          break;
+      }
     }
 
     // -------------------------------------------------------------------------

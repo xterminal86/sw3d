@@ -659,6 +659,43 @@ namespace SW3D
 
       // -----------------------------------------------------------------------
 
+      //
+      // This is actually surprisignly enough to produce descent perspective
+      // effect, but it's a little bit different compared to "classic"
+      // perspective projection (lines converge more profoundly and this
+      // projection doesn't take into account display aspect ratio). This is
+      // called "weak perspective projection" and according to Wikipedia:
+      //
+      // "The weak-perspective model thus approximates perspective projection
+      // while using a simpler model, similar to the pure (unscaled)
+      // orthographic perspective. It is a reasonable approximation when the
+      // depth of the object along the line of sight is small compared to the
+      // distance from the camera, and the field of view is small. With these
+      // conditions, it can be assumed that all points on a 3D object are at the
+      // same distance Zavg from the camera without significant errors in the
+      // projection (compared to the full perspective model).
+      //
+      // Px = x / Zavg
+      // Py = y / Zavg
+      //
+      // assuming focal length f = 1."
+      //
+      // Where Px and Py are "projected X" and "projected Y" accordingly.
+      //
+      static Matrix WeakPerspective()
+      {
+        static Matrix m(4, 4);
+
+        m.SetIdentity();
+
+        m[2][3] = 1.0;
+        m[3][3] = 0.0;
+
+        return m;
+      }
+
+      // -----------------------------------------------------------------------
+
       // ***********************************************************************
       //
       // OK, so I just wanted to make a detailed comment on why projection
@@ -1680,6 +1717,13 @@ namespace SW3D
       const uint32_t& FrameBufferSize()
       {
         return _frameBufferSize;
+      }
+
+      // -----------------------------------------------------------------------
+
+      void SetWeakPerspective()
+      {
+        _projectionMatrix = SW3D::Matrix::WeakPerspective();
       }
 
       // -----------------------------------------------------------------------

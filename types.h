@@ -15,6 +15,12 @@ namespace SW3D
     const uint8_t kMatrixStackLimit = 32;
   }
 
+  enum class MatrixMode
+  {
+    PROJECTION = 0,
+    MODELVIEW
+  };
+
   enum class RenderMode
   {
     SOLID = 0,

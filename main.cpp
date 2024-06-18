@@ -146,6 +146,8 @@ class Drawer : public DrawWrapper
       }
 
       ApplyProjection();
+
+      SetMatrixMode(MatrixMode::MODELVIEW);
     }
 
     // -------------------------------------------------------------------------
@@ -255,9 +257,9 @@ class Drawer : public DrawWrapper
           // FIXME: doesn't work :-(
           //tr.Points[i] = Rotate(t.Points[i], Directions::UP, angle);
 
-          tr.Points[i] = RotateZ(tr.Points[i], 0.5   * angle);
-          tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
-          tr.Points[i] = RotateX(tr.Points[i], 0.125 * angle);
+          tr.Points[i] = SW3D::RotateZ(tr.Points[i], 0.5   * angle);
+          tr.Points[i] = SW3D::RotateY(tr.Points[i], 0.25  * angle);
+          tr.Points[i] = SW3D::RotateX(tr.Points[i], 0.125 * angle);
         }
 
         //
@@ -333,6 +335,17 @@ class Drawer : public DrawWrapper
 
       static Triangle tr;
 
+      //
+      // Old school style.
+      //
+      PushMatrix();
+
+      RotateZ(0.5   * angle);
+      RotateY(0.25  * angle);
+      RotateX(0.125 * angle);
+
+      Translate(DX, DY, (InitialTranslation + DZ));
+
       for (auto& face : LoadedModel.Faces)
       {
         for (size_t i = 0; i < 3; i++)
@@ -340,21 +353,11 @@ class Drawer : public DrawWrapper
           int32_t vertexInd = face.Indices[i][0];
           Vec3 v = LoadedModel.Vertices[vertexInd];
 
-          tr.Points[i] = RotateZ(v, 0.5   * angle);
-          tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
-          tr.Points[i] = RotateX(tr.Points[i], 0.125 * angle);
-        }
-
-        for (size_t i = 0; i < 3; i++)
-        {
-          tr.Points[i].X += DX;
-          tr.Points[i].Y += DY;
-          tr.Points[i].Z += (InitialTranslation + DZ);
-        }
-
-        for (size_t i = 0; i < 3; i++)
-        {
-          tr.Points[i] = _projectionMatrix * tr.Points[i];
+          //
+          // NOTE: without parentheses it's actually an order of magnitude
+          // slower.
+          //
+          tr.Points[i] = _projectionMatrix * (_modelViewMatrix * v);
 
           tr.Points[i].X += 1;
           tr.Points[i].Y += 1;
@@ -375,6 +378,8 @@ class Drawer : public DrawWrapper
                       0xFFFFFF,
                       RenderMode_);
       }
+
+      PopMatrix();
 
       if (not Paused)
       {

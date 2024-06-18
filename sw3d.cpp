@@ -98,8 +98,10 @@ namespace SW3D
     SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 
     _projectionMatrix.SetIdentity();
+    _modelViewMatrix.SetIdentity();
 
-    _projectionStack.push(Matrix::Identity());
+    _projectionStack.push(_projectionMatrix);
+    _modelViewStack.push(_modelViewMatrix);
 
     _initialized = true;
 
@@ -337,6 +339,93 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  void DrawWrapper::SetMatrixMode(MatrixMode modeToSet)
+  {
+    _matrixMode = modeToSet;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::PushMatrix()
+  {
+    switch (_matrixMode)
+    {
+      case MatrixMode::PROJECTION:
+      {
+        if (_projectionStack.size() < SW3D::Constants::kMatrixStackLimit)
+        {
+          _projectionStack.push(_projectionMatrix);
+        }
+        else
+        {
+          SW3D::Error = EngineError::STACK_OVERFLOW;
+        }
+      }
+      break;
+
+      case MatrixMode::MODELVIEW:
+      {
+        if (_modelViewStack.size() < SW3D::Constants::kMatrixStackLimit)
+        {
+          _modelViewStack.push(_modelViewMatrix);
+        }
+        else
+        {
+          SW3D::Error = EngineError::STACK_OVERFLOW;
+        }
+      }
+      break;
+
+      default:
+        SW3D::Error = EngineError::INVALID_MODE;
+        break;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::PopMatrix()
+  {
+    switch (_matrixMode)
+    {
+      case MatrixMode::PROJECTION:
+      {
+        if (_projectionStack.size() > 1)
+        {
+          _projectionStack.pop();
+        }
+        else
+        {
+          SW3D::Error = EngineError::STACK_UNDERFLOW;
+        }
+
+        _projectionMatrix = _projectionStack.top();
+      }
+      break;
+
+      case MatrixMode::MODELVIEW:
+      {
+        if (_modelViewStack.size() > 1)
+        {
+          _modelViewStack.pop();
+        }
+        else
+        {
+          SW3D::Error = EngineError::STACK_UNDERFLOW;
+        }
+
+        _modelViewMatrix = _modelViewStack.top();
+      }
+      break;
+
+      default:
+        SW3D::Error = EngineError::INVALID_MODE;
+        break;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+
   SDL_Renderer* DrawWrapper::GetRenderer() const
   {
     return _renderer;
@@ -462,6 +551,90 @@ namespace SW3D
     RestoreColor();
   }
 
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::RotateX(double angle)
+  {
+    static Matrix r(4, 4);
+
+    r.SetIdentity();
+
+    r[0][0] = 1.0;
+    r[0][1] = 0.0;
+    r[0][2] = 0.0;
+
+    r[1][0] = 0.0;
+    r[1][1] = std::cos(angle * Constants::DEG2RAD);
+    r[1][2] = -std::sin(angle * Constants::DEG2RAD);
+
+    r[2][0] = 0.0;
+    r[2][1] = std::sin(angle * Constants::DEG2RAD);
+    r[2][2] = std::cos(angle * Constants::DEG2RAD);
+
+    _modelViewMatrix = _modelViewMatrix * r;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::RotateY(double angle)
+  {
+    static Matrix r(4, 4);
+
+    r.SetIdentity();
+
+    r[0][0] = std::cos(angle * Constants::DEG2RAD);
+    r[0][1] = 0.0;
+    r[0][2] = std::sin(angle * Constants::DEG2RAD);
+
+    r[1][0] = 0.0;
+    r[1][1] = 1.0;
+    r[1][2] = 0.0;
+
+    r[2][0] = -std::sin(angle * Constants::DEG2RAD);
+    r[2][1] = 0.0;
+    r[2][2] = std::cos(angle * Constants::DEG2RAD);
+
+    _modelViewMatrix = _modelViewMatrix * r;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::RotateZ(double angle)
+  {
+    static Matrix r(4, 4);
+
+    r.SetIdentity();
+
+    r[0][0] = std::cos(angle * Constants::DEG2RAD);
+    r[0][1] = -std::sin(angle * Constants::DEG2RAD);
+    r[0][2] = 0.0;
+
+    r[1][0] = std::sin(angle * Constants::DEG2RAD);
+    r[1][1] = std::cos(angle * Constants::DEG2RAD);
+    r[1][2] = 0.0;
+
+    r[2][0] = 0.0;
+    r[2][1] = 0.0;
+    r[2][2] = 1.0;
+
+    _modelViewMatrix = _modelViewMatrix * r;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::Translate(double dx, double dy, double dz)
+  {
+    static Matrix r(4, 4);
+
+    r.SetIdentity();
+
+    r[3][0] = dx;
+    r[3][1] = dy;
+    r[3][2] = dz;
+
+    _modelViewMatrix = _modelViewMatrix * r;
+  }
+
   // ***************************************************************************
   //
   //                           HELPER FUNCTIONS
@@ -470,7 +643,7 @@ namespace SW3D
 
   Vec3 RotateX(const Vec3& p, double angle)
   {
-    Matrix r(3, 3);
+    static Matrix r(3, 3);
 
     r[0][0] = 1.0;
     r[0][1] = 0.0;
@@ -491,7 +664,7 @@ namespace SW3D
 
   Vec3 RotateY(const Vec3& p, double angle)
   {
-    Matrix r(3, 3);
+    static Matrix r(3, 3);
 
     r[0][0] = std::cos(angle * Constants::DEG2RAD);
     r[0][1] = 0.0;
@@ -512,7 +685,7 @@ namespace SW3D
 
   Vec3 RotateZ(const Vec3& p, double angle)
   {
-    Matrix r(3, 3);
+    static Matrix r(3, 3);
 
     r[0][0] = std::cos(angle * Constants::DEG2RAD);
     r[0][1] = -std::sin(angle * Constants::DEG2RAD);

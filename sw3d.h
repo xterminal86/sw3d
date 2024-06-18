@@ -40,6 +40,22 @@ namespace SW3D
                 uint16_t qualityReductionFactor = 1);
 
       void Run(bool debugMode = false);
+
+      SDL_Renderer* GetRenderer() const;
+
+      const double& DeltaTime() const;
+
+      const uint32_t& FrameBufferSize() const;
+
+    // *************************************************************************
+    //
+    //                               PROTECTED
+    //
+    // *************************************************************************
+
+    protected:
+      virtual ~DrawWrapper();
+
       void Stop();
 
       void DrawPoint(const SDL_Point& p, uint32_t colorMask);
@@ -60,20 +76,6 @@ namespace SW3D
                         uint32_t colorMask,
                         RenderMode mode = RenderMode::SOLID);
 
-      //
-      // Simple rasterizer based on point inside triangle test.
-      //
-      void FillTriangle(const SDL_Point& p1,
-                        const SDL_Point& p2,
-                        const SDL_Point& p3,
-                        uint32_t colorMask);
-
-      SDL_Renderer* GetRenderer() const;
-
-      const double& DeltaTime() const;
-
-      const uint32_t& FrameBufferSize() const;
-
       void SetWeakPerspective();
 
       void SetPerspective(double fov,
@@ -85,21 +87,23 @@ namespace SW3D
                            double top,  double bottom,
                            double near, double far);
 
-      // -----------------------------------------------------------------------
+      //
+      // Simple rasterizer based on point inside triangle test.
+      //
+      void FillTriangle(const SDL_Point& p1,
+                        const SDL_Point& p2,
+                        const SDL_Point& p3,
+                        uint32_t colorMask);
 
-    // *************************************************************************
-    //
-    //                               PROTECTED
-    //
-    // *************************************************************************
-
-    protected:
-      virtual ~DrawWrapper();
+      void SetMatrixMode(MatrixMode modeToSet);
+      void PushMatrix();
+      void PopMatrix();
 
       SDL_Renderer* _renderer = nullptr;
 
       std::string _windowName = "DrawService window";
 
+      Matrix _modelViewMatrix;
       Matrix _projectionMatrix;
 
       uint16_t _windowWidth  = 0;
@@ -109,6 +113,12 @@ namespace SW3D
 
       virtual void DrawToFrameBuffer() = 0;
       virtual void HandleEvent(const SDL_Event& evt) = 0;
+
+      void RotateX(double angle);
+      void RotateY(double angle);
+      void RotateZ(double angle);
+
+      void Translate(double dx, double dy, double dz);
 
       //
       // Additional draw to render target nullptr.
@@ -160,6 +170,16 @@ namespace SW3D
 
       bool _running = true;
 
+      MatrixMode _matrixMode = MatrixMode::PROJECTION;
+
+      //
+      // To store all translations and rotations.
+      //
+      std::stack<Matrix> _modelViewStack;
+
+      //
+      // To store all projections that may be.
+      //
       std::stack<Matrix> _projectionStack;
   };
 

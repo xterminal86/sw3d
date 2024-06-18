@@ -331,10 +331,10 @@ class Drawer : public DrawWrapper
     {
       static double angle = 0.0;
 
+      static Triangle tr;
+
       for (auto& face : LoadedModel.Faces)
       {
-        Triangle tr;
-
         for (size_t i = 0; i < 3; i++)
         {
           int32_t vertexInd = face.Indices[i][0];
@@ -345,37 +345,33 @@ class Drawer : public DrawWrapper
           tr.Points[i] = RotateX(tr.Points[i], 0.125 * angle);
         }
 
-        Triangle tt = tr;
-
         for (size_t i = 0; i < 3; i++)
         {
-          tt.Points[i].X += DX;
-          tt.Points[i].Y += DY;
-          tt.Points[i].Z += (InitialTranslation + DZ);
+          tr.Points[i].X += DX;
+          tr.Points[i].Y += DY;
+          tr.Points[i].Z += (InitialTranslation + DZ);
         }
 
-        Triangle tp;
-
         for (size_t i = 0; i < 3; i++)
         {
-          tp.Points[i] = _projectionMatrix * tt.Points[i];
+          tr.Points[i] = _projectionMatrix * tr.Points[i];
 
-          tp.Points[i].X += 1;
-          tp.Points[i].Y += 1;
+          tr.Points[i].X += 1;
+          tr.Points[i].Y += 1;
 
-          tp.Points[i].X /= 2.0;
-          tp.Points[i].Y /= 2.0;
+          tr.Points[i].X /= 2.0;
+          tr.Points[i].Y /= 2.0;
 
           //
           // Scale into view.
           //
-          tp.Points[i].X *= (double)FrameBufferSize();
-          tp.Points[i].Y *= (double)FrameBufferSize();
+          tr.Points[i].X *= (double)FrameBufferSize();
+          tr.Points[i].Y *= (double)FrameBufferSize();
         }
 
-        DrawTriangle(tp.Points[0],
-                      tp.Points[1],
-                      tp.Points[2],
+        DrawTriangle(tr.Points[0],
+                      tr.Points[1],
+                      tr.Points[2],
                       0xFFFFFF,
                       RenderMode_);
       }

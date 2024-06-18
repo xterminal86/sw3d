@@ -19,9 +19,10 @@ namespace SW3D
         struct Face
         {
           //
-          //     2 v t n
-          //   1 v t n
+          //   0 1 2
           // 0 v t n
+          // 1 v t n
+          // 2 v t n
           //
           // -1 means coordinate index is not defined
           // (e.g. no texture coordinates specified).
@@ -34,6 +35,8 @@ namespace SW3D
         std::vector<SW3D::Vec3> Normals;
         std::vector<SW3D::Vec2> UV;
         std::vector<Face>       Faces;
+
+        size_t Polygons;
       };
 
       Model* Load(const std::string& fname);

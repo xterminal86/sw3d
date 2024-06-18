@@ -120,9 +120,14 @@ namespace SW3D
             auto sd = StringSplit(faceData, '/');
             for (size_t j = 0; j < sd.size(); j++)
             {
-              f.Indices[i][j] = sd[j].empty() ? -1 : std::stoi(sd[j]);
+              //
+              // Indices are 1 based.
+              //
+              f.Indices[i][j] = sd[j].empty() ? -1 : (std::stoi(sd[j]) - 1);
             }
           }
+
+          _model.Polygons++;
 
           _model.Faces.push_back(f);
         }

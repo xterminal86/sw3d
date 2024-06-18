@@ -67,6 +67,9 @@ const uint32_t DebugColor = 0xAAAAAA;
 
 const double InitialTranslation = 5.0;
 
+SW3D::ModelLoader        Loader;
+SW3D::ModelLoader::Model LoadedModel;
+
 class Drawer : public DrawWrapper
 {
   public:
@@ -123,6 +126,24 @@ class Drawer : public DrawWrapper
         { 0.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 0.0 },
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
+
+      auto res = Loader.Load("models/monkey.obj");
+      if (res == nullptr)
+      {
+        SDL_Log("%s", SW3D::ErrorToString());
+      }
+      else
+      {
+        LoadedModel = *res;
+
+        //
+        // Dirty hack to avoid division by zero until we implement clipping.
+        //
+        //for (auto& v : LoadedModel.Vertices)
+        //{
+        //  v.Z += InitialTranslation;
+        //}
+      }
 
       ApplyProjection();
     }
@@ -310,6 +331,55 @@ class Drawer : public DrawWrapper
     {
       static double angle = 0.0;
 
+      for (auto& face : LoadedModel.Faces)
+      {
+        Triangle tr;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          int32_t vertexInd = face.Indices[i][0];
+          Vec3 v = LoadedModel.Vertices[vertexInd];
+
+          tr.Points[i] = RotateZ(v, 0.5   * angle);
+          tr.Points[i] = RotateY(tr.Points[i], 0.25  * angle);
+          tr.Points[i] = RotateX(tr.Points[i], 0.125 * angle);
+        }
+
+        Triangle tt = tr;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          tt.Points[i].X += DX;
+          tt.Points[i].Y += DY;
+          tt.Points[i].Z += (InitialTranslation + DZ);
+        }
+
+        Triangle tp;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          tp.Points[i] = _projectionMatrix * tt.Points[i];
+
+          tp.Points[i].X += 1;
+          tp.Points[i].Y += 1;
+
+          tp.Points[i].X /= 2.0;
+          tp.Points[i].Y /= 2.0;
+
+          //
+          // Scale into view.
+          //
+          tp.Points[i].X *= (double)FrameBufferSize();
+          tp.Points[i].Y *= (double)FrameBufferSize();
+        }
+
+        DrawTriangle(tp.Points[0],
+                      tp.Points[1],
+                      tp.Points[2],
+                      0xFFFFFF,
+                      RenderMode_);
+      }
+
       if (not Paused)
       {
         angle += (RotationSpeed * DeltaTime());
@@ -357,6 +427,14 @@ class Drawer : public DrawWrapper
                 "%.2f  ",
                 _projectionMatrix[x][y]);
         }
+      }
+
+      if (ApplicationMode == AppMode::FROM_OBJ)
+      {
+        IF::Instance().Printf(WW / 2, 10,
+                              IF::TextParams::Set(0xFFFFFF, IF::TextAlignment::CENTER),
+                              "%s (%llu polygons)",
+                              LoadedModel.Name.data(), LoadedModel.Polygons);
       }
 
       if (Paused)

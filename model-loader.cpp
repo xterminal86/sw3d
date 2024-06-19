@@ -1,6 +1,7 @@
 #include "model-loader.h"
 
 #include <fstream>
+#include <memory>
 
 namespace SW3D
 {
@@ -38,22 +39,28 @@ namespace SW3D
 
   // =============================================================================
 
-  ModelLoader::Model* ModelLoader::Load(const std::string& fname)
+  bool ModelLoader::Load(const std::string& fname)
   {
+    _scene = Scene();
+
     std::ifstream f(fname);
 
     if (not f.is_open())
     {
       Error = EngineError::FAILED_TO_LOAD_MODEL;
-      return nullptr;
+      return false;
     }
-
-    _model = Model();
 
     std::string line;
 
+    size_t lineCount = 0;
+
+    std::unique_ptr<Scene::Object> obj;
+
     while (std::getline(f, line))
     {
+      lineCount++;
+
       // skip comments
       if (line.find_first_of('#') != std::string::npos
        or line.length() == 0)
@@ -75,8 +82,19 @@ namespace SW3D
       switch (type)
       {
         case ObjFileLineType::OBJECT:
-          _model.Name = spl[1];
-          break;
+        {
+          //
+          // If single object only, don't push it right away.
+          //
+          if (obj != nullptr)
+          {
+            _scene.Objects.push_back(*obj.get());
+          }
+
+          obj = std::make_unique<Scene::Object>();
+          obj->Name = spl[1];
+        }
+        break;
 
         // -----------------------------------------------------------------------
 
@@ -89,7 +107,7 @@ namespace SW3D
             std::stod(spl[3])
           };
 
-          _model.Vertices.push_back(v);
+          _scene.Vertices.push_back(v);
         }
         break;
 
@@ -104,7 +122,7 @@ namespace SW3D
             std::stod(spl[3])
           };
 
-          _model.Normals.push_back(v);
+          _scene.Normals.push_back(v);
         }
         break;
 
@@ -112,7 +130,7 @@ namespace SW3D
 
         case ObjFileLineType::FACE:
         {
-          Model::Face f;
+          Scene::Object::Face f;
 
           for (size_t i = 0; i < 3; i++)
           {
@@ -127,9 +145,7 @@ namespace SW3D
             }
           }
 
-          _model.Polygons++;
-
-          _model.Faces.push_back(f);
+          obj->Faces.push_back(f);
         }
         break;
 
@@ -140,8 +156,24 @@ namespace SW3D
       }
     }
 
+    //
+    // In case of multiple objects, we need not to forget to add last parsed
+    // one.
+    //
+    if (obj != nullptr)
+    {
+      _scene.Objects.push_back(*obj.get());
+    }
+
     f.close();
 
-    return &_model;
+    return true;
+  }
+
+  // =============================================================================
+
+  const ModelLoader::Scene& ModelLoader::GetScene()
+  {
+    return _scene;
   }
 }

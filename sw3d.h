@@ -203,8 +203,10 @@ namespace SW3D
   extern std::string ToString(const Vec3& v);
   extern std::string ToString(const Vec4& v);
 
-  extern std::string ToString(const ModelLoader::Model& m);
+  extern std::string ToString(const ModelLoader::Scene& s);
 
+  extern double DotProduct(const Vec3& v1, const Vec3& v2);
+  extern Vec3 CrossProduct(const Vec3& v1, const Vec3& v2);
 } // namespace sw3d
 
 #endif // SW3D_H

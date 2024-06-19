@@ -579,6 +579,46 @@ void Various()
       SDL_Log("%s", ruler.data());
     }
   }
+  // ---------------------------------------------------------------------------
+  {
+    SW3D::Vec3 v1 = { 1.0, 0.0, 0.0 };
+    SW3D::Vec3 v2 = { 0.0, 1.0, 0.0 };
+    SW3D::Vec3 res = SW3D::CrossProduct(v1, v2);
+    SDL_Log("%s x %s = %s",
+            SW3D::ToString(v1).data(),
+            SW3D::ToString(v2).data(),
+            SW3D::ToString(res).data());
+  }
+  // ---------------------------------------------------------------------------
+  {
+    SW3D::Vec3 v1 = { 1.0, 0.0, 0.0 };
+    SW3D::Vec3 v2 = { 0.0, 1.0, 0.0 };
+    SW3D::Vec3 res = SW3D::CrossProduct(v2, v1);
+    SDL_Log("%s x %s = %s",
+            SW3D::ToString(v2).data(),
+            SW3D::ToString(v1).data(),
+            SW3D::ToString(res).data());
+  }
+  // ---------------------------------------------------------------------------
+  {
+    SW3D::Vec3 v1 = { 0.0, 1.0, 0.0 };
+    SW3D::Vec3 v2 = { 0.0, 1.0, 0.0 };
+    SW3D::Vec3 res = SW3D::CrossProduct(v1, v2);
+    SDL_Log("%s x %s = %s",
+            SW3D::ToString(v1).data(),
+            SW3D::ToString(v2).data(),
+            SW3D::ToString(res).data());
+  }
+  // ---------------------------------------------------------------------------
+  {
+    SW3D::Vec3 v1 = { 1.0, 0.0, 0.0 };
+    SW3D::Vec3 v2 = { -1.0, 0.0, 0.0 };
+    SW3D::Vec3 res = SW3D::CrossProduct(v1, v2);
+    SDL_Log("%s x %s = %s",
+            SW3D::ToString(v1).data(),
+            SW3D::ToString(v2).data(),
+            SW3D::ToString(res).data());
+  }
 }
 
 // =============================================================================
@@ -589,7 +629,7 @@ int main(int argc, char* argv[])
   MatrixNegativeCases();
   MatrixPositiveCases();
   ProjectionTests();
-  //Various();
+  Various();
 
   return 0;
 }

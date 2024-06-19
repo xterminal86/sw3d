@@ -67,8 +67,19 @@ const uint32_t DebugColor = 0xAAAAAA;
 
 const double InitialTranslation = 5.0;
 
-SW3D::ModelLoader        Loader;
-SW3D::ModelLoader::Model LoadedModel;
+SW3D::ModelLoader Loader;
+
+size_t ModelIndex = 0;
+
+const std::vector<std::string> ModelsList =
+{
+  "models/cube.obj",
+  "models/axes.obj",
+  "models/monkey.obj",
+  "models/two.obj",
+};
+
+// =============================================================================
 
 class Drawer : public DrawWrapper
 {
@@ -127,22 +138,10 @@ class Drawer : public DrawWrapper
         { 1.0, 0.0, 0.0,    0.0, 0.0, 1.0,    1.0, 0.0, 1.0 },
       };
 
-      auto res = Loader.Load("models/monkey.obj");
-      if (res == nullptr)
+      bool ok = Loader.Load(ModelsList[ModelIndex]);
+      if (not ok)
       {
         SDL_Log("%s", SW3D::ErrorToString());
-      }
-      else
-      {
-        LoadedModel = *res;
-
-        //
-        // Dirty hack to avoid division by zero until we implement clipping.
-        //
-        //for (auto& v : LoadedModel.Vertices)
-        //{
-        //  v.Z += InitialTranslation;
-        //}
       }
 
       ApplyProjection();
@@ -211,13 +210,42 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_p:
+            {
               ProjectionModeIndex++;
               ProjectionModeIndex %= ProjectionModes.size();
               auto it = ProjectionModes.begin();
               std::advance(it, ProjectionModeIndex);
               ProjectionMode_ = it->first;
               ApplyProjection();
+            }
+            break;
+
+            if (ApplicationMode == AppMode::FROM_OBJ)
+            {
+              case SDLK_LEFTBRACKET:
+              {
+                ModelIndex++;
+                ModelIndex %= ModelsList.size();
+                bool ok = Loader.Load(ModelsList[ModelIndex]);
+                if (not ok)
+                {
+                  SDL_Log("%s", SW3D::ErrorToString());
+                }
+              }
               break;
+
+              case SDLK_RIGHTBRACKET:
+              {
+                ModelIndex--;
+                ModelIndex %= ModelsList.size();
+                bool ok = Loader.Load(ModelsList[ModelIndex]);
+                if (not ok)
+                {
+                  SDL_Log("%s", SW3D::ErrorToString());
+                }
+              }
+              break;
+            }
           }
         }
         break;
@@ -346,37 +374,40 @@ class Drawer : public DrawWrapper
 
       Translate(DX, DY, (InitialTranslation + DZ));
 
-      for (auto& face : LoadedModel.Faces)
+      for (auto& obj : Loader.GetScene().Objects)
       {
-        for (size_t i = 0; i < 3; i++)
+        for (auto& face : obj.Faces)
         {
-          int32_t vertexInd = face.Indices[i][0];
-          Vec3 v = LoadedModel.Vertices[vertexInd];
+          for (size_t i = 0; i < 3; i++)
+          {
+            int32_t vertexInd = face.Indices[i][0];
+            Vec3 v = Loader.GetScene().Vertices[vertexInd];
 
-          //
-          // NOTE: without parentheses it's actually an order of magnitude
-          // slower.
-          //
-          tr.Points[i] = _projectionMatrix * (_modelViewMatrix * v);
+            //
+            // NOTE: without parentheses it's actually an order of magnitude
+            // slower.
+            //
+            tr.Points[i] = _projectionMatrix * (_modelViewMatrix * v);
 
-          tr.Points[i].X += 1;
-          tr.Points[i].Y += 1;
+            tr.Points[i].X += 1;
+            tr.Points[i].Y += 1;
 
-          tr.Points[i].X /= 2.0;
-          tr.Points[i].Y /= 2.0;
+            tr.Points[i].X /= 2.0;
+            tr.Points[i].Y /= 2.0;
 
-          //
-          // Scale into view.
-          //
-          tr.Points[i].X *= (double)FrameBufferSize();
-          tr.Points[i].Y *= (double)FrameBufferSize();
+            //
+            // Scale into view.
+            //
+            tr.Points[i].X *= (double)FrameBufferSize();
+            tr.Points[i].Y *= (double)FrameBufferSize();
+          }
+
+          DrawTriangle(tr.Points[0],
+                        tr.Points[1],
+                        tr.Points[2],
+                        0xFFFFFF,
+                        RenderMode_);
         }
-
-        DrawTriangle(tr.Points[0],
-                      tr.Points[1],
-                      tr.Points[2],
-                      0xFFFFFF,
-                      RenderMode_);
       }
 
       PopMatrix();
@@ -432,10 +463,15 @@ class Drawer : public DrawWrapper
 
       if (ApplicationMode == AppMode::FROM_OBJ)
       {
-        IF::Instance().Printf(WW / 2, 10,
-                              IF::TextParams::Set(0xFFFFFF, IF::TextAlignment::CENTER),
-                              "%s (%llu polygons)",
-                              LoadedModel.Name.data(), LoadedModel.Polygons);
+        for (size_t i = 0; i < Loader.GetScene().Objects.size(); i++)
+        {
+          const auto& obj = Loader.GetScene().Objects[i];
+
+          IF::Instance().Printf(WW / 2, 10 * (i + 1),
+                                IF::TextParams::Set(0xFFFFFF, IF::TextAlignment::CENTER),
+                                "%s (%llu polygons)",
+                                obj.Name.data(), obj.Faces.size());
+        }
       }
 
       if (Paused)

@@ -826,7 +826,7 @@ namespace SW3D
 
     ss << std::fixed << std::setprecision(4);
 
-    ss << "< " << v.X << ", " << v.Y << " >\n";
+    ss << "< " << v.X << ", " << v.Y << " >";
 
     return ss.str();
   }
@@ -841,7 +841,7 @@ namespace SW3D
 
     ss << std::fixed << std::setprecision(4);
 
-    ss << "< " << v.X << ", " << v.Y << ", " << v.Z << " >\n";
+    ss << "< " << v.X << ", " << v.Y << ", " << v.Z << " >";
 
     return ss.str();
   }
@@ -863,7 +863,10 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
-  std::string ToString(const ModelLoader::Model& m)
+  //
+  // Outputs as valid JSON (well, according to online validators anyway).
+  //
+  std::string ToString(const ModelLoader::Scene& s)
   {
     static std::stringstream ss;
 
@@ -872,49 +875,90 @@ namespace SW3D
     ss << std::fixed << std::setprecision(4);
 
     ss << "{\n"
-       << "  name: \"" << m.Name << "\",\n"
-       << "  vertices : [\n";
+       << R"(  "vertices" : [)" << "\n";
 
-    for (auto& i : m.Vertices)
+    for (size_t i = 0; i < s.Vertices.size(); i++)
     {
-      ss << "    [ " << i.X << ", " << i.Y << ", " << i.Z << "], \n";
-    }
+      const auto& v = s.Vertices[i];
+      ss << "    [ " << v.X << ", " << v.Y << ", " << v.Z << "]";
 
-    ss << "  ],\n";
-
-    ss << "  normals : [\n";
-
-    for (auto& i : m.Normals)
-    {
-      ss << "    [ " << i.X << ", " << i.Y << ", " << i.Z << "], \n";
-    }
-
-    ss << "  ],\n";
-
-    ss << "  uv : [\n";
-
-    for (auto& i : m.UV)
-    {
-      ss << "    [ " << i.X << ", " << i.Y << "], \n";
-    }
-
-    ss << "  ],\n";
-
-    ss << "  faces : [\n";
-
-    for (auto& face : m.Faces)
-    {
-      ss << "    [ ";
-
-      for (int x = 0; x < 3; x++)
+      if (i != s.Vertices.size() - 1)
       {
-        ss << "[ ";
+        ss << ",";
+      }
 
-        for (int y = 0; y < 3; y++)
+      ss << "\n";
+    }
+
+    ss << "  ],\n";
+
+    ss << R"(  "normals" : [)" << "\n";
+
+    for (size_t i = 0; i < s.Normals.size(); i++)
+    {
+      const auto& n = s.Normals[i];
+      ss << "    [ " << n.X << ", " << n.Y << ", " << n.Z << "]";
+
+      if (i != s.Normals.size() - 1)
+      {
+        ss << ",";
+      }
+
+      ss << "\n";
+    }
+
+    ss << "  ],\n";
+
+    ss << R"(  "uv" : [)" << "\n";
+
+    for (size_t i = 0; i < s.UV.size(); i++)
+    {
+      const auto& uv = s.UV[i];
+      ss << "    [ " << uv.X << ", " << uv.Y << "]";
+
+      if (i != s.UV.size() - 1)
+      {
+        ss << ",";
+      }
+
+      ss << "\n";
+    }
+
+    ss << "  ],\n";
+
+    ss << R"(  "objects" : [)" << "\n";
+
+    for (size_t i = 0; i < s.Objects.size(); i++)
+    {
+      const auto& obj = s.Objects[i];
+
+      ss << "    {\n";
+      ss << R"(      "name" : ")" << obj.Name << R"(",)" << "\n";
+      ss << R"(      "faces" : [)" << "\n";
+
+      for (size_t j = 0; j < obj.Faces.size(); j++)
+      {
+        const auto& face = obj.Faces[j];
+
+        ss << "        [ ";
+
+        for (int x = 0; x < 3; x++)
         {
-          ss << face.Indices[x][y];
+          ss << "[ ";
 
-          if (y != 2)
+          for (int y = 0; y < 3; y++)
+          {
+            ss << face.Indices[x][y];
+
+            if (y != 2)
+            {
+              ss << ", ";
+            }
+          }
+
+          ss << " ]";
+
+          if (x != 2)
           {
             ss << ", ";
           }
@@ -922,19 +966,51 @@ namespace SW3D
 
         ss << " ]";
 
-        if (x != 2)
+        if (j != obj.Faces.size() - 1)
         {
-          ss << ", ";
+          ss << ",";
         }
+
+        ss << "\n";
       }
 
-      ss << " ],\n";
+      ss << "      ]\n";
+
+      ss << "    }";
+
+      if (i != s.Objects.size() - 1)
+      {
+        ss << ",";
+      }
+
+      ss << "\n";
     }
 
-    ss << "  ],\n";
+    ss << "  ]\n";
 
     ss << "}\n";
 
     return ss.str();
   }
+
+  // ---------------------------------------------------------------------------
+
+  Vec3 CrossProduct(const Vec3& v1, const Vec3& v2)
+  {
+    Vec3 res;
+
+    res.X = (v1.Y * v2.Z - v1.Z * v2.Y);
+    res.Y = (v1.Z * v2.X - v1.X * v2.Z);
+    res.Z = (v1.X * v2.Y - v1.Y * v2.X);
+
+    return res;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  double DotProduct(const Vec3& v1, const Vec3& v2)
+  {
+    return (v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z);
+  }
+
 }

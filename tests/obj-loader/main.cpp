@@ -6,22 +6,44 @@
 
 const std::string kCubeFilename         = "models/cube.obj";
 const std::string kCubeTexturedFilename = "models/cube-textured.obj";
+const std::string kTwoObjsFilename      = "models/two.obj";
+
+const std::string kDecor(80, '=');
 
 // =============================================================================
 
 int main(int argc, char* argv[])
 {
-  SW3D::ModelLoader loader;
-
-  SW3D::ModelLoader::Model* m = loader.Load(kCubeFilename);
-
-  if (m != nullptr)
   {
-    printf("%s\n", SW3D::ToString(*m).data());
+    SW3D::ModelLoader loader;
+
+    bool ok = loader.Load(kCubeFilename);
+
+    if (ok)
+    {
+      printf("%s\n", SW3D::ToString(loader.GetScene()).data());
+    }
+    else
+    {
+      printf("%s\n", SW3D::ErrorToString());
+    }
   }
-  else
+  // ---------------------------------------------------------------------------
+  printf("%s\n", kDecor.data());
+  // ---------------------------------------------------------------------------
   {
-    printf("%s\n", SW3D::ErrorToString());
+    SW3D::ModelLoader loader;
+
+    bool ok = loader.Load(kTwoObjsFilename);
+
+    if (ok)
+    {
+      printf("%s\n", SW3D::ToString(loader.GetScene()).data());
+    }
+    else
+    {
+      printf("%s\n", SW3D::ErrorToString());
+    }
   }
 
   return 0;

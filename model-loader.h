@@ -14,32 +14,41 @@ namespace SW3D
   class ModelLoader
   {
     public:
-      struct Model
+      struct Scene
       {
-        struct Face
+        struct Object
         {
-          //
-          //   0 1 2
-          // 0 v t n
-          // 1 v t n
-          // 2 v t n
-          //
-          // -1 means coordinate index is not defined
-          // (e.g. no texture coordinates specified).
-          //
-          int32_t Indices[3][3]{};
+          struct Face
+          {
+            //
+            //   0 1 2
+            // 0 v t n
+            // 1 v t n
+            // 2 v t n
+            //
+            // -1 means coordinate index is not defined
+            // (e.g. no texture coordinates specified).
+            // Actual index value is 1 based and continuous across several objects
+            // in one .obj  file.
+            //
+
+            int32_t Indices[3][3]{};
+          };
+
+          std::string       Name;
+          std::vector<Face> Faces;
         };
 
-        std::string             Name;
+        std::vector<Object> Objects;
+
         std::vector<SW3D::Vec3> Vertices;
         std::vector<SW3D::Vec3> Normals;
         std::vector<SW3D::Vec2> UV;
-        std::vector<Face>       Faces;
-
-        size_t Polygons;
       };
 
-      Model* Load(const std::string& fname);
+      bool Load(const std::string& fname);
+
+      const Scene& GetScene();
 
     private:
       enum class ObjFileLineType
@@ -65,7 +74,7 @@ namespace SW3D
 
       StringV StringSplit(const std::string& str, char delim);
 
-      Model _model;
+      Scene _scene;
   };
 }
 

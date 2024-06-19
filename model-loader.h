@@ -31,8 +31,12 @@ namespace SW3D
             // Actual index value is 1 based and continuous across several objects
             // in one .obj  file.
             //
-
-            int32_t Indices[3][3]{};
+            int32_t Indices[3][3] =
+            {
+              { -1, -1, -1 },
+              { -1, -1, -1 },
+              { -1, -1, -1 }
+            };
           };
 
           std::string       Name;

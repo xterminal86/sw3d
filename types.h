@@ -91,6 +91,9 @@ namespace SW3D
     double Y = 0.0;
     double Z = 0.0;
 
+    Vec3 operator+(const Vec3& rhs);
+    Vec3 operator-(const Vec3& rhs);
+
     void operator*=(double value);
     void operator+=(double value);
 
@@ -130,13 +133,13 @@ namespace SW3D
 
     static Vec3 In()
     {
-      static Vec3 v = { 0.0, 0.0, -1.0 };
+      static Vec3 v = { 0.0, 0.0, 1.0 };
       return v;
     }
 
     static Vec3 Out()
     {
-      static Vec3 v = { 0.0, 0.0, 1.0 };
+      static Vec3 v = { 0.0, 0.0, -1.0 };
       return v;
     }
   };

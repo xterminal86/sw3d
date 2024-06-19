@@ -72,6 +72,16 @@ namespace SW3D
 
   // ===========================================================================
 
+  Vec3 Vec3::operator+(const Vec3& rhs)
+  {
+    return { X + rhs.X, Y + rhs.Y, Z + rhs.Z };
+  }
+
+  Vec3 Vec3::operator-(const Vec3& rhs)
+  {
+    return { X - rhs.X, Y - rhs.Y, Z - rhs.Z };
+  }
+
   void Vec3::operator*=(double value)
   {
     X *= value;

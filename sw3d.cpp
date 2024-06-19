@@ -478,6 +478,22 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  bool DrawWrapper::ShouldCullFace(const Vec3& lookVector,
+                                    Triangle& face)
+  {
+    static Vec3 v1, v2, n;
+    static double dp;
+
+    v1 = face.Points[1] - face.Points[0];
+    v2 = face.Points[2] - face.Points[0];
+    n  = SW3D::CrossProduct(v1, v2);
+    dp = SW3D::DotProduct(lookVector, n);
+
+    return (dp > 0.0);
+  }
+
+  // ---------------------------------------------------------------------------
+
   const SDL_Color& DrawWrapper::HTML2RGBA(const uint32_t& colorMask)
   {
     if (colorMask <= 0xFFFFFF)

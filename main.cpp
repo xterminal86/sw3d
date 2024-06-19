@@ -364,11 +364,25 @@ class Drawer : public DrawWrapper
           tp.Points[i].Y *= (double)FrameBufferSize();
         }
 
-        DrawTriangle(tp.Points[0],
-                     tp.Points[1],
-                     tp.Points[2],
-                     0xFFFFFF,
-                     RenderMode_);
+        if (CullFaces)
+        {
+          if (not ShouldCullFace(Vec3::Out(), tp))
+          {
+            DrawTriangle(tp.Points[0],
+                         tp.Points[1],
+                         tp.Points[2],
+                         0xFFFFFF,
+                         RenderMode_);
+          }
+        }
+        else
+        {
+          DrawTriangle(tp.Points[0],
+                       tp.Points[1],
+                       tp.Points[2],
+                       0xFFFFFF,
+                       RenderMode_);
+        }
       }
 
       if (not Paused)
@@ -429,11 +443,25 @@ class Drawer : public DrawWrapper
             tr.Points[i].Y *= (double)FrameBufferSize();
           }
 
-          DrawTriangle(tr.Points[0],
-                       tr.Points[1],
-                       tr.Points[2],
-                       0xFFFFFF,
-                       RenderMode_);
+          if (CullFaces)
+          {
+            if (not ShouldCullFace(Vec3::In(), tr))
+            {
+              DrawTriangle(tr.Points[0],
+                           tr.Points[1],
+                           tr.Points[2],
+                           0xFFFFFF,
+                           RenderMode_);
+            }
+          }
+          else
+          {
+            DrawTriangle(tr.Points[0],
+                         tr.Points[1],
+                         tr.Points[2],
+                         0xFFFFFF,
+                         RenderMode_);
+          }
         }
       }
 
@@ -545,6 +573,13 @@ class Drawer : public DrawWrapper
                                 "%s (%llu polygons)",
                                 obj.Name.data(), obj.Faces.size());
         }
+      }
+
+      if (CullFaces)
+      {
+        IF::Instance().Print(10, 10,
+                             "Backface culling",
+                             0xFFFF00);
       }
 
       if (Paused)

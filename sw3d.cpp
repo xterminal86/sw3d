@@ -478,18 +478,38 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
-  bool DrawWrapper::ShouldCullFace(const Vec3& lookVector,
+  void DrawWrapper::ShouldCullFace(const Vec3& lookVector,
                                     Triangle& face)
   {
-    static Vec3 v1, v2, n;
+    static Vec3 v1, v2, n, fv;
     static double dp;
 
     v1 = face.Points[1] - face.Points[0];
     v2 = face.Points[2] - face.Points[0];
     n  = SW3D::CrossProduct(v1, v2);
-    dp = SW3D::DotProduct(lookVector, n);
 
-    return (dp > 0.0);
+    //
+    // Because in perspective projection we have vanishing point, in order to
+    // properly cull faces we must compute dot product between face normal and
+    // direction vector from camera to that face.
+    // But in orthographic projection there is no vanishing point (or one can
+    // think that in this type of projection camera is moved at infinity so all
+    // vectors from camera to object are parallel), so our vector from camera to
+    // object actually doesn't make sense and thus produces wrong result.
+    // So in order to cull faces properly for orthographic projection we must
+    // use camera's direction vector.
+    //
+
+    //
+    // FIXME: assuming camera is at (0, 0, 0), should be fixed in the future.
+    //
+    // Can be any point since they're all lying on the same plane.
+    //
+    fv = face.Points[0]; // - camera
+
+    dp = SW3D::DotProduct(fv, n);
+
+    face.CullFlag = (dp >= 0.0);
   }
 
   // ---------------------------------------------------------------------------

@@ -87,7 +87,7 @@ namespace SW3D
                            double top,  double bottom,
                            double near, double far);
 
-      bool ShouldCullFace(const Vec3& lookVector, Triangle& face);
+      void ShouldCullFace(const Vec3& lookVector, Triangle& face);
 
       //
       // Simple rasterizer based on point inside triangle test.

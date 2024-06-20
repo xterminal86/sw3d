@@ -182,6 +182,8 @@ namespace SW3D
   struct Triangle
   {
     Vec3 Points[3];
+
+    bool CullFlag = false;
   };
 
   struct Mesh

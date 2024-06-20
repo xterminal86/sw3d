@@ -318,9 +318,12 @@ namespace SW3D
       {
         SDL_Point p = { x, y };
 
-        int w0 = CrossProduct(p1, p2, p);
-        int w1 = CrossProduct(p2, p3, p);
-        int w2 = CrossProduct(p3, p1, p);
+        //
+        // This way it works a little bit faster it seems.
+        //
+        int w0 = (p2.x - p1.x) * (p.y - p1.y) - (p2.y - p1.y) * (p.x - p1.x);
+        int w1 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x);
+        int w2 = (p1.x - p3.x) * (p.y - p3.y) - (p1.y - p3.y) * (p.x - p3.x);
 
         //
         // TODO: add user configurable front face vertex winding order into
@@ -339,9 +342,23 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  void DrawWrapper::SetCullFaceMode(CullFaceMode modeToSet)
+  {
+    _cullFaceMode = modeToSet;
+  }
+
+  // ---------------------------------------------------------------------------
+
   void DrawWrapper::SetMatrixMode(MatrixMode modeToSet)
   {
     _matrixMode = modeToSet;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::SetRenderMode(RenderMode modeToSet)
+  {
+    _renderMode = modeToSet;
   }
 
   // ---------------------------------------------------------------------------
@@ -440,6 +457,13 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  const double& DrawWrapper::DrawTime() const
+  {
+    return _drawTime;
+  }
+
+  // ---------------------------------------------------------------------------
+
   const uint32_t& DrawWrapper::FrameBufferSize() const
   {
     return _frameBufferSize;
@@ -484,8 +508,8 @@ namespace SW3D
     static Vec3 v1, v2, n, fv;
     static double dp;
 
-    v1 = face.Points[1] - face.Points[0];
-    v2 = face.Points[2] - face.Points[0];
+    v1 = face.Points[1].Position - face.Points[0].Position;
+    v2 = face.Points[2].Position - face.Points[0].Position;
     n  = SW3D::CrossProduct(v1, v2);
 
     //
@@ -505,11 +529,107 @@ namespace SW3D
     //
     // Can be any point since they're all lying on the same plane.
     //
-    fv = face.Points[0]; // - camera
+    fv = face.Points[0].Position; // - camera
 
     dp = SW3D::DotProduct(fv, n);
 
-    face.CullFlag = (dp >= 0.0);
+    face.CullFlag = (_cullFaceMode == CullFaceMode::BACK)
+                    ? (dp >= 0.0)
+                    : (dp < 0.0);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::Enqueue(const Triangle& t)
+  {
+    static Triangle tri;
+
+    tri.Points[0].Position = (_modelViewMatrix * t.Points[0].Position);
+    tri.Points[1].Position = (_modelViewMatrix * t.Points[1].Position);
+    tri.Points[2].Position = (_modelViewMatrix * t.Points[2].Position);
+
+    if (_cullFaceMode != CullFaceMode::NONE)
+    {
+      //
+      // Smart people say backface culling should be performed in world space.
+      //
+      ShouldCullFace(Vec3::Zero(), tri);
+
+      if (not tri.CullFlag)
+      {
+        tri.RenderMode_ = _renderMode;
+
+        //
+        // Apply projection only if triangle will be visible.
+        //
+        for (size_t i = 0; i < 3; i++)
+        {
+          tri.Points[i].Position = (_projectionMatrix * tri.Points[i].Position);
+
+          tri.Points[i].Position.X += 1;
+          tri.Points[i].Position.Y += 1;
+
+          tri.Points[i].Position.X /= 2.0;
+          tri.Points[i].Position.Y /= 2.0;
+
+          //
+          // Scale into view.
+          //
+          tri.Points[i].Position.X *= (double)FrameBufferSize();
+          tri.Points[i].Position.Y *= (double)FrameBufferSize();
+        }
+
+        _pipeline.push_back(tri);
+      }
+    }
+    else
+    {
+      //
+      // Not doing shit.
+      //
+      tri.CullFlag    = false;
+      tri.RenderMode_ = _renderMode;
+
+      for (size_t i = 0; i < 3; i++)
+      {
+        tri.Points[i].Position = (_projectionMatrix * tri.Points[i].Position);
+
+        tri.Points[i].Position.X += 1;
+        tri.Points[i].Position.Y += 1;
+
+        tri.Points[i].Position.X /= 2.0;
+        tri.Points[i].Position.Y /= 2.0;
+
+        tri.Points[i].Position.X *= (double)FrameBufferSize();
+        tri.Points[i].Position.Y *= (double)FrameBufferSize();
+      }
+
+      _pipeline.push_back(tri);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::CommenceDraw()
+  {
+    static Clock::time_point tp;
+
+    tp = Clock::now();
+
+    while (not _pipeline.empty())
+    {
+      const Triangle& tri = _pipeline.front();
+
+      DrawTriangle(tri.Points[0].Position,
+                   tri.Points[1].Position,
+                   tri.Points[2].Position,
+                   0xFFFFFF, // TODO: add shading
+                   tri.RenderMode_);
+
+      _pipeline.pop_front();
+    }
+
+    _drawTime = std::chrono::duration<double>(Clock::now() - tp ).count();
   }
 
   // ---------------------------------------------------------------------------
@@ -532,18 +652,6 @@ namespace SW3D
     }
 
     return _drawColor;
-  }
-
-  // ---------------------------------------------------------------------------
-
-  int32_t DrawWrapper::CrossProduct(const SDL_Point& p1,
-                                    const SDL_Point& p2,
-                                    const SDL_Point& p)
-  {
-    static SDL_Point v1, v2;
-    v1 = { p2.x - p1.x, p2.y - p1.y };
-    v2 = { p.x  - p1.x, p.y  - p1.y };
-    return (v1.x * v2.y - v1.y * v2.x);
   }
 
   // ---------------------------------------------------------------------------

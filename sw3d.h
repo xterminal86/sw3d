@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <stack>
 #include <fstream>
+#include <deque>
 
 #include <SDL2/SDL.h>
 
@@ -44,6 +45,7 @@ namespace SW3D
       SDL_Renderer* GetRenderer() const;
 
       const double& DeltaTime() const;
+      const double& DrawTime() const;
 
       const uint32_t& FrameBufferSize() const;
 
@@ -90,6 +92,16 @@ namespace SW3D
       void ShouldCullFace(const Vec3& lookVector, Triangle& face);
 
       //
+      // Add drawing task to pipeline.
+      //
+      void Enqueue(const Triangle& t);
+
+      //
+      // glFlush() (or more correcly glFinish() I guess)
+      //
+      void CommenceDraw();
+
+      //
       // Simple rasterizer based on point inside triangle test.
       //
       void FillTriangle(const SDL_Point& p1,
@@ -97,7 +109,10 @@ namespace SW3D
                         const SDL_Point& p3,
                         uint32_t colorMask);
 
+      void SetCullFaceMode(CullFaceMode modeToSet);
       void SetMatrixMode(MatrixMode modeToSet);
+      void SetRenderMode(RenderMode modeToSet);
+
       void PushMatrix();
       void PopMatrix();
 
@@ -133,11 +148,14 @@ namespace SW3D
     //
     // *************************************************************************
     private:
-      const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
+      struct PipelineItem
+      {
+        Triangle Face;
+        Matrix _matProj;
+        Matrix _matView;
+      };
 
-      int32_t CrossProduct(const SDL_Point& p1,
-                           const SDL_Point& p2,
-                           const SDL_Point& p);
+      const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
 
       void SaveColor();
       void RestoreColor();
@@ -152,6 +170,7 @@ namespace SW3D
 
       uint32_t _fps = 0;
 
+      double _drawTime = 0.0;
       double _deltaTime = 0.0;
       double _dtAcc = 0.0;
 
@@ -172,7 +191,9 @@ namespace SW3D
 
       bool _running = true;
 
-      MatrixMode _matrixMode = MatrixMode::PROJECTION;
+      MatrixMode   _matrixMode   = MatrixMode::PROJECTION;
+      RenderMode   _renderMode   = RenderMode::SOLID;
+      CullFaceMode _cullFaceMode = CullFaceMode::BACK;
 
       //
       // To store all translations and rotations.
@@ -183,6 +204,11 @@ namespace SW3D
       // To store all projections that may be.
       //
       std::stack<Matrix> _projectionStack;
+
+      //
+      // Drawing pipeline.
+      //
+      std::deque<Triangle> _pipeline;
   };
 
   // ***************************************************************************

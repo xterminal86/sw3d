@@ -15,6 +15,13 @@ namespace SW3D
     const uint8_t kMatrixStackLimit = 32;
   }
 
+  enum class CullFaceMode
+  {
+    FRONT = 0,
+    BACK,
+    NONE
+  };
+
   enum class MatrixMode
   {
     PROJECTION = 0,
@@ -179,16 +186,29 @@ namespace SW3D
 
   // ===========================================================================
 
+  struct Vertex
+  {
+    Vec3 Position;
+    Vec3 Normal;
+    Vec2 UV;
+  };
+
   struct Triangle
   {
-    Vec3 Points[3];
+    Vertex Points[3];
 
     bool CullFlag = false;
+    RenderMode RenderMode_ = RenderMode::SOLID;
+  };
+
+  struct TriangleSimple
+  {
+    Vec3 Points[3];
   };
 
   struct Mesh
   {
-    std::vector<Triangle> Triangles;
+    std::vector<TriangleSimple> Triangles;
   };
 
   // ===========================================================================

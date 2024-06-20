@@ -5,6 +5,41 @@
 
 namespace SW3D
 {
+  void ModelLoader::ToTriangles(Scene::Object& obj)
+  {
+    obj.Triangles.clear();
+
+    for (auto& face : obj.Faces)
+    {
+      Triangle t;
+      for (size_t i = 0; i < 3; i++)
+      {
+        int32_t vertexInd  = face.Indices[i][0];
+        int32_t textureInd = face.Indices[i][1];
+        int32_t normalInd  = face.Indices[i][2];
+
+        if (vertexInd != -1)
+        {
+          t.Points[i].Position = _scene.Vertices[vertexInd];
+        }
+
+        if (textureInd != -1)
+        {
+          t.Points[i].UV = _scene.UV[textureInd];
+        }
+
+        if (normalInd != -1)
+        {
+          t.Points[i].Normal = _scene.Normals[normalInd];
+        }
+      }
+
+      obj.Triangles.push_back(t);
+    }
+  }
+
+  // ===========================================================================
+
   StringV ModelLoader::StringSplit(const std::string& str, char delim)
   {
     StringV res;
@@ -31,8 +66,7 @@ namespace SW3D
           res.push_back("");
         }
       }
-    }
-    while (end != -1);
+    } while (end != -1);
 
     return res;
   }
@@ -166,6 +200,11 @@ namespace SW3D
     }
 
     f.close();
+
+    for (Scene::Object& obj : _scene.Objects)
+    {
+      ToTriangles(obj);
+    }
 
     return true;
   }

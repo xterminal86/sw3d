@@ -41,6 +41,8 @@ namespace SW3D
 
           std::string       Name;
           std::vector<Face> Faces;
+
+          std::vector<Triangle> Triangles;
         };
 
         std::vector<Object> Objects;
@@ -75,6 +77,8 @@ namespace SW3D
         { "s",  ObjFileLineType::SHADING        },
         { "f",  ObjFileLineType::FACE           }
       };
+
+      void ToTriangles(Scene::Object& obj);
 
       StringV StringSplit(const std::string& str, char delim);
 

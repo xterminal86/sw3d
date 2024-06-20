@@ -3,7 +3,15 @@
 
 #include <map>
 
-#define PRINT(x, y, format, ...) \
+#define PRINTL(x, y, format, ...) \
+  IF::Instance().Printf(x, y, \
+                        IF::TextParams::Set(0xFFFFFF, \
+                                            IF::TextAlignment::LEFT, \
+                                            1.0), \
+                        format, ##__VA_ARGS__);
+
+
+#define PRINTR(x, y, format, ...) \
   IF::Instance().Printf(x, y, \
                         IF::TextParams::Set(0xFFFFFF, \
                                             IF::TextAlignment::RIGHT, \
@@ -12,8 +20,8 @@
 
 using namespace SW3D;
 
-const uint16_t WW = 600;
-const uint16_t WH = 600;
+const uint16_t WW = 800;
+const uint16_t WH = 800;
 
 const uint16_t QualityReductionFactor = 2;
 
@@ -26,8 +34,17 @@ double DZ = 0.0;
 
 const double RotationSpeed = 100.0;
 
-bool Paused    = false;
-bool CullFaces = false;
+bool Paused = false;
+
+CullFaceMode CullFaceMode_ = CullFaceMode::NONE;
+
+size_t CullFaceModeIndex = 0;
+const std::map<CullFaceMode, std::string> CullFaceModes =
+{
+  { CullFaceMode::FRONT, "Cull FRONT" },
+  { CullFaceMode::BACK,  "Cull BACK"  },
+  { CullFaceMode::NONE,  "Cull NONE"  },
+};
 
 RenderMode RenderMode_ = RenderMode::SOLID;
 
@@ -46,9 +63,9 @@ enum class ProjectionMode
   PERSPECTIVE
 };
 
-ProjectionMode ProjectionMode_ = ProjectionMode::ORTHOGRAPHIC;
+ProjectionMode ProjectionMode_ = ProjectionMode::PERSPECTIVE;
 
-size_t ProjectionModeIndex = 0;
+size_t ProjectionModeIndex = 2;
 const std::map<ProjectionMode, std::string> ProjectionModes =
 {
   { ProjectionMode::ORTHOGRAPHIC,     "ORTHO"        },
@@ -60,7 +77,16 @@ enum class AppMode
 {
   TEST = 0,
   FROM_OBJ,
-  SHOW_AXES
+  SHOW_AXES,
+  PIPELINE
+};
+
+const std::unordered_map<AppMode, std::string> AppModes =
+{
+  { AppMode::TEST,      "Test cube, manual rendering"        },
+  { AppMode::FROM_OBJ,  "Loaded from .obj, manual rendering" },
+  { AppMode::SHOW_AXES, "Default axes"                       },
+  { AppMode::PIPELINE,  "Rendering pipeline"                 }
 };
 
 AppMode ApplicationMode = AppMode::TEST;
@@ -82,6 +108,9 @@ const std::vector<std::string> ModelsList =
 
 const std::string kAxesFname = "models/axes.obj";
 SW3D::ModelLoader Axes;
+
+const std::string kCubeFname = "models/cube.obj";
+SW3D::ModelLoader Cube3D;
 
 // =============================================================================
 
@@ -154,6 +183,12 @@ class Drawer : public DrawWrapper
         SDL_Log("%s", SW3D::ErrorToString());
       }
 
+      ok = Cube3D.Load(kCubeFname);
+      if (not ok)
+      {
+        SDL_Log("%s", SW3D::ErrorToString());
+      }
+
       ApplyProjection();
 
       SetMatrixMode(MatrixMode::MODELVIEW);
@@ -180,6 +215,7 @@ class Drawer : public DrawWrapper
               auto it = RenderModes.begin();
               std::advance(it, RenderModeIndex);
               RenderMode_ = it->first;
+              SetRenderMode(RenderMode_);
             }
             break;
 
@@ -193,6 +229,10 @@ class Drawer : public DrawWrapper
 
             case SDLK_3:
               ApplicationMode = AppMode::SHOW_AXES;
+              break;
+
+            case SDLK_4:
+              ApplicationMode = AppMode::PIPELINE;
               break;
 
             case SDLK_e:
@@ -224,8 +264,15 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_c:
-              CullFaces = not CullFaces;
-              break;
+            {
+              CullFaceModeIndex++;
+              CullFaceModeIndex %= CullFaceModes.size();
+              auto it = CullFaceModes.begin();
+              std::advance(it, CullFaceModeIndex);
+              CullFaceMode_ = it->first;
+              SetCullFaceMode(CullFaceMode_);
+            }
+            break;
 
             case SDLK_p:
             {
@@ -292,7 +339,7 @@ class Drawer : public DrawWrapper
     {
       static double angle = 0.0;
 
-      for (Triangle& t : _cube.Triangles)
+      for (TriangleSimple& t : _cube.Triangles)
       {
         // +-----------+
         // |MODEL-WORLD|
@@ -300,7 +347,7 @@ class Drawer : public DrawWrapper
         //
         // Rotate.
         //
-        Triangle tr = t;
+        TriangleSimple tr = t;
 
         for (size_t i = 0; i < 3; i++)
         {
@@ -315,7 +362,7 @@ class Drawer : public DrawWrapper
         //
         // Translate.
         //
-        Triangle tt = tr;
+        TriangleSimple tt = tr;
 
         for (size_t i = 0; i < 3; i++)
         {
@@ -330,7 +377,7 @@ class Drawer : public DrawWrapper
         //
         // Project.
         //
-        Triangle tp;
+        TriangleSimple tp;
 
         for (size_t i = 0; i < 3; i++)
         {
@@ -410,13 +457,10 @@ class Drawer : public DrawWrapper
 
             const Vec3& v = Loader.GetScene().Vertices[vertexInd];
 
-            tr.Points[i] = (_modelViewMatrix * v);
+            tr.Points[i].Position = (_modelViewMatrix * v);
           }
 
-          //
-          // Doesn't work properly for orthographic.
-          //
-          if (CullFaces)
+          if (CullFaceMode_ != CullFaceMode::NONE)
           {
             ShouldCullFace(Vec3::Zero(), tr);
           }
@@ -427,26 +471,26 @@ class Drawer : public DrawWrapper
 
           for (size_t i = 0; i < 3; i++)
           {
-            tr.Points[i] = (_projectionMatrix * tr.Points[i]);
+            tr.Points[i].Position = (_projectionMatrix * tr.Points[i].Position);
 
-            tr.Points[i].X += 1;
-            tr.Points[i].Y += 1;
+            tr.Points[i].Position.X += 1;
+            tr.Points[i].Position.Y += 1;
 
-            tr.Points[i].X /= 2.0;
-            tr.Points[i].Y /= 2.0;
+            tr.Points[i].Position.X /= 2.0;
+            tr.Points[i].Position.Y /= 2.0;
 
             //
             // Scale into view.
             //
-            tr.Points[i].X *= (double)FrameBufferSize();
-            tr.Points[i].Y *= (double)FrameBufferSize();
+            tr.Points[i].Position.X *= (double)FrameBufferSize();
+            tr.Points[i].Position.Y *= (double)FrameBufferSize();
           }
 
           if (not tr.CullFlag)
           {
-            DrawTriangle(tr.Points[0],
-                         tr.Points[1],
-                         tr.Points[2],
+            DrawTriangle(tr.Points[0].Position,
+                         tr.Points[1].Position,
+                         tr.Points[2].Position,
                          0xFFFFFF,
                          RenderMode_);
           }
@@ -484,27 +528,92 @@ class Drawer : public DrawWrapper
             // NOTE: without parentheses it's actually an order of magnitude
             // slower.
             //
-            tr.Points[i] = _projectionMatrix * (_modelViewMatrix * v);
+            tr.Points[i].Position = _projectionMatrix * (_modelViewMatrix * v);
 
-            tr.Points[i].X += 1;
-            tr.Points[i].Y += 1;
+            tr.Points[i].Position.X += 1;
+            tr.Points[i].Position.Y += 1;
 
-            tr.Points[i].X /= 2.0;
-            tr.Points[i].Y /= 2.0;
+            tr.Points[i].Position.X /= 2.0;
+            tr.Points[i].Position.Y /= 2.0;
 
-            tr.Points[i].X *= (double)FrameBufferSize();
-            tr.Points[i].Y *= (double)FrameBufferSize();
+            tr.Points[i].Position.X *= (double)FrameBufferSize();
+            tr.Points[i].Position.Y *= (double)FrameBufferSize();
           }
 
-          DrawTriangle(tr.Points[0],
-                       tr.Points[1],
-                       tr.Points[2],
+          DrawTriangle(tr.Points[0].Position,
+                       tr.Points[1].Position,
+                       tr.Points[2].Position,
                        0xFFFFFF,
                        RenderMode_);
         }
       }
 
       PopMatrix();
+    }
+
+    // -------------------------------------------------------------------------
+
+    void RenderingPipeline()
+    {
+      static double angle = 0.0;
+
+      static Triangle tr;
+
+      PushMatrix();
+
+      //
+      // Translation / rotation
+      //
+
+      RotateZ(0.5   * angle);
+      RotateY(0.25  * angle);
+      RotateX(0.125 * angle);
+
+      Translate(DX, DY, (InitialTranslation + DZ));
+
+      for (auto& obj : Cube3D.GetScene().Objects)
+      {
+        for (auto& tri : obj.Triangles)
+        {
+          //
+          // Add to rendering queue with current modelview and projection
+          // matrices.
+          //
+          Enqueue(tri);
+        }
+      }
+
+      PopMatrix();
+
+      PushMatrix();
+
+      Translate(5.0, 0.0, InitialTranslation * 2);
+
+      SetCullFaceMode(CullFaceMode::NONE);
+      SetRenderMode(RenderMode::WIREFRAME);
+
+      for (auto& obj : Axes.GetScene().Objects)
+      {
+        for (auto& tri : obj.Triangles)
+        {
+          Enqueue(tri);
+        }
+      }
+
+      SetCullFaceMode(CullFaceMode_);
+      SetRenderMode(RenderMode_);
+
+      PopMatrix();
+
+      //
+      // Draw everything in the queue.
+      //
+      CommenceDraw();
+
+      if (not Paused)
+      {
+        angle += (RotationSpeed * DeltaTime());
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -524,6 +633,10 @@ class Drawer : public DrawWrapper
         case AppMode::SHOW_AXES:
           DrawAxes();
           break;
+
+        case AppMode::PIPELINE:
+          RenderingPipeline();
+          break;
       }
     }
 
@@ -531,26 +644,32 @@ class Drawer : public DrawWrapper
 
     void DrawToScreen() override
     {
-      PRINT(WindowWidth - 10, 10, "DX: %.2f", DX);
-      PRINT(WindowWidth - 10, 20, "DY: %.2f", DY);
-      PRINT(WindowWidth - 10, 30, "DZ: %.2f", DZ);
+      IF::Instance().Printf(0, WindowHeight - 20,
+                            IF::TextParams::Set(0xFFFF00,
+                                                IF::TextAlignment::LEFT),
+                            "%s",
+                            AppModes.at(ApplicationMode).data());
 
-      PRINT(WindowWidth - 10, 40,
+      PRINTR(WindowWidth - 10, 10, "DX: %.2f", DX);
+      PRINTR(WindowWidth - 10, 20, "DY: %.2f", DY);
+      PRINTR(WindowWidth - 10, 30, "DZ: %.2f", DZ);
+
+      PRINTR(WindowWidth - 10, 40,
             "Projection: %s", ProjectionModes.at(ProjectionMode_).data());
 
-      PRINT(WindowWidth - 10, 50,
+      PRINTR(WindowWidth - 10, 50,
             "Mode: %s", RenderModes.at(RenderMode_).data());
 
-      PRINT(WindowWidth - 10, WindowHeight - 140, "Projection matrix:");
+      PRINTR(WindowWidth - 10, WindowHeight - 140, "Projection matrix:");
 
       for (uint8_t x = 0; x < 4; x++)
       {
         for (uint8_t y = 0; y < 4; y++)
         {
-          PRINT(WindowWidth - 60 * (3 - y),
-                WindowHeight - 30 * (4 - x),
-                "%.2f  ",
-                _projectionMatrix[x][y]);
+          PRINTR(WindowWidth - 60 * (3 - y),
+                 WindowHeight - 30 * (4 - x),
+                 "%.2f  ",
+                 _projectionMatrix[x][y]);
         }
       }
 
@@ -567,16 +686,24 @@ class Drawer : public DrawWrapper
         }
       }
 
-      if (CullFaces)
+      if (ApplicationMode != AppMode::TEST)
       {
-        IF::Instance().Print(10, 10,
-                             "Backface culling",
-                             0xFFFF00);
+        PRINTL(10, 10, "%s", CullFaceModes.at(CullFaceMode_).data());
+      }
+
+      if (ApplicationMode == AppMode::PIPELINE)
+      {
+        PRINTL(10, 20, "draw time: %.2fms", DrawTime() * 1000.0);
       }
 
       if (Paused)
       {
-        IF::Instance().Print(0, 0, "PAUSED", 0xFFFF00);
+        IF::Instance().Print(WindowWidth / 2,
+                             WindowHeight - 20,
+                             "PAUSED",
+                             0x00FF00,
+                             IF::TextAlignment::CENTER,
+                             2.0);
       }
     }
 
@@ -590,6 +717,8 @@ class Drawer : public DrawWrapper
   private:
     Mesh _cube;
 };
+
+// =============================================================================
 
 int main(int argc, char* argv[])
 {

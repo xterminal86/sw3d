@@ -71,15 +71,17 @@ enum class AppMode
   TEST = 0,
   FROM_OBJ,
   SHOW_AXES,
-  PIPELINE
+  PIPELINE,
+  TWO_PROJECTIONS
 };
 
 const std::unordered_map<AppMode, std::string> AppModes =
 {
-  { AppMode::TEST,      "Test cube, manual rendering"        },
-  { AppMode::FROM_OBJ,  "Loaded from .obj, manual rendering" },
-  { AppMode::SHOW_AXES, "Default axes"                       },
-  { AppMode::PIPELINE,  "Rendering pipeline"                 }
+  { AppMode::TEST,            "Test cube, manual rendering"        },
+  { AppMode::FROM_OBJ,        "Loaded from .obj, manual rendering" },
+  { AppMode::SHOW_AXES,       "Default axes"                       },
+  { AppMode::PIPELINE,        "Rendering pipeline"                 },
+  { AppMode::TWO_PROJECTIONS, "Two projections"                    }
 };
 
 AppMode ApplicationMode = AppMode::TEST;
@@ -102,6 +104,9 @@ const std::vector<std::string> ModelsList =
 const std::string kAxesFname = "models/axes.obj";
 SW3D::ModelLoader Axes;
 
+const std::string kCubeFname = "models/cube.obj";
+SW3D::ModelLoader Cube;
+
 // =============================================================================
 
 class Drawer : public DrawWrapper
@@ -112,9 +117,9 @@ class Drawer : public DrawWrapper
       switch (ProjectionMode_)
       {
         case ProjectionMode::ORTHOGRAPHIC:
-          SetOrthographic(-InitialTranslation * 0.5, InitialTranslation * 0.5,
-                          InitialTranslation * 0.5, -InitialTranslation * 0.5,
-                          InitialTranslation * 0.5, -InitialTranslation * 0.5);
+          SetOrthographic(-InitialTranslation * 0.5,  InitialTranslation * 0.5,
+                           InitialTranslation * 0.5, -InitialTranslation * 0.5,
+                           InitialTranslation * 0.5, -InitialTranslation * 0.5);
           break;
 
         case ProjectionMode::WEAK_PERSPECTIVE:
@@ -173,6 +178,12 @@ class Drawer : public DrawWrapper
         SDL_Log("%s", SW3D::ErrorToString());
       }
 
+      ok = Cube.Load(kCubeFname);
+      if (not ok)
+      {
+        SDL_Log("%s", SW3D::ErrorToString());
+      }
+
       ApplyProjection();
 
       SetMatrixMode(MatrixMode::MODELVIEW);
@@ -217,6 +228,10 @@ class Drawer : public DrawWrapper
 
             case SDLK_4:
               ApplicationMode = AppMode::PIPELINE;
+              break;
+
+            case SDLK_5:
+              ApplicationMode = AppMode::TWO_PROJECTIONS;
               break;
 
             case SDLK_e:
@@ -571,7 +586,7 @@ class Drawer : public DrawWrapper
 
       PushMatrix();
 
-      Translate(5.0, 0.0, InitialTranslation * 2);
+      Translate(2.5, -4.0, InitialTranslation * 2);
 
       SetCullFaceMode(CullFaceMode::NONE);
       SetRenderMode(RenderMode::WIREFRAME);
@@ -606,6 +621,69 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void TwoProjections()
+    {
+      static double angle = 0.0;
+
+      static Triangle tr;
+
+      SetMatrixMode(MatrixMode::PROJECTION);
+      SetOrthographic(-InitialTranslation * 0.5,  InitialTranslation * 0.5,
+                       InitialTranslation * 0.5, -InitialTranslation * 0.5,
+                       InitialTranslation * 0.5, -InitialTranslation * 0.5);
+
+      SetMatrixMode(MatrixMode::MODELVIEW);
+
+      PushMatrix();
+
+      RotateZ(0.5   * angle);
+      RotateY(0.25  * angle);
+      RotateX(0.125 * angle);
+
+      Translate(-1.0, 0.0, 0.0);
+
+      for (auto& obj : Cube.GetScene().Objects)
+      {
+        for (auto& tri : obj.Triangles)
+        {
+          Enqueue(tri);
+        }
+      }
+
+      PopMatrix();
+
+      SetMatrixMode(MatrixMode::PROJECTION);
+      SetPerspective(60.0,
+                     (double)WindowWidth / (double)WindowHeight,
+                     0.1,
+                     1000.0);
+
+      SetMatrixMode(MatrixMode::MODELVIEW);
+
+      PushMatrix();
+
+      Translate(2.0, 0.0, 15.0);
+
+      for (auto& obj : Cube.GetScene().Objects)
+      {
+        for (auto& tri : obj.Triangles)
+        {
+          Enqueue(tri);
+        }
+      }
+
+      PopMatrix();
+
+      CommenceDraw();
+
+      if (not Paused)
+      {
+        angle += (RotationSpeed * DeltaTime());
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
     void Draw3D()
     {
       switch (ApplicationMode)
@@ -624,6 +702,10 @@ class Drawer : public DrawWrapper
 
         case AppMode::PIPELINE:
           RenderingPipeline();
+          break;
+
+        case AppMode::TWO_PROJECTIONS:
+          TwoProjections();
           break;
       }
     }

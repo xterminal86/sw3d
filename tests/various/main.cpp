@@ -619,6 +619,24 @@ void Various()
             SW3D::ToString(v2).data(),
             SW3D::ToString(res).data());
   }
+  // ---------------------------------------------------------------------------
+  {
+    SDL_Log("%s", ruler.data());
+
+    SW3D::Vec3 v1 = { 1.0, 0.0, 0.0 };
+    for (double x = -1.0; x < 1.0; x += 0.1)
+    {
+      for (double y = -1.0; y < 1.0; y += 0.1)
+      {
+        SW3D::Vec3 v2 = { x, y, 0.0 };
+        SW3D::Vec3 res = SW3D::CrossProduct(v1, v2);
+        SDL_Log("%s x %s = %s",
+                SW3D::ToString(v1).data(),
+                SW3D::ToString(v2).data(),
+                SW3D::ToString(res).data());
+      }
+    }
+  }
 }
 
 // =============================================================================

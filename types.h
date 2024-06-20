@@ -15,11 +15,24 @@ namespace SW3D
     const uint8_t kMatrixStackLimit = 32;
   }
 
+  enum class ProjectionMode
+  {
+    ORTHOGRAPHIC,
+    WEAK_PERSPECTIVE,
+    PERSPECTIVE
+  };
+
   enum class CullFaceMode
   {
     FRONT = 0,
     BACK,
     NONE
+  };
+
+  enum class ShadingMode
+  {
+    NONE = 0,
+    FLAT
   };
 
   enum class MatrixMode
@@ -191,6 +204,8 @@ namespace SW3D
     Vec3 Position;
     Vec3 Normal;
     Vec2 UV;
+
+    uint8_t Color[4] = { 255, 255, 255, 255 };
   };
 
   struct Triangle
@@ -199,6 +214,7 @@ namespace SW3D
 
     bool CullFlag = false;
     RenderMode RenderMode_ = RenderMode::SOLID;
+    ShadingMode ShadingMode_ = ShadingMode::FLAT;
   };
 
   struct TriangleSimple

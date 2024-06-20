@@ -36,9 +36,9 @@ const double RotationSpeed = 100.0;
 
 bool Paused = false;
 
-CullFaceMode CullFaceMode_ = CullFaceMode::NONE;
+CullFaceMode CullFaceMode_ = CullFaceMode::BACK;
 
-size_t CullFaceModeIndex = 0;
+size_t CullFaceModeIndex = 1;
 const std::map<CullFaceMode, std::string> CullFaceModes =
 {
   { CullFaceMode::FRONT, "Cull FRONT" },
@@ -54,13 +54,6 @@ const std::map<RenderMode, std::string> RenderModes =
   { RenderMode::SOLID,     "SOLID"     },
   { RenderMode::WIREFRAME, "WIREFRAME" },
   { RenderMode::MIXED,     "MIXED"     }
-};
-
-enum class ProjectionMode
-{
-  ORTHOGRAPHIC,
-  WEAK_PERSPECTIVE,
-  PERSPECTIVE
 };
 
 ProjectionMode ProjectionMode_ = ProjectionMode::PERSPECTIVE;
@@ -108,9 +101,6 @@ const std::vector<std::string> ModelsList =
 
 const std::string kAxesFname = "models/axes.obj";
 SW3D::ModelLoader Axes;
-
-const std::string kCubeFname = "models/cube.obj";
-SW3D::ModelLoader Cube3D;
 
 // =============================================================================
 
@@ -178,12 +168,6 @@ class Drawer : public DrawWrapper
       }
 
       ok = Axes.Load(kAxesFname);
-      if (not ok)
-      {
-        SDL_Log("%s", SW3D::ErrorToString());
-      }
-
-      ok = Cube3D.Load(kCubeFname);
       if (not ok)
       {
         SDL_Log("%s", SW3D::ErrorToString());
@@ -571,7 +555,7 @@ class Drawer : public DrawWrapper
 
       Translate(DX, DY, (InitialTranslation + DZ));
 
-      for (auto& obj : Cube3D.GetScene().Objects)
+      for (auto& obj : Loader.GetScene().Objects)
       {
         for (auto& tri : obj.Triangles)
         {
@@ -591,6 +575,7 @@ class Drawer : public DrawWrapper
 
       SetCullFaceMode(CullFaceMode::NONE);
       SetRenderMode(RenderMode::WIREFRAME);
+      SetShadingMode(ShadingMode::NONE);
 
       for (auto& obj : Axes.GetScene().Objects)
       {
@@ -600,14 +585,17 @@ class Drawer : public DrawWrapper
         }
       }
 
+      SetShadingMode(ShadingMode::FLAT);
       SetCullFaceMode(CullFaceMode_);
       SetRenderMode(RenderMode_);
 
       PopMatrix();
 
+      // *****************************
       //
       // Draw everything in the queue.
       //
+      // *****************************
       CommenceDraw();
 
       if (not Paused)

@@ -90,6 +90,7 @@ namespace SW3D
                            double near, double far);
 
       void ShouldCullFace(const Vec3& lookVector, Triangle& face);
+      void ApplyShading(const Vec3& lookVector, Triangle& face);
 
       //
       // Add drawing task to pipeline.
@@ -112,6 +113,7 @@ namespace SW3D
       void SetCullFaceMode(CullFaceMode modeToSet);
       void SetMatrixMode(MatrixMode modeToSet);
       void SetRenderMode(RenderMode modeToSet);
+      void SetShadingMode(ShadingMode modeToSet);
 
       void PushMatrix();
       void PopMatrix();
@@ -156,6 +158,7 @@ namespace SW3D
       };
 
       const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
+      uint32_t Array2Mask(const uint8_t (&color)[4]);
 
       void SaveColor();
       void RestoreColor();
@@ -191,9 +194,11 @@ namespace SW3D
 
       bool _running = true;
 
-      MatrixMode   _matrixMode   = MatrixMode::PROJECTION;
-      RenderMode   _renderMode   = RenderMode::SOLID;
-      CullFaceMode _cullFaceMode = CullFaceMode::BACK;
+      ProjectionMode _projectionMode = ProjectionMode::PERSPECTIVE;
+      MatrixMode     _matrixMode     = MatrixMode::PROJECTION;
+      RenderMode     _renderMode     = RenderMode::SOLID;
+      CullFaceMode   _cullFaceMode   = CullFaceMode::BACK;
+      ShadingMode    _shadingMode    = ShadingMode::FLAT;
 
       //
       // To store all translations and rotations.

@@ -363,6 +363,13 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  void DrawWrapper::SetShadingMode(ShadingMode modeToSet)
+  {
+    _shadingMode = modeToSet;
+  }
+
+  // ---------------------------------------------------------------------------
+
   void DrawWrapper::PushMatrix()
   {
     switch (_matrixMode)
@@ -474,6 +481,7 @@ namespace SW3D
   void DrawWrapper::SetWeakPerspective()
   {
     _projectionMatrix = Matrix::WeakPerspective();
+    _projectionMode = ProjectionMode::WEAK_PERSPECTIVE;
   }
 
   // ---------------------------------------------------------------------------
@@ -487,6 +495,7 @@ namespace SW3D
                                             aspectRatio,
                                             zNear,
                                             zFar);
+    _projectionMode = ProjectionMode::PERSPECTIVE;
   }
 
   // ---------------------------------------------------------------------------
@@ -498,12 +507,67 @@ namespace SW3D
     _projectionMatrix = Matrix::Orthographic(left, right,
                                              top, bottom,
                                              near, far);
+    _projectionMode = ProjectionMode::ORTHOGRAPHIC;
   }
 
   // ---------------------------------------------------------------------------
 
-  void DrawWrapper::ShouldCullFace(const Vec3& lookVector,
-                                    Triangle& face)
+  void DrawWrapper::ApplyShading(const Vec3& lookVector, Triangle& face)
+  {
+    static Vec3 v1, v2, n, fv;
+    static double dp;
+
+    v1 = face.Points[1].Position - face.Points[0].Position;
+    v2 = face.Points[2].Position - face.Points[0].Position;
+    n  = SW3D::CrossProduct(v1, v2);
+
+    //
+    // For backface culling this is not necessary, but for shading it is.
+    //
+    n.Normalize();
+
+    fv = (_projectionMode == ProjectionMode::ORTHOGRAPHIC)
+         ? Vec3::In()
+         : face.Points[0].Position; // - camera
+
+    fv.Normalize();
+
+    dp = SW3D::DotProduct(fv, n);
+
+    if (dp < 0.0)
+    {
+      dp = -dp;
+    }
+
+    uint8_t grayscalePart = (uint8_t)(255.0 * dp);
+
+    if (face.ShadingMode_ == ShadingMode::NONE)
+    {
+      grayscalePart = 255;
+    }
+
+    //
+    // Everything is one color for now.
+    //
+    face.Points[0].Color[0] = grayscalePart;
+    face.Points[0].Color[1] = grayscalePart;
+    face.Points[0].Color[2] = grayscalePart;
+    face.Points[0].Color[3] = 255;
+
+    face.Points[1].Color[0] = grayscalePart;
+    face.Points[1].Color[1] = grayscalePart;
+    face.Points[1].Color[2] = grayscalePart;
+    face.Points[1].Color[3] = 255;
+
+    face.Points[2].Color[0] = grayscalePart;
+    face.Points[2].Color[1] = grayscalePart;
+    face.Points[2].Color[2] = grayscalePart;
+    face.Points[2].Color[3] = 255;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::ShouldCullFace(const Vec3& lookVector, Triangle& face)
   {
     static Vec3 v1, v2, n, fv;
     static double dp;
@@ -521,15 +585,15 @@ namespace SW3D
     // vectors from camera to object are parallel), so our vector from camera to
     // object actually doesn't make sense and thus produces wrong result.
     // So in order to cull faces properly for orthographic projection we must
-    // use camera's direction vector.
-    //
-
+    // use camera's direction vector towards the object.
     //
     // FIXME: assuming camera is at (0, 0, 0), should be fixed in the future.
     //
     // Can be any point since they're all lying on the same plane.
     //
-    fv = face.Points[0].Position; // - camera
+    fv = (_projectionMode == ProjectionMode::ORTHOGRAPHIC)
+         ? Vec3::In()
+         : face.Points[0].Position; // - camera
 
     dp = SW3D::DotProduct(fv, n);
 
@@ -548,6 +612,11 @@ namespace SW3D
     tri.Points[1].Position = (_modelViewMatrix * t.Points[1].Position);
     tri.Points[2].Position = (_modelViewMatrix * t.Points[2].Position);
 
+    tri.ShadingMode_ = _shadingMode;
+    tri.RenderMode_  = _renderMode;
+
+    ApplyShading(Vec3::Zero(), tri);
+
     if (_cullFaceMode != CullFaceMode::NONE)
     {
       //
@@ -557,8 +626,6 @@ namespace SW3D
 
       if (not tri.CullFlag)
       {
-        tri.RenderMode_ = _renderMode;
-
         //
         // Apply projection only if triangle will be visible.
         //
@@ -587,8 +654,7 @@ namespace SW3D
       //
       // Not doing shit.
       //
-      tri.CullFlag    = false;
-      tri.RenderMode_ = _renderMode;
+      tri.CullFlag = false;
 
       for (size_t i = 0; i < 3; i++)
       {
@@ -623,7 +689,7 @@ namespace SW3D
       DrawTriangle(tri.Points[0].Position,
                    tri.Points[1].Position,
                    tri.Points[2].Position,
-                   0xFFFFFF, // TODO: add shading
+                   Array2Mask(tri.Points[0].Color),
                    tri.RenderMode_);
 
       _pipeline.pop_front();
@@ -652,6 +718,20 @@ namespace SW3D
     }
 
     return _drawColor;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  uint32_t DrawWrapper::Array2Mask(const uint8_t (&color)[4])
+  {
+    uint32_t res = 0;
+
+    res |= (color[0] << 16);
+    res |= (color[1] << 8);
+    res |= color[2];
+    res |= (color[3] << 24);
+
+    return res;
   }
 
   // ---------------------------------------------------------------------------

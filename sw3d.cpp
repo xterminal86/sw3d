@@ -100,7 +100,12 @@ namespace SW3D
     _projectionMatrix.SetIdentity();
     _modelViewMatrix.SetIdentity();
 
-    _projectionStack.push(_projectionMatrix);
+    //
+    // Both stacks contain identity matrices OpenGL style, and since identity
+    // matrix is basically orthographic projection save corresponding mode as
+    // well.
+    //
+    _projectionStack.push({ _projectionMatrix, ProjectionMode::ORTHOGRAPHIC });
     _modelViewStack.push(_modelViewMatrix);
 
     _initialized = true;
@@ -378,7 +383,7 @@ namespace SW3D
       {
         if (_projectionStack.size() < SW3D::Constants::kMatrixStackLimit)
         {
-          _projectionStack.push(_projectionMatrix);
+          _projectionStack.push({ _projectionMatrix, _projectionMode });
         }
         else
         {
@@ -416,29 +421,44 @@ namespace SW3D
       {
         if (_projectionStack.size() > 1)
         {
+          //
+          // After we save current projection matrix with PushMatrix() it's
+          // placed on top of the stack. So after that any changes to projection
+          // will modify current projection matrix. When we're done with it and
+          // want to go back to previous projection, it's *on top* of the stack,
+          // so we need to assign it to the current projection matrix variable
+          // first and pop the stack afterwards.
+          //
+          _projectionMatrix = _projectionStack.top().first;
+          _projectionMode   = _projectionStack.top().second;
+
           _projectionStack.pop();
         }
         else
         {
           SW3D::Error = EngineError::STACK_UNDERFLOW;
         }
-
-        _projectionMatrix = _projectionStack.top();
       }
       break;
 
       case MatrixMode::MODELVIEW:
       {
+        //
+        // Both stacks contain identity matrix from the start, but because
+        // identity modelview matrix corresponds to "no change" it doesn't
+        // matter what order to reassign modelview matrix variable is used, but
+        // for consistency's sake let's rewrite it as with projection matrix
+        // case.
+        //
         if (_modelViewStack.size() > 1)
         {
+          _modelViewMatrix = _modelViewStack.top();
           _modelViewStack.pop();
         }
         else
         {
           SW3D::Error = EngineError::STACK_UNDERFLOW;
         }
-
-        _modelViewMatrix = _modelViewStack.top();
       }
       break;
 

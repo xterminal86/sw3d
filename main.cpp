@@ -1,3 +1,28 @@
+//
+// Trying to write some sort of software 3D renderer.
+//
+// Learning materials:
+//
+// -----------------------------------------------------------------------------
+//
+// https://www.youtube.com/@javidx9
+//
+// 3D Graphics Engine (multipart series, not very detailed, but still helpful):
+//
+// Part 1: https://www.youtube.com/watch?v=ih20l3pJoeU
+// Part 2: https://www.youtube.com/watch?v=XgMWc6LumG4
+// Part 3: https://www.youtube.com/watch?v=HXSuNxpCzdM
+//
+// -----------------------------------------------------------------------------
+//
+// https://www.youtube.com/@ChiliTomatoNoodle
+//
+// 3D Fundamentals playlist (quite long, lots of details and stuff):
+//
+// https://www.youtube.com/playlist?list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA
+//
+// -----------------------------------------------------------------------------
+//
 #include "sw3d.h"
 #include "instant-font.h"
 
@@ -20,8 +45,8 @@
 
 using namespace SW3D;
 
-const uint16_t WW = 800;
-const uint16_t WH = 800;
+const uint16_t WW = 640;
+const uint16_t WH = 480;
 
 const uint16_t QualityReductionFactor = 2;
 
@@ -231,8 +256,18 @@ class Drawer : public DrawWrapper
               break;
 
             case SDLK_5:
+            {
+              //
+              // Since we have several display "modes" but one rendering
+              // pipeline we could break some internal states in between, e.g.
+              // by changing projection in one mode and then switching to
+              // another mode. So let's explicitly set some when needed.
+              //
               ApplicationMode = AppMode::TWO_PROJECTIONS;
-              break;
+              SetWeakPerspective();
+              ProjectionMode_ = ProjectionMode::WEAK_PERSPECTIVE;
+            }
+            break;
 
             case SDLK_e:
               DZ += 0.1;
@@ -275,12 +310,15 @@ class Drawer : public DrawWrapper
 
             case SDLK_p:
             {
-              ProjectionModeIndex++;
-              ProjectionModeIndex %= ProjectionModes.size();
-              auto it = ProjectionModes.begin();
-              std::advance(it, ProjectionModeIndex);
-              ProjectionMode_ = it->first;
-              ApplyProjection();
+              if (ApplicationMode != AppMode::TWO_PROJECTIONS)
+              {
+                ProjectionModeIndex++;
+                ProjectionModeIndex %= ProjectionModes.size();
+                auto it = ProjectionModes.begin();
+                std::advance(it, ProjectionModeIndex);
+                ProjectionMode_ = it->first;
+                ApplyProjection();
+              }
             }
             break;
 
@@ -628,12 +666,13 @@ class Drawer : public DrawWrapper
       static Triangle tr;
 
       SetMatrixMode(MatrixMode::PROJECTION);
+      PushMatrix();
+
       SetOrthographic(-InitialTranslation * 0.5,  InitialTranslation * 0.5,
                        InitialTranslation * 0.5, -InitialTranslation * 0.5,
                        InitialTranslation * 0.5, -InitialTranslation * 0.5);
 
       SetMatrixMode(MatrixMode::MODELVIEW);
-
       PushMatrix();
 
       RotateZ(0.5   * angle);
@@ -653,16 +692,12 @@ class Drawer : public DrawWrapper
       PopMatrix();
 
       SetMatrixMode(MatrixMode::PROJECTION);
-      SetPerspective(60.0,
-                     (double)WindowWidth / (double)WindowHeight,
-                     0.1,
-                     1000.0);
+      PopMatrix();
 
       SetMatrixMode(MatrixMode::MODELVIEW);
-
       PushMatrix();
 
-      Translate(2.0, 0.0, 15.0);
+      Translate(5.0, 0.0, 15.0);
 
       for (auto& obj : Cube.GetScene().Objects)
       {

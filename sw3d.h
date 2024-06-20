@@ -207,8 +207,10 @@ namespace SW3D
 
       //
       // To store all projections that may be.
+      // We also need to save projection type to restore proper backface culling
+      // after PopMatrix() is used.
       //
-      std::stack<Matrix> _projectionStack;
+      std::stack<std::pair<Matrix, ProjectionMode>> _projectionStack;
 
       //
       // Drawing pipeline.

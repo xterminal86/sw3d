@@ -130,6 +130,8 @@ namespace SW3D
 
     while (_running)
     {
+      _drawCalls = 0;
+
       measureStart = Clock::now();
       measureEnd = measureStart;
 
@@ -197,6 +199,8 @@ namespace SW3D
   {
     INIT_CHECK();
 
+    _drawCalls++;
+
     SaveColor();
 
     if (( colorMask & _maskA) != 0)
@@ -228,6 +232,8 @@ namespace SW3D
                              uint32_t colorMask)
   {
     INIT_CHECK();
+
+    _drawCalls++;
 
     SaveColor();
 
@@ -491,9 +497,16 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
-  const uint32_t& DrawWrapper::FrameBufferSize() const
+  const size_t& DrawWrapper::FrameBufferSize() const
   {
     return _frameBufferSize;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  const size_t& DrawWrapper::DrawCalls() const
+  {
+    return _drawCalls;
   }
 
   // ---------------------------------------------------------------------------

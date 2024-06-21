@@ -43,6 +43,13 @@
                                             1.0), \
                         format, ##__VA_ARGS__);
 
+#define PRINTC(x, y, format, ...) \
+  IF::Instance().Printf(x, y, \
+                        IF::TextParams::Set(0xFFFFFF, \
+                                            IF::TextAlignment::CENTER, \
+                                            1.0), \
+                        format, ##__VA_ARGS__);
+
 using namespace SW3D;
 
 const uint16_t WW = 640;
@@ -59,11 +66,12 @@ double DZ = 0.0;
 
 const double RotationSpeed = 100.0;
 
-bool Paused = false;
+bool Paused   = false;
+bool ShowHelp = false;
 
 CullFaceMode CullFaceMode_ = CullFaceMode::BACK;
 
-size_t CullFaceModeIndex = 1;
+size_t CullFaceModeIndex = (size_t)CullFaceMode::BACK;
 const std::map<CullFaceMode, std::string> CullFaceModes =
 {
   { CullFaceMode::FRONT, "Cull FRONT" },
@@ -83,7 +91,7 @@ const std::map<RenderMode, std::string> RenderModes =
 
 ProjectionMode ProjectionMode_ = ProjectionMode::PERSPECTIVE;
 
-size_t ProjectionModeIndex = 2;
+size_t ProjectionModeIndex = (size_t)ProjectionMode::PERSPECTIVE;
 const std::map<ProjectionMode, std::string> ProjectionModes =
 {
   { ProjectionMode::ORTHOGRAPHIC,     "ORTHO"        },
@@ -132,6 +140,21 @@ SW3D::ModelLoader Axes;
 const std::string kCubeFname = "models/cube.obj";
 SW3D::ModelLoader Cube;
 
+const std::vector<std::string> HelpText =
+{
+  "ESC   - exit",
+  "TAB   - cycle render modes",
+  "1-5   - switch scenes",
+  "WASD  - move objects (where applicable)",
+  "Q E   - move object along Z",
+  "SPACE - toggle pause",
+  "C     - cycle face culling mode",
+  "P     - cycle projection mode",
+  "[ ]   - change models (where applicable)"
+};
+
+size_t HelpTextLongestLine = 0;
+
 // =============================================================================
 
 class Drawer : public DrawWrapper
@@ -162,6 +185,14 @@ class Drawer : public DrawWrapper
 
     void PostInit() override
     {
+      for (auto& line : HelpText)
+      {
+        if (line.length() > HelpTextLongestLine)
+        {
+          HelpTextLongestLine = line.length();
+        }
+      }
+
       _windowName = "Software 3D renderer";
 
       _cube.Triangles =
@@ -266,6 +297,7 @@ class Drawer : public DrawWrapper
               ApplicationMode = AppMode::TWO_PROJECTIONS;
               SetWeakPerspective();
               ProjectionMode_ = ProjectionMode::WEAK_PERSPECTIVE;
+              ProjectionModeIndex = (size_t)ProjectionMode::WEAK_PERSPECTIVE;
             }
             break;
 
@@ -291,6 +323,10 @@ class Drawer : public DrawWrapper
 
             case SDLK_s:
               DY += 1;
+              break;
+
+            case SDLK_h:
+              ShowHelp = not ShowHelp;
               break;
 
             case SDLK_SPACE:
@@ -765,6 +801,8 @@ class Drawer : public DrawWrapper
       PRINTR(WindowWidth - 10, 50,
             "Mode: %s", RenderModes.at(RenderMode_).data());
 
+      PRINTR(WindowWidth - 10, 60, "Draw calls: %llu", DrawCalls());
+
       PRINTR(WindowWidth - 10, WindowHeight - 140, "Projection matrix:");
 
       for (uint8_t x = 0; x < 4; x++)
@@ -809,6 +847,36 @@ class Drawer : public DrawWrapper
                              0x00FF00,
                              IF::TextAlignment::CENTER,
                              2.0);
+      }
+
+      if (ShowHelp)
+      {
+        static SDL_Rect dim;
+        dim.x = WindowWidth / 2 - (HelpTextLongestLine / 2) * 10;
+        dim.y = WindowHeight / 2 - ( (HelpText.size() / 2) * 10);
+        dim.w = (HelpTextLongestLine - 2) * 10;
+        dim.h = HelpText.size() * 10 + 20;
+
+        static SDL_BlendMode oldBlend;
+
+        SaveColor();
+        SDL_GetRenderDrawBlendMode(_renderer, &oldBlend);
+        SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(_renderer, 0, 64, 64, 200);
+        SDL_RenderFillRect(_renderer, &dim);
+
+        for (size_t i = 0; i < HelpText.size(); i++)
+        {
+          IF::Instance().Print(WindowWidth / 2 - (HelpTextLongestLine / 2 - 1) * 10,
+                               WindowHeight / 2 - ( (HelpText.size() / 2 - 1) * 10 - i * 10),
+                               HelpText[i],
+                               0xFFFFFF,
+                               IF::TextAlignment::LEFT,
+                               1.0);
+        }
+
+        SDL_SetRenderDrawBlendMode(_renderer, oldBlend);
+        RestoreColor();
       }
     }
 

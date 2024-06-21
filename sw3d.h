@@ -47,7 +47,8 @@ namespace SW3D
       const double& DeltaTime() const;
       const double& DrawTime() const;
 
-      const uint32_t& FrameBufferSize() const;
+      const size_t& FrameBufferSize() const;
+      const size_t& DrawCalls() const;
 
     // *************************************************************************
     //
@@ -118,6 +119,9 @@ namespace SW3D
       void PushMatrix();
       void PopMatrix();
 
+      void SaveColor();
+      void RestoreColor();
+
       SDL_Renderer* _renderer = nullptr;
 
       std::string _windowName = "DrawService window";
@@ -160,18 +164,15 @@ namespace SW3D
       const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
       uint32_t Array2Mask(const uint8_t (&color)[4]);
 
-      void SaveColor();
-      void RestoreColor();
-
       void DrawGrid();
 
       SDL_Window* _window = nullptr;
 
       SDL_Texture* _framebuffer = nullptr;
 
-      uint32_t _frameBufferSize = 0;
-
-      uint32_t _fps = 0;
+      size_t _frameBufferSize = 0;
+      size_t _fps = 0;
+      size_t _drawCalls = 0;
 
       double _drawTime = 0.0;
       double _deltaTime = 0.0;

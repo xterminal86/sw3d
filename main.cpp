@@ -240,6 +240,8 @@ class Drawer : public DrawWrapper
         SDL_Log("%s", SW3D::ErrorToString());
       }
 
+      int h = LoadTexture("textures/checker.bmp");
+
       ApplyProjection();
 
       SetMatrixMode(MatrixMode::MODELVIEW);

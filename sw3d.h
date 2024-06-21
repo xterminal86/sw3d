@@ -42,6 +42,11 @@ namespace SW3D
 
       void Run(bool debugMode = false);
 
+      int LoadTexture(const std::string& fname);
+
+      SDL_Texture* GetTexture(int handle);
+      SDL_Texture* GetTexture(const std::string& fname);
+
       SDL_Renderer* GetRenderer() const;
 
       const double& DeltaTime() const;
@@ -183,6 +188,8 @@ namespace SW3D
       bool _initialized        = false;
       bool _faceCullingEnabled = true;
 
+      int _textureHandleCounter = 0;
+
       const uint32_t _maskR = 0x00FF0000;
       const uint32_t _maskG = 0x0000FF00;
       const uint32_t _maskB = 0x000000FF;
@@ -194,6 +201,9 @@ namespace SW3D
       SDL_Rect _rect;
 
       bool _running = true;
+
+      std::unordered_map<std::string, SDL_Texture*> _texturesByFilename;
+      std::unordered_map<int,         SDL_Texture*> _texturesByHandle;
 
       ProjectionMode _projectionMode = ProjectionMode::PERSPECTIVE;
       MatrixMode     _matrixMode     = MatrixMode::PROJECTION;

@@ -4,6 +4,15 @@ namespace SW3D
 {
   DrawWrapper::~DrawWrapper()
   {
+    for (auto& kvp : _texturesByFilename)
+    {
+      if (kvp.second != nullptr)
+      {
+        SDL_Log("destroying '%s'...", kvp.first.data());
+        SDL_DestroyTexture(kvp.second);
+      }
+    }
+
     SDL_Quit();
   }
 
@@ -184,6 +193,61 @@ namespace SW3D
     }
 
     SDL_Log("Goodbye!");
+  }
+
+  // ---------------------------------------------------------------------------
+
+  int DrawWrapper::LoadTexture(const std::string& fname)
+  {
+    if (_texturesByFilename.count(fname) == 1)
+    {
+      SDL_DestroyTexture(_texturesByFilename[fname]);
+    }
+
+    SDL_Surface* res = SDL_LoadBMP(fname.data());
+    if (res == nullptr)
+    {
+      SDL_Log("SDL_LoadBMP() fail - %s", SDL_GetError());
+      return -1;
+    }
+
+    //
+    // No transparency for now.
+    //
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(_renderer, res);
+    if (tex == nullptr)
+    {
+      SDL_Log("SDL_CreateTextureFromSurface() fail - %s", SDL_GetError());
+      return -1;
+    }
+
+    SDL_FreeSurface(res);
+
+    _texturesByFilename[fname] = tex;
+
+    _textureHandleCounter++;
+
+    _texturesByHandle[_textureHandleCounter] = tex;
+
+    return _textureHandleCounter;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  SDL_Texture* DrawWrapper::GetTexture(int handle)
+  {
+    return (_texturesByHandle.count(handle) == 1)
+          ? _texturesByHandle[handle]
+          : nullptr;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  SDL_Texture* DrawWrapper::GetTexture(const std::string& fname)
+  {
+    return (_texturesByFilename.count(fname) == 1)
+          ? _texturesByFilename[fname]
+          : nullptr;
   }
 
   // ---------------------------------------------------------------------------

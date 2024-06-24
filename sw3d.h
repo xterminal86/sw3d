@@ -157,7 +157,7 @@ namespace SW3D
       void Translate(double dx, double dy, double dz);
 
       //
-      // Additional draw to render target nullptr.
+      // Additional optional draw routine for drawing to render target nullptr.
       //
       virtual void DrawToScreen() {}
 

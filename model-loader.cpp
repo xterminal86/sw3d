@@ -95,7 +95,9 @@ namespace SW3D
     {
       lineCount++;
 
-      // skip comments
+      //
+      // Skip comments.
+      //
       if (line.find_first_of('#') != std::string::npos
        or line.length() == 0)
       {
@@ -191,7 +193,7 @@ namespace SW3D
     }
 
     //
-    // In case of multiple objects, we need not to forget to add last parsed
+    // In case of multiple objects we need not to forget to add last parsed
     // one.
     //
     if (obj != nullptr)

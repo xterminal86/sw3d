@@ -480,14 +480,11 @@ class Drawer : public DrawWrapper
         for (size_t i = 0; i < 3; i++)
         {
           //
-          // Some vertices can share several faces and here we apply the same
-          // operation to them several times. This can become quite inefficient.
-          // Instead we need to specify all vertices, apply projection to them
-          // once and then draw triangles based on those projected vertices
-          // using faces enumeration, although this approarch will work only for
-          // untextured rendering. For proper texturing one must assign texture
-          // coordinates to every vertex of each face which results in
-          // duplication of some vertices.
+          // Some vertices can share several faces and in our manually defined
+          // cube some of them are listed more than once which is redundant.
+          // Instead we need to specify minimum number of vertices, and then
+          // draw triangles based on those vertices using faces enumeration.
+          // We'll do exactly like that when we load model from .obj file.
           //
           tp.Points[i] = _projectionMatrix * tt.Points[i];
 

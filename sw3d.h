@@ -26,8 +26,9 @@
 
 namespace SW3D
 {
-  using Clock   = std::chrono::steady_clock;
-  using ns      = std::chrono::nanoseconds;
+  using Clock = std::chrono::steady_clock;
+  using ns    = std::chrono::nanoseconds;
+  using VVD   = std::vector<std::vector<double>>;
 
   // ===========================================================================
 
@@ -129,6 +130,8 @@ namespace SW3D
       void SetRenderMode(RenderMode modeToSet);
       void SetShadingMode(ShadingMode modeToSet);
 
+      void ClearDepthBuffer();
+
       void PushMatrix();
       void PopMatrix();
 
@@ -184,6 +187,8 @@ namespace SW3D
       SDL_Window* _window = nullptr;
 
       SDL_Texture* _framebuffer = nullptr;
+
+      VVD _depthBuffer;
 
       size_t _frameBufferSize = 0;
       size_t _fps = 0;

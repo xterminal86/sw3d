@@ -36,8 +36,8 @@ namespace SW3D
 
     //
     // Cannot add extra 1 to account for pretty debug grid size because
-    // it will actually downscale texture into screen by 1 pixel and thus
-    // introduce artifacts when in full resolution
+    // it will actually downscale texture into the screen on SDL_RenderCopy
+    // by 1 pixel and thus introduce artifacts when in full resolution
     // (frameBufferSize == windowWidth == windowHeight).
     //
     _frameBufferSize = canvasSize / qualityReductionFactor;
@@ -96,6 +96,19 @@ namespace SW3D
     {
       SDL_Log("Failed to create framebuffer: %s", SDL_GetError());
       return false;
+    }
+
+    _depthBuffer.resize(_frameBufferSize);
+
+    for (size_t i = 0; i < _frameBufferSize; i++)
+    {
+      //
+      // For some reason numeric_limits<double>::max() for double prints 0.
+      // Maybe I'll do it the other way around (z buffer goes from 0 to +inf)
+      // if current implementation works.
+      //
+      _depthBuffer[i].resize(_frameBufferSize,
+                             std::numeric_limits<double>::infinity());
     }
 
     _aspectRatio = (double)_windowHeight / (double)_windowWidth;
@@ -454,6 +467,19 @@ namespace SW3D
   void DrawWrapper::SetShadingMode(ShadingMode modeToSet)
   {
     _shadingMode = modeToSet;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::ClearDepthBuffer()
+  {
+    for (size_t x = 0; x < _frameBufferSize; x++)
+    {
+      for (size_t y = 0;y < _frameBufferSize; y++)
+      {
+        _depthBuffer[x][y] = std::numeric_limits<double>::infinity();
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------

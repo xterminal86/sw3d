@@ -71,6 +71,10 @@ namespace SW3D
     double X = 0.0;
     double Y = 0.0;
 
+    Vec2 operator+(const Vec2& rhs) const;
+    Vec2 operator-(const Vec2& rhs) const;
+    Vec2 operator*(double value) const;
+
     void operator*=(double value);
     void operator+=(double value);
 
@@ -111,8 +115,9 @@ namespace SW3D
     double Y = 0.0;
     double Z = 0.0;
 
-    Vec3 operator+(const Vec3& rhs);
-    Vec3 operator-(const Vec3& rhs);
+    Vec3 operator+(const Vec3& rhs) const;
+    Vec3 operator-(const Vec3& rhs) const;
+    Vec3 operator*(double value)    const;
 
     void operator*=(double value);
     void operator+=(double value);
@@ -213,7 +218,7 @@ namespace SW3D
     Vertex Points[3];
 
     bool CullFlag = false;
-    RenderMode RenderMode_ = RenderMode::SOLID;
+    RenderMode  RenderMode_  = RenderMode::SOLID;
     ShadingMode ShadingMode_ = ShadingMode::FLAT;
   };
 

@@ -7,7 +7,9 @@
 //
 // https://www.youtube.com/@javidx9
 //
-// 3D Graphics Engine (multipart series, not very detailed, but still helpful):
+// 3D Graphics Engine (multipart series, not very detailed, but still helpful
+//                     and the code is intentionally oversimplified and thus
+//                     easy to follow):
 //
 // Part 1: https://www.youtube.com/watch?v=ih20l3pJoeU
 // Part 2: https://www.youtube.com/watch?v=XgMWc6LumG4
@@ -17,37 +19,43 @@
 //
 // https://www.youtube.com/@ChiliTomatoNoodle
 //
-// 3D Fundamentals playlist (quite long, lots of details and stuff):
+// 3D Fundamentals playlist (quite long, lots of details and stuff, but could be
+//                           quite overwhelming in terms of code):
 //
 // https://www.youtube.com/playlist?list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA
 //
 // -----------------------------------------------------------------------------
+//
+// My advice is to watch OLC videos first, because he presents with the end
+// result (that is code) right away and in the simplest form possible (with lots
+// of intentional copypastas because of it), and then research additional topics
+// by yourself as they arise.
 //
 #include "sw3d.h"
 #include "instant-font.h"
 
 #include <map>
 
-#define PRINTL(x, y, format, ...) \
-  IF::Instance().Printf(x, y, \
-                        IF::TextParams::Set(0xFFFFFF, \
+#define PRINTL(x, y, format, ...)                                    \
+  IF::Instance().Printf(x, y,                                        \
+                        IF::TextParams::Set(0xFFFFFF,                \
                                             IF::TextAlignment::LEFT, \
-                                            1.0), \
+                                            1.0),                    \
                         format, ##__VA_ARGS__);
 
 
-#define PRINTR(x, y, format, ...) \
-  IF::Instance().Printf(x, y, \
-                        IF::TextParams::Set(0xFFFFFF, \
+#define PRINTR(x, y, format, ...)                                     \
+  IF::Instance().Printf(x, y,                                         \
+                        IF::TextParams::Set(0xFFFFFF,                 \
                                             IF::TextAlignment::RIGHT, \
-                                            1.0), \
+                                            1.0),                     \
                         format, ##__VA_ARGS__);
 
-#define PRINTC(x, y, format, ...) \
-  IF::Instance().Printf(x, y, \
-                        IF::TextParams::Set(0xFFFFFF, \
+#define PRINTC(x, y, format, ...)                                      \
+  IF::Instance().Printf(x, y,                                          \
+                        IF::TextParams::Set(0xFFFFFF,                  \
                                             IF::TextAlignment::CENTER, \
-                                            1.0), \
+                                            1.0),                      \
                         format, ##__VA_ARGS__);
 
 using namespace SW3D;
@@ -105,7 +113,8 @@ enum class AppMode
   FROM_OBJ,
   SHOW_AXES,
   PIPELINE,
-  TWO_PROJECTIONS
+  TWO_PROJECTIONS,
+  TEXTURED
 };
 
 const std::unordered_map<AppMode, std::string> AppModes =
@@ -114,7 +123,8 @@ const std::unordered_map<AppMode, std::string> AppModes =
   { AppMode::FROM_OBJ,        "Loaded from .obj, manual rendering" },
   { AppMode::SHOW_AXES,       "Default axes"                       },
   { AppMode::PIPELINE,        "Rendering pipeline"                 },
-  { AppMode::TWO_PROJECTIONS, "Two projections"                    }
+  { AppMode::TWO_PROJECTIONS, "Two projections"                    },
+  { AppMode::TEXTURED,        "Textured"                           }
 };
 
 AppMode ApplicationMode = AppMode::TEST;
@@ -132,6 +142,7 @@ const std::vector<std::string> ModelsList =
   "models/cube.obj",
   "models/monkey.obj",
   "models/two.obj",
+  "models/teapot.obj"
 };
 
 const std::string kAxesFname = "models/axes.obj";
@@ -154,6 +165,8 @@ const std::vector<std::string> HelpText =
 };
 
 size_t HelpTextLongestLine = 0;
+
+int CheckerBoardTexture = -1;
 
 // =============================================================================
 
@@ -240,7 +253,11 @@ class Drawer : public DrawWrapper
         SDL_Log("%s", SW3D::ErrorToString());
       }
 
-      int h = LoadTexture("textures/checker.bmp");
+      CheckerBoardTexture = LoadTexture("textures/checker.bmp");
+      if (CheckerBoardTexture == -1)
+      {
+        SDL_Log("Couldn't load texture!");
+      }
 
       ApplyProjection();
 
@@ -297,9 +314,15 @@ class Drawer : public DrawWrapper
               // another mode. So let's explicitly set some when needed.
               //
               ApplicationMode = AppMode::TWO_PROJECTIONS;
-              SetWeakPerspective();
-              ProjectionMode_ = ProjectionMode::WEAK_PERSPECTIVE;
-              ProjectionModeIndex = (size_t)ProjectionMode::WEAK_PERSPECTIVE;
+              ProjectionMode_ = ProjectionMode::PERSPECTIVE;
+              ProjectionModeIndex = (size_t)ProjectionMode::PERSPECTIVE;
+              ApplyProjection();
+            }
+            break;
+
+            case SDLK_6:
+            {
+              ApplicationMode = AppMode::TEXTURED;
             }
             break;
 
@@ -461,9 +484,10 @@ class Drawer : public DrawWrapper
           // operation to them several times. This can become quite inefficient.
           // Instead we need to specify all vertices, apply projection to them
           // once and then draw triangles based on those projected vertices
-          // using faces enumeration.
-          // We'll do that in .obj file loading, but I'll leave this here for
-          // history and simplicity sake.
+          // using faces enumeration, although this approarch will work only for
+          // untextured rendering. For proper texturing one must assign texture
+          // coordinates to every vertex of each face which results in
+          // duplication of some vertices.
           //
           tp.Points[i] = _projectionMatrix * tt.Points[i];
 
@@ -660,6 +684,7 @@ class Drawer : public DrawWrapper
 
       PopMatrix();
 
+      /*
       PushMatrix();
 
       Translate(2.5, -4.0, InitialTranslation * 2);
@@ -681,6 +706,7 @@ class Drawer : public DrawWrapper
       SetRenderMode(RenderMode_);
 
       PopMatrix();
+      */
 
       // *****************************
       //

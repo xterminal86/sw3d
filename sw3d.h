@@ -26,14 +26,21 @@
 
 namespace SW3D
 {
-  using Clock = std::chrono::steady_clock;
-  using ns    = std::chrono::nanoseconds;
+  using Clock   = std::chrono::steady_clock;
+  using ns      = std::chrono::nanoseconds;
 
   // ===========================================================================
 
   class DrawWrapper
   {
     public:
+      struct TextureData
+      {
+        std::string Filename;
+        SDL_Surface* Surface = nullptr;
+        SDL_Texture* Texture = nullptr;
+      };
+
       // -----------------------------------------------------------------------
 
       bool Init(uint16_t windowWidth,
@@ -44,8 +51,9 @@ namespace SW3D
 
       int LoadTexture(const std::string& fname);
 
-      SDL_Texture* GetTexture(int handle);
-      SDL_Texture* GetTexture(const std::string& fname);
+      uint32_t ReadTexel(int handle, int x, int y, bool wrap = true);
+
+      TextureData* GetTexture(int handle);
 
       SDL_Renderer* GetRenderer() const;
 
@@ -166,6 +174,8 @@ namespace SW3D
         Matrix _matView;
       };
 
+      void FreeTexture(int handle);
+
       const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
       uint32_t Array2Mask(const uint8_t (&color)[4]);
 
@@ -202,8 +212,10 @@ namespace SW3D
 
       bool _running = true;
 
-      std::unordered_map<std::string, SDL_Texture*> _texturesByFilename;
-      std::unordered_map<int,         SDL_Texture*> _texturesByHandle;
+      TextureData _textureData;
+
+      std::unordered_map<std::string, int> _textureHandleByFname;
+      std::unordered_map<int, TextureData> _texturesByHandle;
 
       ProjectionMode _projectionMode = ProjectionMode::PERSPECTIVE;
       MatrixMode     _matrixMode     = MatrixMode::PROJECTION;
@@ -253,6 +265,12 @@ namespace SW3D
 
   extern double DotProduct(const Vec3& v1, const Vec3& v2);
   extern Vec3 CrossProduct(const Vec3& v1, const Vec3& v2);
+
+  template <typename Vector>
+  Vector Interpolate(const Vector& v1, const Vector& v2, double t)
+  {
+    return (v1 * t + v2 * (1.0 - t));
+  }
 } // namespace sw3d
 
 #endif // SW3D_H

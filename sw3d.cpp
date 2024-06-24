@@ -4,13 +4,9 @@ namespace SW3D
 {
   DrawWrapper::~DrawWrapper()
   {
-    for (auto& kvp : _texturesByFilename)
+    for (auto& kvp : _texturesByHandle)
     {
-      if (kvp.second != nullptr)
-      {
-        SDL_Log("destroying '%s'...", kvp.first.data());
-        SDL_DestroyTexture(kvp.second);
-      }
+      FreeTexture(kvp.first);
     }
 
     SDL_Quit();
@@ -199,13 +195,15 @@ namespace SW3D
 
   int DrawWrapper::LoadTexture(const std::string& fname)
   {
-    if (_texturesByFilename.count(fname) == 1)
+    if (_textureHandleByFname[fname] == 1)
     {
-      SDL_DestroyTexture(_texturesByFilename[fname]);
+      SDL_Log("Texture '%s' already loaded (handle %d) - reloading",
+              fname.data(), _textureHandleByFname[fname]);
+      FreeTexture(_textureHandleByFname[fname]);
     }
 
-    SDL_Surface* res = SDL_LoadBMP(fname.data());
-    if (res == nullptr)
+    SDL_Surface* surf = SDL_LoadBMP(fname.data());
+    if (surf == nullptr)
     {
       SDL_Log("SDL_LoadBMP() fail - %s", SDL_GetError());
       return -1;
@@ -214,39 +212,58 @@ namespace SW3D
     //
     // No transparency for now.
     //
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(_renderer, res);
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(_renderer, surf);
     if (tex == nullptr)
     {
+      SDL_FreeSurface(surf);
       SDL_Log("SDL_CreateTextureFromSurface() fail - %s", SDL_GetError());
       return -1;
     }
 
-    SDL_FreeSurface(res);
-
-    _texturesByFilename[fname] = tex;
-
     _textureHandleCounter++;
 
-    _texturesByHandle[_textureHandleCounter] = tex;
+    _texturesByHandle[_textureHandleCounter] = { fname, surf, tex };
+
+    _textureHandleByFname[fname] = _textureHandleCounter;
 
     return _textureHandleCounter;
   }
 
   // ---------------------------------------------------------------------------
 
-  SDL_Texture* DrawWrapper::GetTexture(int handle)
+  uint32_t DrawWrapper::ReadTexel(int handle, int x, int y, bool wrap)
   {
-    return (_texturesByHandle.count(handle) == 1)
-          ? _texturesByHandle[handle]
-          : nullptr;
+    if (_texturesByHandle.count(handle) == 0)
+    {
+      SDL_Log("Texture handle %d not found!", handle);
+      return -1;
+    }
+
+    const TextureData& td = _texturesByHandle[handle];
+
+    uint32_t* pix = (uint32_t*)td.Surface->pixels;
+
+    int nx = x;
+    int ny = y;
+
+    if (wrap)
+    {
+      nx %= td.Surface->w;
+      ny %= td.Surface->h;
+    }
+
+    //
+    // Check if it should be (x + y * w) or (y + x * w)
+    //
+    return pix[nx + (ny * td.Surface->w)];
   }
 
   // ---------------------------------------------------------------------------
 
-  SDL_Texture* DrawWrapper::GetTexture(const std::string& fname)
+  DrawWrapper::TextureData* DrawWrapper::GetTexture(int handle)
   {
-    return (_texturesByFilename.count(fname) == 1)
-          ? _texturesByFilename[fname]
+    return (_texturesByHandle.count(handle) == 1)
+          ? &_texturesByHandle[handle]
           : nullptr;
   }
 
@@ -400,10 +417,6 @@ namespace SW3D
         int w1 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x);
         int w2 = (p1.x - p3.x) * (p.y - p3.y) - (p1.y - p3.y) * (p.x - p3.x);
 
-        //
-        // TODO: add user configurable front face vertex winding order into
-        // account.
-        //
         bool inside = (w0 <= 0 and w1 <= 0 and w2 <= 0)
                    or (w0 >= 0 and w1 >= 0 and w2 >= 0);
 
@@ -793,6 +806,50 @@ namespace SW3D
     }
 
     _drawTime = std::chrono::duration<double>(Clock::now() - tp ).count();
+  }
+
+  // ---------------------------------------------------------------------------
+
+  void DrawWrapper::FreeTexture(int handle)
+  {
+    if (_texturesByHandle.count(handle) == 0)
+    {
+      SDL_Log("Texture handle %d not found!", handle);
+      return;
+    }
+
+    bool ok = true;
+
+    const TextureData& td = _texturesByHandle[handle];
+
+    SDL_Log("Freeing '%s'...", td.Filename.data());
+
+    if (td.Surface != nullptr)
+    {
+      SDL_Log("  freeing surface...");
+      SDL_FreeSurface(td.Surface);
+    }
+    else
+    {
+      ok = false;
+      SDL_Log("Surface is nullptr!");
+    }
+
+    if (td.Texture != nullptr)
+    {
+      SDL_Log("  destroying texture...");
+      SDL_DestroyTexture(td.Texture);
+    }
+    else
+    {
+      ok = false;
+      SDL_Log("Texture is nullptr!");
+    }
+
+    if (ok)
+    {
+      SDL_Log("OK");
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1333,5 +1390,4 @@ namespace SW3D
   {
     return (v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z);
   }
-
 }

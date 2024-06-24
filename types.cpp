@@ -39,6 +39,21 @@ namespace SW3D
 
   // ===========================================================================
 
+  Vec2 Vec2::operator+(const Vec2& rhs) const
+  {
+    return { X + rhs.X, Y + rhs.Y };
+  }
+
+  Vec2 Vec2::operator-(const Vec2& rhs) const
+  {
+    return { X - rhs.X, Y - rhs.Y };
+  }
+
+  Vec2 Vec2::operator*(double value) const
+  {
+    return { X * value, Y * value };
+  }
+
   void Vec2::operator*=(double value)
   {
     X *= value;
@@ -72,14 +87,19 @@ namespace SW3D
 
   // ===========================================================================
 
-  Vec3 Vec3::operator+(const Vec3& rhs)
+  Vec3 Vec3::operator+(const Vec3& rhs) const
   {
     return { X + rhs.X, Y + rhs.Y, Z + rhs.Z };
   }
 
-  Vec3 Vec3::operator-(const Vec3& rhs)
+  Vec3 Vec3::operator-(const Vec3& rhs) const
   {
     return { X - rhs.X, Y - rhs.Y, Z - rhs.Z };
+  }
+
+  Vec3 Vec3::operator*(double value) const
+  {
+    return { X * value, Y * value, Z * value };
   }
 
   void Vec3::operator*=(double value)

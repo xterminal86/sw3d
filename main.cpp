@@ -74,8 +74,9 @@ double DZ = 0.0;
 
 const double RotationSpeed = 100.0;
 
-bool Paused   = false;
-bool ShowHelp = false;
+bool Paused    = false;
+bool ShowHelp  = false;
+bool DepthTest = true;
 
 CullFaceMode CullFaceMode_ = CullFaceMode::BACK;
 
@@ -196,6 +197,78 @@ class Drawer : public DrawWrapper
       }
     }
 
+    // -------------------------------------------------------------------------
+
+    void RunTextureTests()
+    {
+      using P = std::pair<uint8_t, uint8_t>;
+
+      const std::map<P, uint32_t> testCases =
+      {
+        { {  9,  1 }, 0xFFFFFF },
+        { { 18,  2 }, 0xFF0000 },
+        { { 12, 14 }, 0x00FF00 },
+        { { 26, 15 }, 0xFF00FF },
+        { { 18, 19 }, 0x0000FF },
+        { { 23, 17 }, 0x00FFFF },
+        { { 19, 23 }, 0xFFFF00 }
+      };
+      // -----------------------------------------------------------------------
+      {
+        const std::string texName = "textures/test24.bmp";
+        SDL_Log("starting tests of '%s'", texName.data());
+
+        int h = LoadTexture(texName);
+        if (h != -1)
+        {
+          //printf("%s", DumpPixels(GetTexture(h)->Surface).data());
+
+          for (auto& kvp : testCases)
+          {
+            const P& p = kvp.first;
+            uint32_t color = ReadTexel(h, p.first, p.second);
+            if (color == kvp.second)
+            {
+              SDL_Log("%u %u - PASS", p.first, p.second);
+            }
+            else
+            {
+              SDL_Log("%u %u - FAIL! actual 0x%X, expected 0x%X",
+                      p.first, p.second, color, kvp.second);
+            }
+          }
+        }
+      }
+      // -----------------------------------------------------------------------
+      {
+        const std::string texName = "textures/test32.bmp";
+        SDL_Log("starting tests of '%s'", texName.data());
+
+        int h = LoadTexture(texName);
+        if (h != -1)
+        {
+          //printf("%s", DumpPixels(GetTexture(h)->Surface).data());
+
+          for (auto& kvp : testCases)
+          {
+            const P& p = kvp.first;
+            uint32_t color = ReadTexel(h, p.first, p.second);
+            if (color == kvp.second)
+            {
+              SDL_Log("%u %u - PASS", p.first, p.second);
+            }
+            else
+            {
+              SDL_Log("%u %u - FAIL! actual 0x%X, expected 0x%X",
+                      p.first, p.second, color, kvp.second);
+            }
+          }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
     void PostInit() override
     {
       for (auto& line : HelpText)
@@ -258,6 +331,8 @@ class Drawer : public DrawWrapper
       {
         SDL_Log("Couldn't load texture!");
       }
+
+      RunTextureTests();
 
       ApplyProjection();
 
@@ -379,6 +454,15 @@ class Drawer : public DrawWrapper
                 std::advance(it, ProjectionModeIndex);
                 ProjectionMode_ = it->first;
                 ApplyProjection();
+              }
+            }
+            break;
+
+            case SDLK_z:
+            {
+              if (ApplicationMode == AppMode::PIPELINE)
+              {
+                DepthTest = not DepthTest;
               }
             }
             break;
@@ -655,6 +739,11 @@ class Drawer : public DrawWrapper
 
       static Triangle tr;
 
+      if (DepthTest)
+      {
+        ClearDepthBuffer();
+      }
+
       PushMatrix();
 
       //
@@ -862,6 +951,11 @@ class Drawer : public DrawWrapper
       if (ApplicationMode == AppMode::PIPELINE)
       {
         PRINTL(10, 20, "draw time: %.2fms", DrawTime() * 1000.0);
+        IF::Instance().Printf(WindowWidth - 10, 70,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::RIGHT),
+                              "Depth test: %s",
+                              DepthTest ? "ON" : "OFF");
       }
 
       if (Paused)

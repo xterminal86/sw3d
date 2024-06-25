@@ -261,6 +261,8 @@ namespace SW3D
   //
   extern Vec3 Rotate(const Vec3& p, const Vec3& around, double angleDeg);
 
+  extern std::string ToString(uint32_t colorMask);
+
   extern std::string ToString(const Matrix& m);
   extern std::string ToString(const Vec2& v);
   extern std::string ToString(const Vec3& v);
@@ -268,8 +270,19 @@ namespace SW3D
 
   extern std::string ToString(const ModelLoader::Scene& s);
 
+  extern std::string ToString(SDL_Surface* s);
+  extern std::string ToString(const DrawWrapper::TextureData& d);
+
+  extern std::string DumpPixels(SDL_Surface* s);
+
   extern double DotProduct(const Vec3& v1, const Vec3& v2);
   extern Vec3 CrossProduct(const Vec3& v1, const Vec3& v2);
+
+  template <typename T>
+  T Clamp(T value, T min, T max)
+  {
+    return std::max(min, std::min(value, max));
+  }
 
   template <typename Vector>
   Vector Interpolate(const Vector& v1, const Vector& v2, double t)

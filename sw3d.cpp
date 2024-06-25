@@ -237,6 +237,8 @@ namespace SW3D
 
     _texturesByHandle[_textureHandleCounter] = { fname, surf, tex };
 
+    SDL_Log("%s", ToString(_texturesByHandle[_textureHandleCounter]).data());
+
     _textureHandleByFname[fname] = _textureHandleCounter;
 
     return _textureHandleCounter;
@@ -254,7 +256,8 @@ namespace SW3D
 
     const TextureData& td = _texturesByHandle[handle];
 
-    uint32_t* pix = (uint32_t*)td.Surface->pixels;
+    //printf("%s", ToString(td.Surface).data());
+    //printf("%s", DumpPixels(td.Surface).data());
 
     int nx = x;
     int ny = y;
@@ -264,11 +267,61 @@ namespace SW3D
       nx %= td.Surface->w;
       ny %= td.Surface->h;
     }
+    else
+    {
+      nx = Clamp(nx, 0, td.Surface->w - 1);
+      ny = Clamp(ny, 0, td.Surface->h - 1);
+    }
+
+    uint8_t* pix = (uint8_t*)td.Surface->pixels;
+
+    uint8_t bpp = td.Surface->format->BytesPerPixel;
 
     //
-    // Check if it should be (x + y * w) or (y + x * w)
+    // Because array's rows and columns are not the same as X and Y of the image,
+    // we have to flip them to access raw pixel data properly.
     //
-    return pix[nx + (ny * td.Surface->w)];
+#if SDL_BYTEORDER == __LITTLE_ENDIAN
+    uint8_t b = pix[(nx * bpp + 0) + ny * td.Surface->pitch];
+    uint8_t g = pix[(nx * bpp + 1) + ny * td.Surface->pitch];
+    uint8_t r = pix[(nx * bpp + 2) + ny * td.Surface->pitch];
+
+    uint8_t a = 0;
+
+    if (bpp == 4)
+    {
+      a = pix[(nx * bpp + 3) + ny * td.Surface->pitch];
+    }
+#else
+    uint8_t r, g, b, a = 255;
+
+    if (bpp == 4)
+    {
+      a = pix[(nx * bpp + 0) + ny * td.Surface->pitch];
+      r = pix[(nx * bpp + 1) + ny * td.Surface->pitch];
+      g = pix[(nx * bpp + 2) + ny * td.Surface->pitch];
+      b = pix[(nx * bpp + 3) + ny * td.Surface->pitch];
+    }
+    else
+    {
+      r = pix[(nx * bpp + 0) + ny * td.Surface->pitch];
+      g = pix[(nx * bpp + 1) + ny * td.Surface->pitch];
+      b = pix[(nx * bpp + 2) + ny * td.Surface->pitch];
+    }
+#endif
+
+    uint32_t color = 0x0;
+
+    if (bpp == 4)
+    {
+      color = ( b | (g << 8) | (r << 16) | (a << 24) );
+    }
+    else
+    {
+      color = ( b | (g << 8) | (r << 16) );
+    }
+
+    return color;
   }
 
   // ---------------------------------------------------------------------------
@@ -475,7 +528,7 @@ namespace SW3D
   {
     for (size_t x = 0; x < _frameBufferSize; x++)
     {
-      for (size_t y = 0;y < _frameBufferSize; y++)
+      for (size_t y = 0; y < _frameBufferSize; y++)
       {
         _depthBuffer[x][y] = std::numeric_limits<double>::infinity();
       }
@@ -1154,6 +1207,47 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  std::string ToString(uint32_t colorMask)
+  {
+    const uint32_t maskR = 0x00FF0000;
+    const uint32_t maskG = 0x0000FF00;
+    const uint32_t maskB = 0x000000FF;
+    const uint32_t maskA = 0xFF000000;
+
+    static std::stringstream ss;
+
+    ss.str(std::string());
+
+    uint8_t r, g, b, a;
+
+    if (colorMask <= 0xFFFFFF)
+    {
+      r = (colorMask & maskR) >> 16;
+      g = (colorMask & maskG) >> 8;
+      b = (colorMask & maskB);
+      a = 0xFF;
+    }
+    else
+    {
+      a = (colorMask & maskA) >> 24;
+      r = (colorMask & maskR) >> 16;
+      g = (colorMask & maskG) >> 8;
+      b = (colorMask & maskB);
+    }
+
+    ss << "[ "
+       << std::hex << std::uppercase << std::setfill('0') << std::setw(2)
+       << (uint16_t)r << std::setfill('0') << std::setw(2)
+       << (uint16_t)g << std::setfill('0') << std::setw(2)
+       << (uint16_t)b << std::setfill('0') << std::setw(2)
+       << (uint16_t)a
+       << " ]";
+
+    return ss.str();
+  }
+
+  // ---------------------------------------------------------------------------
+
   std::string ToString(const Matrix& m)
   {
     static std::stringstream ss;
@@ -1393,6 +1487,107 @@ namespace SW3D
     ss << "  ]\n";
 
     ss << "}\n";
+
+    return ss.str();
+  }
+
+  // ---------------------------------------------------------------------------
+
+  std::string ToString(SDL_Surface* s)
+  {
+    if (s == nullptr)
+    {
+      return "{}";
+    }
+
+    static std::stringstream ss;
+
+    ss.str(std::string());
+
+    ss << "{\n"
+       << std::hex
+       << "  \"" << s << std::dec << "\" : {\n"
+       << R"(    "flags" : )" << s->flags << ",\n";
+
+    if (s->format != nullptr)
+    {
+      ss << R"(    "bitsPerPixel" : )" << (uint16_t)s->format->BitsPerPixel << ",\n"
+         << R"(    "bytesPerPixel" : )" << (uint16_t)s->format->BytesPerPixel << ",\n"
+         << R"(    "padding" : [ )" << (uint16_t)s->format->padding[0] << ", "
+                                    << (uint16_t)s->format->padding[1] << " ],\n";
+    }
+
+    ss << R"(    "w" : )" << s->w << ",\n"
+       << R"(    "h" : )" << s->h << ",\n"
+       << R"(    "pitch" : )" << s->pitch << ",\n"
+       << "  }\n";
+
+    ss << "}\n";
+
+    return ss.str();
+  }
+
+  // ---------------------------------------------------------------------------
+
+  std::string ToString(const DrawWrapper::TextureData& d)
+  {
+    static std::stringstream ss;
+
+    ss.str(std::string());
+
+    ss << "'" << d.Filename << "'\n";
+    ss << ToString(d.Surface);
+
+    return ss.str();
+  }
+
+  // ---------------------------------------------------------------------------
+
+  std::string DumpPixels(SDL_Surface* s)
+  {
+    if (s == nullptr)
+    {
+      return "{}";
+    }
+
+    static std::stringstream ss;
+
+    ss.str(std::string());
+
+    uint8_t* pp = (uint8_t*)s->pixels;
+
+    uint8_t bpp = s->format->BytesPerPixel;
+
+    ss << "\n" << std::hex;
+
+    for (size_t x = 0; x < s->h; x++)
+    {
+      for (size_t y = 0; y < (s->w * bpp); y += bpp)
+      {
+        ss << "[ ";
+
+        for (uint8_t i = 0; i < bpp; i++)
+        {
+          uint8_t b = pp[(y + i) + x * (s->w * bpp)];
+
+          //
+          // Stupid cast because uint8_t gets interpreted as ASCII character
+          // and manual set of width and fill characters on every push to
+          // stringstream because it doesn't work otherwise.
+          //
+          ss << std::setw(2) << std::setfill('0') << (uint16_t)b;
+
+          if (i != bpp - 1)
+          {
+            ss << ".";
+          }
+        }
+
+        ss << " ]";
+      }
+
+      ss << "\n";
+    }
 
     return ss.str();
   }

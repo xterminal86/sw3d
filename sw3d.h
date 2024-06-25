@@ -21,6 +21,7 @@
   if (not _initialized)                                        \
   {                                                            \
     SDL_Log("Drawer is not initialized - call Init() first!"); \
+    SW3D::Error = SW3D::EngineError::NOT_INITIALIZED;          \
     return;                                                    \
   }
 

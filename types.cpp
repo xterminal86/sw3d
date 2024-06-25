@@ -2,7 +2,7 @@
 
 namespace SW3D
 {
-  EngineError Error = EngineError::OK;
+  EngineError Error = EngineError::NOT_INITIALIZED;
 
   const char* ErrorToString()
   {
@@ -31,6 +31,9 @@ namespace SW3D
 
       case EngineError::FAILED_TO_LOAD_MODEL:
         return "Failed to load model from file";
+
+      case EngineError::NOT_INITIALIZED:
+        return "Engine was not initialized";
 
       default:
         return "Unknown error";

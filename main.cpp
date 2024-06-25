@@ -63,7 +63,7 @@ using namespace SW3D;
 const uint16_t WW = 640;
 const uint16_t WH = 480;
 
-const uint16_t QualityReductionFactor = 2;
+const uint16_t QualityReductionFactor = 1;
 
 uint16_t WindowWidth  = WW;
 uint16_t WindowHeight = WH;
@@ -332,7 +332,7 @@ class Drawer : public DrawWrapper
         SDL_Log("Couldn't load texture!");
       }
 
-      RunTextureTests();
+      //RunTextureTests();
 
       ApplyProjection();
 

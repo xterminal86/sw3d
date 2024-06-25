@@ -51,6 +51,7 @@ namespace SW3D
   enum class EngineError
   {
     OK = 0,
+    NOT_INITIALIZED,
     DIVISION_BY_ZERO,
     MATRIX_NOT_SQUARE,
     MATRIX_DIMENSIONS_ERROR,

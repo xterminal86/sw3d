@@ -278,8 +278,14 @@ namespace SW3D
     uint8_t bpp = td.Surface->format->BytesPerPixel;
 
     //
-    // Because array's rows and columns are not the same as X and Y of the image,
-    // we have to flip them to access raw pixel data properly.
+    // Same old bullshit: because array's rows and columns are not the same as
+    // X and Y of the image, we have to flip them to access raw pixel data
+    // properly.
+    //
+    // Screen: [ 9 ; 1 ] -> Array: 1st row, 9th column
+    //
+    // A little bit of additional mindfuck since necessary data is stored as 1D
+    // array.
     //
 #if SDL_BYTEORDER == __LITTLE_ENDIAN
     uint8_t b = pix[(nx * bpp + 0) + ny * td.Surface->pitch];
@@ -1558,7 +1564,27 @@ namespace SW3D
 
     uint8_t bpp = s->format->BytesPerPixel;
 
-    ss << "\n" << std::hex;
+    auto PrintColumns = [s]()
+    {
+      for (size_t i = 0; i < s->w; i++)
+      {
+        if ((i % 10) == 0)
+        {
+          size_t r = i / 10;
+          ss << "    " << ((i == 0) ? '0' : (char)('A' + (r - 1))) << "       ";
+        }
+        else
+        {
+          ss << "    " << (i % 10) << "       ";
+        }
+      }
+
+      ss << "\n";
+    };
+
+    PrintColumns();
+
+    ss << "\n" << std::hex << std::uppercase;
 
     for (size_t x = 0; x < s->h; x++)
     {
@@ -1586,8 +1612,22 @@ namespace SW3D
         ss << " ]";
       }
 
+      if (x % 10 == 0)
+      {
+        size_t r = x / 10;
+        ss << "   " << ((x == 0) ? '0' : (char)('A' + (r - 1)));
+      }
+      else
+      {
+        ss << "   " << (x % 10);
+      }
+
       ss << "\n";
     }
+
+    ss << "\n";
+
+    PrintColumns();
 
     return ss.str();
   }

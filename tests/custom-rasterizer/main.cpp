@@ -5,30 +5,42 @@
 
 using namespace SW3D;
 
+const size_t QualityReductionFactor = 4;
+
 size_t SelectionIndex = 0;
 
-float dx = 0.0;
-
-TriangleSimple FlatTop =
+const TriangleSimple FlatTop =
 {
   {
-    { 50, 50, 0 }, { 150, 50, 0 }, { 100, 100, 0 }
+    { 50, 50, 0 }, { 100, 50, 0 }, { 75, 100, 0 }
   }
 };
 
-TriangleSimple FlatBottom =
+const TriangleSimple FlatBottom =
 {
   {
-    { 200, 50, 0 }, { 150, 100, 0 }, { 250, 100, 0 }
+    { 75, 0, 0 }, { 50, 50, 0 }, { 100, 50, 0 }
   }
 };
 
-TriangleSimple Composite =
+const TriangleSimple Composite =
 {
   {
-    { 100, 150, 0 }, { 150, 250, 0 }, { 300, 300, 0 }
+    { 50, 25, 0 }, { 75, 75, 0 }, { 150, 100, 0 }
   }
 };
+
+std::vector<TriangleSimple> Triangles =
+{
+  FlatTop,
+  FlatBottom,
+  Composite
+};
+
+TriangleSimple CurrentTriangle = FlatTop;
+
+double dx = 0.0;
+double dy = 0.0;
 
 // =============================================================================
 
@@ -56,42 +68,11 @@ class CTF : public DrawWrapper
     {
       SaveColor();
 
-      if (SelectionIndex == 0)
-      {
-        SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-      }
-      else
-      {
-        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-      }
+      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-      DrawTriangleContour(FlatTop);
+      SDL_RenderDrawPointF(_renderer, dx, dy);
 
-      if (SelectionIndex == 1)
-      {
-        SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-      }
-      else
-      {
-        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-      }
-
-      DrawTriangleContour(FlatBottom);
-
-      if (SelectionIndex == 2)
-      {
-        SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-      }
-      else
-      {
-        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-      }
-
-      DrawTriangleContour(Composite);
-
-      SDL_RenderDrawPointF(_renderer, dx, 1.0);
-
-      dx += (0.2 * DeltaTime());
+      DrawTriangleContour(CurrentTriangle);
 
       RestoreColor();
 
@@ -101,12 +82,13 @@ class CTF : public DrawWrapper
 
     void DrawToScreen() override
     {
-      IF::Instance().Printf(0, 10,
+      IF::Instance().Printf((int)(dx * QualityReductionFactor),
+                            std::ceil(dy * QualityReductionFactor) + 20,
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
                                                 2.0),
-                            "dx = %.2f (%d)",
-                            dx, (int)std::round(dx));
+                            "dx = %.2f dy = %.2f",
+                            dx, dy);
     }
 
     void HandleEvent(const SDL_Event& evt) override
@@ -121,9 +103,26 @@ class CTF : public DrawWrapper
               Stop();
               break;
 
+            case SDLK_a:
+              dx -= 0.1;
+              break;
+
+            case SDLK_d:
+              dx += 0.1;
+              break;
+
+            case SDLK_w:
+              dy -= 0.1;
+              break;
+
+            case SDLK_s:
+              dy += 0.1;
+              break;
+
             case SDLK_TAB:
               SelectionIndex++;
-              SelectionIndex %= 3;
+              SelectionIndex %= Triangles.size();
+              CurrentTriangle = Triangles[SelectionIndex];
               break;
 
             default:
@@ -140,7 +139,7 @@ int main(int argc, char* argv[])
 {
   CTF c;
 
-  if (c.Init(700, 700, 2))
+  if (c.Init(700, 700, QualityReductionFactor))
   {
     IF::Instance().Init(c.GetRenderer());
     c.Run(true);

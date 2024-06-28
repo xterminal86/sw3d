@@ -5,9 +5,11 @@
 
 using namespace SW3D;
 
-const size_t QualityReductionFactor = 4;
+const size_t QualityReductionFactor = 8;
 
 size_t SelectionIndex = 0;
+
+bool SubpixelDrawing = false;
 
 const TriangleSimple FlatTop =
 {
@@ -49,17 +51,40 @@ class CTF : public DrawWrapper
   public:
     void DrawTriangleContour(const TriangleSimple& t)
     {
-      SDL_RenderDrawLine(_renderer,
-                          t.Points[0].X, t.Points[0].Y,
-                          t.Points[1].X, t.Points[1].Y);
+      if (SubpixelDrawing)
+      {
+        SDL_RenderDrawLineF(_renderer,
+                            t.Points[0].X, t.Points[0].Y,
+                            t.Points[1].X, t.Points[1].Y);
 
-      SDL_RenderDrawLine(_renderer,
-                         t.Points[1].X, t.Points[1].Y,
-                         t.Points[2].X, t.Points[2].Y);
+        SDL_RenderDrawLineF(_renderer,
+                           t.Points[1].X, t.Points[1].Y,
+                           t.Points[2].X, t.Points[2].Y);
 
-      SDL_RenderDrawLine(_renderer,
-                         t.Points[2].X, t.Points[2].Y,
-                         t.Points[0].X, t.Points[0].Y);
+        SDL_RenderDrawLineF(_renderer,
+                           t.Points[2].X, t.Points[2].Y,
+                           t.Points[0].X, t.Points[0].Y);
+      }
+      else
+      {
+        SDL_RenderDrawLine(_renderer,
+                            t.Points[0].X, t.Points[0].Y,
+                            t.Points[1].X, t.Points[1].Y);
+
+        SDL_RenderDrawLine(_renderer,
+                           t.Points[1].X, t.Points[1].Y,
+                           t.Points[2].X, t.Points[2].Y);
+
+        SDL_RenderDrawLine(_renderer,
+                           t.Points[2].X, t.Points[2].Y,
+                           t.Points[0].X, t.Points[0].Y);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
+    void FillTriangleC(const TriangleSimple& t)
+    {
     }
 
     // -------------------------------------------------------------------------
@@ -72,7 +97,17 @@ class CTF : public DrawWrapper
 
       SDL_RenderDrawPointF(_renderer, dx, dy);
 
+      SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
+
+      SDL_RenderDrawPoint(_renderer, dx, dy + 6);
+
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+
       DrawTriangleContour(CurrentTriangle);
+
+      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+
+      FillTriangleC(CurrentTriangle);
 
       RestoreColor();
 
@@ -87,8 +122,17 @@ class CTF : public DrawWrapper
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
                                                 2.0),
-                            "dx = %.2f dy = %.2f",
-                            dx, dy);
+                            "dx = %.2f dy = %.2f (%d %d)",
+                            dx, dy,
+                            (int)std::round(dx),
+                            (int)std::round(dy));
+
+      IF::Instance().Printf(0, 680,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "subpixel mode %s",
+                            SubpixelDrawing ? "ON" : "OFF");
     }
 
     void HandleEvent(const SDL_Event& evt) override
@@ -117,6 +161,10 @@ class CTF : public DrawWrapper
 
             case SDLK_s:
               dy += 0.1;
+              break;
+
+            case SDLK_SPACE:
+              SubpixelDrawing = not SubpixelDrawing;
               break;
 
             case SDLK_TAB:

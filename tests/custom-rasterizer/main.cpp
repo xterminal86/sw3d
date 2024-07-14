@@ -5,7 +5,7 @@
 
 using namespace SW3D;
 
-const size_t QualityReductionFactor = 8;
+const size_t QualityReductionFactor = 4;
 
 size_t SelectionIndex = 0;
 
@@ -59,10 +59,10 @@ class CTF : public DrawWrapper
 
         SDL_RenderDrawLineF(_renderer,
                            t.Points[1].X, t.Points[1].Y,
-                           t.Points[2].X, t.Points[2].Y);
+                           t.Points[2].X + dx, t.Points[2].Y + dy);
 
         SDL_RenderDrawLineF(_renderer,
-                           t.Points[2].X, t.Points[2].Y,
+                           t.Points[2].X + dx, t.Points[2].Y + dy,
                            t.Points[0].X, t.Points[0].Y);
       }
       else
@@ -73,10 +73,10 @@ class CTF : public DrawWrapper
 
         SDL_RenderDrawLine(_renderer,
                            t.Points[1].X, t.Points[1].Y,
-                           t.Points[2].X, t.Points[2].Y);
+                           (int)(t.Points[2].X + dx), (int)(t.Points[2].Y + dy));
 
         SDL_RenderDrawLine(_renderer,
-                           t.Points[2].X, t.Points[2].Y,
+                           (int)(t.Points[2].X + dx), (int)(t.Points[2].Y + dy),
                            t.Points[0].X, t.Points[0].Y);
       }
     }
@@ -110,7 +110,6 @@ class CTF : public DrawWrapper
       FillTriangleC(CurrentTriangle);
 
       RestoreColor();
-
     }
 
     // -------------------------------------------------------------------------

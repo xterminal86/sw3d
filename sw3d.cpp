@@ -71,7 +71,31 @@ namespace SW3D
       return false;
     }
 
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    const char* driverHint = "opengl";
+
+    SDL_bool ok = SDL_SetHint(SDL_HINT_RENDER_DRIVER, driverHint);
+    if (ok == SDL_FALSE)
+    {
+      SDL_Log("Hint value '%s' could not be set! (SDL_HINT_RENDER_DRIVER)",
+              driverHint);
+    }
+
+    const char* lineHint = "3";
+
+    //
+    // Out of the box subpixel precision line drawing works only with this
+    // hint set to "2" or "3" on Windows. It is unclear which one is better,
+    // but I decided to use "3". Not sure if it works at all for subpixel points
+    // drawing since test project (cr) showed no difference.
+    // Maybe we'll have to disable it eventually or implement custom subpixel
+    // drawing.
+    //
+    ok = SDL_SetHint(SDL_HINT_RENDER_LINE_METHOD, lineHint);
+    if (ok == SDL_FALSE)
+    {
+      SDL_Log("Hint value '%s' couldn't be set! (SDL_HINT_RENDER_LINE_METHOD)",
+              lineHint);
+    }
 
     _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
     if (_renderer == nullptr)

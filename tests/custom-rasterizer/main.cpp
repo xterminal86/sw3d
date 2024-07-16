@@ -44,6 +44,21 @@ TriangleSimple CurrentTriangle = FlatTop;
 double dx = 0.0;
 double dy = 0.0;
 
+struct ParamsDDA
+{
+  double x1;
+  double y1;
+  double x2;
+  double y2;
+  double dx;
+  double dy;
+  double steps;
+  double xInc;
+  double yInc;
+};
+
+ParamsDDA ParamsDDA_;
+
 // =============================================================================
 
 class CTF : public DrawWrapper
@@ -89,6 +104,56 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    //
+    // DDA stands for "Digital Differential Analyzer".
+    //
+    void DrawLineDDA(double x1, double y1, double x2, double y2)
+    {
+      double dx = x2 - x1;
+      double dy = y2 - y1;
+
+      double steps = (std::fabs(dx) > std::fabs(dy))
+                    ? std::fabs(dx)
+                    : std::fabs(dy);
+
+      ParamsDDA_.x1 = x1;
+      ParamsDDA_.y1 = y1;
+      ParamsDDA_.x2 = x2;
+      ParamsDDA_.y2 = y2;
+
+      ParamsDDA_.dx = dx;
+      ParamsDDA_.dy = dy;
+
+      ParamsDDA_.steps = steps;
+
+      if (steps == 0.0)
+      {
+        ParamsDDA_.xInc = 0.0;
+        ParamsDDA_.yInc = 0.0;
+
+        SDL_RenderDrawPoint(_renderer, std::round(x1), std::round(y1));
+        return;
+      }
+
+      double xInc = dx / steps;
+      double yInc = dy / steps;
+
+      ParamsDDA_.xInc = xInc;
+      ParamsDDA_.yInc = yInc;
+
+      double x = x1;
+      double y = y1;
+
+      for (int i = 0; i <= (int)steps; i++)
+      {
+        SDL_RenderDrawPoint(_renderer, std::round(x), std::round(y));
+        x += xInc;
+        y += yInc;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
     void DrawToFrameBuffer() override
     {
       SaveColor();
@@ -108,6 +173,8 @@ class CTF : public DrawWrapper
       SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
       FillTriangleC(CurrentTriangle);
+
+      DrawLineDDA(10, 50, 50 + dx, 100 + dy);
 
       RestoreColor();
     }
@@ -132,6 +199,28 @@ class CTF : public DrawWrapper
                                                 2.0),
                             "subpixel mode %s",
                             SubpixelDrawing ? "ON" : "OFF");
+
+      IF::Instance().Printf(0, 140,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                1.0),
+                            "(%.2f ; %.2f) - (%.2f ; %.2f)",
+                            ParamsDDA_.x1,
+                            ParamsDDA_.y1,
+                            ParamsDDA_.x2,
+                            ParamsDDA_.y2);
+
+      IF::Instance().Printf(0, 160,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                1.0),
+                            "dx = %.2f dy = %.2f steps = %.2f, "
+                            "xInc = %.2f yInc = %.2f",
+                            ParamsDDA_.dx,
+                            ParamsDDA_.dy,
+                            ParamsDDA_.steps,
+                            ParamsDDA_.xInc,
+                            ParamsDDA_.yInc);
     }
 
     void HandleEvent(const SDL_Event& evt) override

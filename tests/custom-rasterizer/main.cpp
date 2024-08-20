@@ -9,7 +9,8 @@ const size_t QualityReductionFactor = 4;
 
 size_t SelectionIndex = 0;
 
-bool SubpixelDrawing = false;
+bool SubpixelDrawing    = false;
+bool ScanlineRasterizer = true;
 
 const TriangleSimple FlatTop =
 {
@@ -249,6 +250,10 @@ class CTF : public DrawWrapper
 
             case SDLK_s:
               dy += 0.1;
+              break;
+
+            case SDLK_m:
+              ScanlineRasterizer = not ScanlineRasterizer;
               break;
 
             case SDLK_SPACE:

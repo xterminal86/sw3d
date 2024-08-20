@@ -99,6 +99,33 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    //
+    // From https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage.html
+    //
+    // "In certain cases, a pixel may overlap more than one triangle, especially
+    // when it lies precisely on an edge shared by two triangles. Such a pixel
+    // would pass the coverage test for both triangles. If the triangles are
+    // semi-transparent, a dark edge may appear where the pixels overlap the two
+    // triangles due to the way semi-transparent objects are combined (imagine
+    // two superimposed semi-transparent sheets of plastic. The surface becomes
+    // more opaque and appears darker than the individual sheets).
+    //
+    // To address this issue, a rule is needed to ensure that a pixel can never
+    // overlap two triangles sharing an edge twice. Most graphics APIs, such as
+    // OpenGL and DirectX, define what they call the top-left rule. This rule
+    // stipulates that a pixel or point is considered to overlap a triangle if
+    // it is either inside the triangle or lies on a triangle's top edge or any
+    // edge considered to be a left edge. What constitutes a top and left edge?
+    //
+    // 1) A top edge is an edge that is perfectly horizontal and whose defining
+    //    vertices are positioned above the third one. Technically, this means
+    //    that the y-coordinates of the vector V[ (X+1)%3 ] - V[X] are equal to
+    //    0, and its x-coordinates are positive (greater than 0).
+    // 2) A left edge is essentially an edge that is ascending. Given that
+    //    vertices are defined in clockwise order in our context, an edge is
+    //    considered ascending if its respective vector V[ (X+1)%3 ] - V[X]
+    //    (where X can be 0, 1, 2) has a positive y-coordinate."
+    //
     void FillTriangleC(const TriangleSimple& t)
     {
     }

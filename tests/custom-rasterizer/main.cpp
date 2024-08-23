@@ -128,6 +128,7 @@ class CTF : public DrawWrapper
     //
     void FillTriangleC(const TriangleSimple& t)
     {
+
     }
 
     // -------------------------------------------------------------------------
@@ -186,23 +187,31 @@ class CTF : public DrawWrapper
     {
       SaveColor();
 
-      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+      if (ScanlineRasterizer)
+      {
+        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+        FillTriangleC(CurrentTriangle);
+      }
+      else
+      {
+        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-      SDL_RenderDrawPointF(_renderer, dx, dy);
+        SDL_RenderDrawPointF(_renderer, dx, dy);
 
-      SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
+        SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
 
-      SDL_RenderDrawPoint(_renderer, dx, dy + 6);
+        SDL_RenderDrawPoint(_renderer, dx, dy + 6);
 
-      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+        SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
 
-      DrawTriangleContour(CurrentTriangle);
+        DrawTriangleContour(CurrentTriangle);
 
-      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-      FillTriangleC(CurrentTriangle);
+        FillTriangleC(CurrentTriangle);
 
-      DrawLineDDA(10, 50, 50 + dx, 100 + dy);
+        DrawLineDDA(10, 50, 50 + dx, 100 + dy);
+      }
 
       RestoreColor();
     }
@@ -211,44 +220,47 @@ class CTF : public DrawWrapper
 
     void DrawToScreen() override
     {
-      IF::Instance().Printf((int)(dx * QualityReductionFactor),
-                            std::ceil(dy * QualityReductionFactor) + 20,
-                            IF::TextParams::Set(0xFFFFFF,
-                                                IF::TextAlignment::LEFT,
-                                                2.0),
-                            "dx = %.2f dy = %.2f (%d %d)",
-                            dx, dy,
-                            (int)std::round(dx),
-                            (int)std::round(dy));
+      if (not ScanlineRasterizer)
+      {
+        IF::Instance().Printf((int)(dx * QualityReductionFactor),
+                              std::ceil(dy * QualityReductionFactor) + 20,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "dx = %.2f dy = %.2f (%d %d)",
+                              dx, dy,
+                              (int)std::round(dx),
+                              (int)std::round(dy));
 
-      IF::Instance().Printf(0, 680,
-                            IF::TextParams::Set(0xFFFFFF,
-                                                IF::TextAlignment::LEFT,
-                                                2.0),
-                            "subpixel mode %s",
-                            SubpixelDrawing ? "ON" : "OFF");
+        IF::Instance().Printf(0, 680,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "subpixel mode %s",
+                              SubpixelDrawing ? "ON" : "OFF");
 
-      IF::Instance().Printf(0, 140,
-                            IF::TextParams::Set(0xFFFFFF,
-                                                IF::TextAlignment::LEFT,
-                                                1.0),
-                            "(%.2f ; %.2f) - (%.2f ; %.2f)",
-                            ParamsDDA_.x1,
-                            ParamsDDA_.y1,
-                            ParamsDDA_.x2,
-                            ParamsDDA_.y2);
+        IF::Instance().Printf(0, 140,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  1.0),
+                              "(%.2f ; %.2f) - (%.2f ; %.2f)",
+                              ParamsDDA_.x1,
+                              ParamsDDA_.y1,
+                              ParamsDDA_.x2,
+                              ParamsDDA_.y2);
 
-      IF::Instance().Printf(0, 160,
-                            IF::TextParams::Set(0xFFFFFF,
-                                                IF::TextAlignment::LEFT,
-                                                1.0),
-                            "dx = %.2f dy = %.2f steps = %.2f, "
-                            "xInc = %.2f yInc = %.2f",
-                            ParamsDDA_.dx,
-                            ParamsDDA_.dy,
-                            ParamsDDA_.steps,
-                            ParamsDDA_.xInc,
-                            ParamsDDA_.yInc);
+        IF::Instance().Printf(0, 160,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  1.0),
+                              "dx = %.2f dy = %.2f steps = %.2f, "
+                              "xInc = %.2f yInc = %.2f",
+                              ParamsDDA_.dx,
+                              ParamsDDA_.dy,
+                              ParamsDDA_.steps,
+                              ParamsDDA_.xInc,
+                              ParamsDDA_.yInc);
+      }
     }
 
     void HandleEvent(const SDL_Event& evt) override

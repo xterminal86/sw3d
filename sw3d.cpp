@@ -1392,6 +1392,25 @@ namespace SW3D
 
   // ---------------------------------------------------------------------------
 
+  std::string ToString(const TriangleSimple& t)
+  {
+    static std::stringstream ss;
+
+    ss.str(std::string());
+
+    ss << std::fixed << std::setprecision(4);
+
+    ss << "{" << std::endl
+       << "  " << ToString(t.Points[0]) << std::endl
+       << "  " << ToString(t.Points[1]) << std::endl
+       << "  " << ToString(t.Points[2]) << std::endl
+       << "}" << std::endl;
+
+    return ss.str();
+  }
+
+  // ---------------------------------------------------------------------------
+
   //
   // Outputs as valid JSON (well, according to online validators anyway).
   //

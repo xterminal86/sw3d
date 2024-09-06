@@ -60,6 +60,435 @@ struct ParamsDDA
 
 ParamsDDA ParamsDDA_;
 
+enum class TriangleType
+{
+  UNDEFINED = 0,
+  FLAT_TOP,
+  FLAT_BOTTOM,
+  COMPOSITE_MR,
+  COMPOSITE_ML
+};
+
+enum class WindingOrder
+{
+  CW = 0,
+  CCW
+};
+
+// =============================================================================
+
+double CrossProduct2D(const Vec3& v1, const Vec3& v2)
+{
+  return (v1.X * v2.Y - v1.Y * v2.X);
+}
+
+// =============================================================================
+
+WindingOrder GetWindingOrder(const TriangleSimple& t)
+{
+  double cp = CrossProduct2D(t.Points[1] - t.Points[0],
+                             t.Points[2] - t.Points[1]);
+
+  return cp > 0 ? WindingOrder::CW : WindingOrder::CCW;
+}
+
+// =============================================================================
+
+bool SortVertices(TriangleSimple& t)
+{
+  bool swapPerformed = false;
+
+  bool sorted = false;
+
+  while (not sorted)
+  {
+    sorted = true;
+
+    for (size_t i = 0; i < 2; i++)
+    {
+      bool sortingCondition = (t.Points[i].Y >  t.Points[i + 1].Y)
+                           or (t.Points[i].Y == t.Points[i + 1].Y
+                           and t.Points[i].X >  t.Points[i + 1].X);
+      if (sortingCondition)
+      {
+        std::swap(t.Points[i].X, t.Points[i + 1].X);
+        std::swap(t.Points[i].Y, t.Points[i + 1].Y);
+        sorted = false;
+        swapPerformed = true;
+      }
+    }
+  }
+
+  return swapPerformed;
+}
+
+// =============================================================================
+
+void CheckWinding(TriangleSimple& t)
+{
+  WindingOrder wo = GetWindingOrder(t);
+  if (wo == WindingOrder::CCW)
+  {
+    //
+    // Since we decided to stick to CW winding order if we encountered CCW one
+    // just swap two adjacent vertices to change it.
+    //
+    std::swap(t.Points[0].X, t.Points[1].X);
+    std::swap(t.Points[0].Y, t.Points[1].Y);
+  }
+}
+
+// =============================================================================
+
+void CrossProductTest()
+{
+  struct Indices
+  {
+    uint8_t Ind[3];
+  };
+
+  //
+  // CW
+  //
+  {
+    const std::vector<Indices> indices =
+    {
+      { 0, 1, 2 },
+      { 1, 2, 0 },
+      { 2, 0, 1 }
+    };
+
+    TriangleSimple t;
+    t.Points[0] = {  5, 10, 0 };
+    t.Points[1] = {  7,  5, 0 };
+    t.Points[2] = { 15, 15, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      WindingOrder wo = GetWindingOrder(toTest);
+
+      printf("CW check - %s\n", (wo == WindingOrder::CW) ? "OK" : "FAIL!");
+    }
+  }
+
+  //
+  // CCW
+  //
+  {
+    const std::vector<Indices> indices =
+    {
+      { 0, 1, 2 },
+      { 1, 2, 0 },
+      { 2, 0, 1 }
+    };
+
+    TriangleSimple t;
+    t.Points[0] = {  7,  5, 0 };
+    t.Points[1] = {  5, 10, 0 };
+    t.Points[2] = { 15, 15, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      WindingOrder wo = GetWindingOrder(toTest);
+
+      printf("CCW check - %s\n", (wo == WindingOrder::CCW) ? "OK" : "FAIL!");
+    }
+  }
+
+  //
+  // Fix winding
+  //
+  {
+    //
+    // All possible vertex ordering input.
+    //
+    const std::vector<Indices> indices =
+    {
+      { 0, 1, 2 },
+      { 1, 2, 0 },
+      { 2, 0, 1 },
+      { 2, 1, 0 },
+      { 1, 0, 2 },
+      { 0, 2, 1 }
+    };
+
+    TriangleSimple t;
+    t.Points[0] = {  7,  5, 0 };
+    t.Points[1] = {  5, 10, 0 };
+    t.Points[2] = { 15, 15, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      printf("Before:\n%s", ToString(toTest).data());
+
+      SortVertices(toTest);
+      CheckWinding(toTest);
+
+      printf("After:\n%s", ToString(toTest).data());
+
+      printf("Result - %s\n", (GetWindingOrder(toTest) == WindingOrder::CW)
+                              ? "OK"
+                              : "FAIL!");
+    }
+  }
+}
+
+// =============================================================================
+
+TriangleType GetTriangleType(const TriangleSimple& t)
+{
+  //
+  // Vertex winding order actually is important not only in 3D but in 2D as well
+  // because it will determine all cases that we need to consider during
+  // rasterization as well as making sure our rasterization satisfies "top-left"
+  // rasterization rule (more on that later). As with 3D it doesn't matter which
+  // one is chosen as long as you choose one and stick to it. And since in 2D
+  // there is no "other side" we can convert any user defined vertex
+  // configuration to our desired winding order unambiguously. We'll use CW
+  // order here as it's more intuitive and straightforward given that on screen
+  // X goes to the right and Y goes down. As far as I understand some popular
+  // implementations use this winding as well.
+  // Thus we can list all possible triangle configurations that can appear from
+  // any 3 vertices:
+  //
+  // 1) Flat Top
+  // 2) Flat Bottom
+  // 3) Composite (Major Right)
+  // 4) Composite (Major Left)
+  //
+  // By doing sorting of vertices by Y and then X we'll ensure following
+  // possible vertex enumerations:
+  //
+  //    FT    |     FB    |    C (MR)   |    C (ML)
+  //          |           |             |
+  // 1     2  |     1     |      1      |      1
+  //          |           |             |
+  //          |           | - 2- - x -  |  - x- - 2- -
+  //    3     |  2     3  |             |
+  //          |           |          3  |  3
+  //
+  // Because we decided on CW ordering we need to swap two vertices in certain
+  // cases: 1 <-> 2 for FB and C (MR). It doesn't matter which ones are swapped,
+  // but like with winding order you have to decide on one way and stick with
+  // it. Later in actual filling code of a triangle we'll use three points as
+  // arguments to a function, ordering of which will be expected (like for FT
+  // triangle we'll start from point 3 and go up, for FB - from point 1 and go
+  // down) and since our sorting and winding correction will end up with one
+  // unambiguous result, we can manually pass points into rasterization function
+  // in proper order.
+  // So you see, it's everything about order here.
+  //
+
+  TriangleType res = TriangleType::UNDEFINED;
+
+  if (t.Points[0].Y == t.Points[1].Y)
+  {
+    res = TriangleType::FLAT_TOP;
+  }
+  else if (t.Points[0].Y == t.Points[2].Y)
+  {
+    res = TriangleType::FLAT_BOTTOM;
+  }
+  else
+  {
+    // TODO:
+  }
+
+  return res;
+}
+
+// =============================================================================
+
+//
+// From these tests below it can easily be seen that by cyclic rotation of
+// vertices left-to-right and right-to-left with the according enumeration we
+// will exhaust all possible cases of 3 vertices definitions for a triangle.
+//
+void SortingTest()
+{
+  struct Indices
+  {
+    uint8_t Ind[3];
+  };
+
+  //
+  // All possible 3-vertex combinations.
+  //
+  const std::vector<Indices> indices =
+  {
+    { 0, 1, 2 },
+    { 1, 2, 0 },
+    { 2, 0, 1 },
+    { 2, 1, 0 },
+    { 1, 0, 2 },
+    { 0, 2, 1 }
+  };
+
+  // ---------------------------------------------------------------------------
+
+  //
+  // Composite triangle processing will be kinda unfolded into processing of two
+  // already solved cases, so winding order here is not that important, we just
+  // need to correctly pass those 2 pairs of resulting 3-vertices for further
+  // processing of FT and FB triangles accordingly.
+  //
+  // Composite (Major Right)
+  //
+  {
+    printf("=== Composite (Major Right) ===\n\n");
+
+    TriangleSimple t;
+    t.Points[0] = {  5, 10, 0 };
+    t.Points[1] = {  7,  5, 0 };
+    t.Points[2] = { 15, 15, 0 };
+
+    TriangleSimple expected;
+    expected.Points[0] = {  7,  5, 0 };
+    expected.Points[1] = {  5, 10, 0 };
+    expected.Points[2] = { 15, 15, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      SortVertices(toTest);
+
+      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+    }
+
+    printf("\n");
+  }
+
+  // ---------------------------------------------------------------------------
+
+  //
+  // Composite (Major Left)
+  //
+  {
+    printf("=== Composite (Major Left) ===\n\n");
+
+    TriangleSimple t;
+    t.Points[0] = {  2, 15, 0 };
+    t.Points[1] = {  7,  5, 0 };
+    t.Points[2] = { 10, 10, 0 };
+
+    TriangleSimple expected;
+    expected.Points[0] = {  7,  5, 0 };
+    expected.Points[1] = { 10, 10, 0 };
+    expected.Points[2] = {  2, 15, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      SortVertices(toTest);
+
+      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+    }
+
+    printf("\n");
+  }
+
+  // ---------------------------------------------------------------------------
+
+  //
+  // Flat Top
+  //
+  {
+    printf("=== Flat Top ===\n\n");
+
+    TriangleSimple t;
+    t.Points[0] = {  7, 10, 0 };
+    t.Points[1] = {  5,  5, 0 };
+    t.Points[2] = { 10,  5, 0 };
+
+    //
+    //  1     2
+    //
+    //     3
+    //
+    TriangleSimple expected;
+    expected.Points[0] = {  5,  5, 0 };
+    expected.Points[1] = { 10,  5, 0 };
+    expected.Points[2] = {  7, 10, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      SortVertices(toTest);
+
+      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+    }
+
+    printf("\n");
+  }
+
+  // ---------------------------------------------------------------------------
+
+  //
+  // Flat Bottom
+  //
+  {
+    printf("=== Flat Bottom ===\n\n");
+
+    TriangleSimple t;
+    t.Points[0] = { 10, 10, 0 };
+    t.Points[1] = {  7,  5, 0 };
+    t.Points[2] = {  5, 10, 0 };
+
+    //
+    //     2
+    //
+    //  1     3
+    //
+    TriangleSimple expected;
+    expected.Points[0] = {  5, 10, 0 };
+    expected.Points[1] = {  7,  5, 0 };
+    expected.Points[2] = { 10, 10, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      SortVertices(toTest);
+
+      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+    }
+
+    printf("\n");
+  }
+
+  // ---------------------------------------------------------------------------
+}
+
 // =============================================================================
 
 class CTF : public DrawWrapper
@@ -126,9 +555,19 @@ class CTF : public DrawWrapper
     //    considered ascending if its respective vector V[ (X+1)%3 ] - V[X]
     //    (where X can be 0, 1, 2) has a positive y-coordinate."
     //
-    void FillTriangleC(const TriangleSimple& t)
+    void FillTriangleCustom(const TriangleSimple& t)
     {
-
+      // TODO:
+      //
+      // if FlatTop:
+      //   FillFT()
+      // elif FlatBottom:
+      //   FillFB();
+      // else:
+      //   SplitTriangles()
+      //   FillFT()
+      //   FillFB()
+      //
     }
 
     // -------------------------------------------------------------------------
@@ -190,7 +629,7 @@ class CTF : public DrawWrapper
       if (ScanlineRasterizer)
       {
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-        FillTriangleC(CurrentTriangle);
+        FillTriangleCustom(CurrentTriangle);
       }
       else
       {
@@ -208,7 +647,7 @@ class CTF : public DrawWrapper
 
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-        FillTriangleC(CurrentTriangle);
+        FillTriangleCustom(CurrentTriangle);
 
         DrawLineDDA(10, 50, 50 + dx, 100 + dy);
       }
@@ -317,13 +756,16 @@ class CTF : public DrawWrapper
 
 int main(int argc, char* argv[])
 {
-  CTF c;
+  CrossProductTest();
+  //SortingTest();
 
-  if (c.Init(700, 700, QualityReductionFactor))
-  {
-    IF::Instance().Init(c.GetRenderer());
-    c.Run(true);
-  }
+  //CTF c;
+  //
+  //if (c.Init(700, 700, QualityReductionFactor))
+  //{
+  //  IF::Instance().Init(c.GetRenderer());
+  //  c.Run(true);
+  //}
 
   return 0;
 }

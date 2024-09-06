@@ -269,6 +269,8 @@ namespace SW3D
   extern std::string ToString(const Vec3& v);
   extern std::string ToString(const Vec4& v);
 
+  extern std::string ToString(const TriangleSimple& t);
+
   extern std::string ToString(const ModelLoader::Scene& s);
 
   extern std::string ToString(SDL_Surface* s);

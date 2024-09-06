@@ -123,6 +123,8 @@ namespace SW3D
     void operator*=(double value);
     void operator+=(double value);
 
+    bool operator==(const Vec3& rhs);
+
     double Length();
 
     void Normalize();
@@ -226,6 +228,8 @@ namespace SW3D
   struct TriangleSimple
   {
     Vec3 Points[3];
+
+    bool operator==(const TriangleSimple& rhs);
   };
 
   struct Mesh

@@ -42,6 +42,15 @@ namespace SW3D
 
   // ===========================================================================
 
+  bool TriangleSimple::operator==(const TriangleSimple& rhs)
+  {
+    return (Points[0] == rhs.Points[0]
+        and Points[1] == rhs.Points[1]
+        and Points[2] == rhs.Points[2]);
+  }
+
+  // ===========================================================================
+
   Vec2 Vec2::operator+(const Vec2& rhs) const
   {
     return { X + rhs.X, Y + rhs.Y };
@@ -117,6 +126,11 @@ namespace SW3D
     X += value;
     Y += value;
     Z += value;
+  }
+
+  bool Vec3::operator==(const Vec3& rhs)
+  {
+    return (X == rhs.X and Y == rhs.Y and Z == rhs.Z);
   }
 
   double Vec3::Length()

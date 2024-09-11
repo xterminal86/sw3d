@@ -90,8 +90,8 @@ class BH : public DrawWrapper
       for(int x = (int)x1; x < maxX; x++)
       {
         //
-        // If line was steep we swapped components in the code above but at draw
-        // phase here we will use component values "backwards" since our
+        // If line was steep we swapped components in the code above but at the
+        // drawing phase here we will use component values "backwards" since our
         // swapped version of the line is a mirror image.
         //
         if(steep)
@@ -135,11 +135,12 @@ class BH : public DrawWrapper
       //
       // There are several implementations of Bresenham algorithm, the one that
       // people probably see for the first time is not very clear because it
-      // uses some weird variable called error, so I found out better
-      // explanation that is very straightforward (see link above) and doesn't
-      // use floating point values. Most of the time it probably doesn't matter
-      // which implementation is used because they all achieve more or less the
-      // same end result and have no impact on performance with modern hardware.
+      // uses some weird variable called error (implemented above). So I found
+      // out better explanation that is very straightforward (see link) and
+      // doesn't use floating point values. Most of the time it probably doesn't
+      // matter which implementation is used because they all achieve more or
+      // less the same end result and have no impact on performance with modern
+      // hardware.
       //
       // -----------------------------------------------------------------------
       //
@@ -187,9 +188,9 @@ class BH : public DrawWrapper
       // Here true line crosses pixels 2 and 5 and we need to choose which one
       // to fill. The main idea of algorithm is to fill the one whose distance
       // to the "temporary pixel" (let's called it T) is smaller. So let's
-      // imagine that there is another pixel in between pixels 2 and 5 and line
-      // crosses it. Let's zoom in that part (again, not to scale because ASCII
-      // art):
+      // imagine that there is another pixel in between pixels 2 and 5 and our
+      // line crosses it. Let's zoom in that part (again, not to scale because
+      // ASCII art):
       //
       //         -----    -----
       //        |     |  |     |
@@ -206,13 +207,14 @@ class BH : public DrawWrapper
       //         -----    -----
       //           Xk       Xk + 1
       //
-      // Now we just need to find distance between 2 to T (d2) and 5 to T (d1),
-      // and choose the one that is smaller. So if d1 - d2 < 0 then we should
-      // turn pixel 5 on, otherwise if d1 - d2 >= 0 it's pixel 2. One needs not
-      // to be deceived by everything looking the same size on the illustration
-      // (lol) above: line can cross pixels with a slope much closer to a line
-      // parallel to X axis, so, for example, our T could be closer to pixel 5
-      // than it is portrayed on the picture.
+      // Now we just need to find distance between 5 to T (d1) and 2 to T (d2),
+      // and choose the one that is smaller. So if (d1 - d2) < 0 then we should
+      // turn pixel 5 on, otherwise if (d1 - d2) >= 0 it's pixel 2.
+      //
+      // One needs not to be deceived by everything looking the same size on the
+      // illustration (lol) above: line can cross pixels with a slope much
+      // closer to a line parallel to X axis, so, for example, our T could be
+      // closer to pixel 5 than it is portrayed on the picture.
       //
       // For simplicity sake let's consider that our line has k < 1 for now.
       // For k >= 1 it's just a matter of swapping some variables (more on that
@@ -263,6 +265,8 @@ class BH : public DrawWrapper
       // (d1 - d2) = k(Xk + 1) + C - Yk - Yk - 1 + k(Xk + 1) + C
       //             =========   ~ ---- ----       =========   ~
       //
+      // Group things:
+      //
       // (d1 - d2) = 2k(Xk + 1) - 2Yk + 2C - 1
       //
       // We still have k in our equation which is dy / dx. To get rid of
@@ -290,10 +294,10 @@ class BH : public DrawWrapper
       //
       // Pnext = 2dyXnext - 2dxYnext
       //
-      // Xnext is always Xk + 1 because, like I said, we're dealing with a line
-      // with k < 1. But value of Ynext we'll have to decide.
-      // By subtracting Pnext - Pk we can find out how much a decision variable
-      // should change at every iteration.
+      // Xnext is always Xk + 1 because, like it was mentioned above, we're
+      // currently dealing with a line with k < 1. But value of Ynext we'll have
+      // to decide. By subtracting (Pnext - Pk) we can find out how much a
+      // decision variable should change at every iteration.
       //
       // (Pnext - Pk) = [ 2dyXnext - 2dxYnext ] - [ 2dyXk - 2dxYk ]
       // (Pnext - Pk) = 2dyXnext - 2dxYnext - 2dyXk + 2dxYk
@@ -366,8 +370,9 @@ class BH : public DrawWrapper
       // in order to create mirrored line we just need to invert k, i.e. k = 1/k
       // or 1 / (dy / dx) = dx / dy
       //
-      // So, whenever we have line with k > 1 we can convert it to the mirrored
-      // version which will have k < 1 by swapping y from 1) as x for 2):
+      // So, whenever we have a line with k > 1 we can convert it to the
+      // mirrored version which will have k < 1 by swapping y from 1) as x for
+      // 2):
       //
       //     1)              2)
       //
@@ -390,7 +395,8 @@ class BH : public DrawWrapper
       // everything is a mirror image it will all work out nicely.
       //
       // Edge cases when line is vertical (dx = 0) and horizontal (dy = 0) can
-      // be handled separately.
+      // be handled separately, but we actually don't need to do that since at
+      // those cases everything will work in the code by itself.
       //
       // This leaves the last question: direction of a line.
       //
@@ -436,9 +442,6 @@ class BH : public DrawWrapper
       int dx = std::abs(x2 - x1);
       int dy = std::abs(y2 - y1);
 
-      bool horizontal = (dy == 0);
-      bool vertical   = (dx == 0);
-
       //
       // Let's try to avoid any floating point calculation: if k > 1 then it
       // means that dy is greater than dx, so our line slope is "steep", that is
@@ -476,20 +479,21 @@ class BH : public DrawWrapper
 
           x++;
 
-          if (not horizontal)
+          //
+          // Our decision parameter.
+          //
+          // If line is horizontal (dy = 0) we will always go into (P < 0)
+          // branch thus not affecting Y at all (check that initial value of
+          // P = 2 * dy - dx).
+          //
+          if (P < 0)
           {
-            //
-            // Our decision parameter.
-            //
-            if (P < 0)
-            {
-              P += 2 * dy;
-            }
-            else
-            {
-              P += 2 * dy - 2 * dx;
-              y = goesDown ? (y + 1) : (y - 1);
-            }
+            P += 2 * dy;
+          }
+          else
+          {
+            P += 2 * dy - 2 * dx;
+            y = goesDown ? (y + 1) : (y - 1);
           }
         }
       }
@@ -503,7 +507,7 @@ class BH : public DrawWrapper
         //
         // Here loop condition will always work as well since we're using
         // integers, but in general since line is steep it can go either up or
-        // down, so Y1 needs to be checked against Y2 on "less than" or "greater
+        // down, so y needs to be checked against Y2 on "less than" or "greater
         // than" condition type, depending on the case.
         // This could be important if you want to plot pixels "zoomed in" by
         // drawing them as rectangles of certain size instead of points. Then
@@ -519,17 +523,18 @@ class BH : public DrawWrapper
           //
           y = goesDown ? (y + 1) : (y - 1);
 
-          if (not vertical)
+          //
+          // Same here, if line is vertical (dx = 0), we will go into this
+          // branch (remember, that dx and dy get swapped if line is steep).
+          //
+          if (P < 0)
           {
-            if (P < 0)
-            {
-              P += 2 * dy;
-            }
-            else
-            {
-              P += 2 * dy - 2 * dx;
-              x++;
-            }
+            P += 2 * dy;
+          }
+          else
+          {
+            P += 2 * dy - 2 * dx;
+            x++;
           }
         }
       }

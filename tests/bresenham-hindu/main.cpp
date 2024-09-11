@@ -90,8 +90,8 @@ class BH : public DrawWrapper
       for(int x = (int)x1; x < maxX; x++)
       {
         //
-        // If line was steep we swapped components in the code above but during
-        // drawing here we will use component values "backwards" since our
+        // If line was steep we swapped components in the code above but at draw
+        // phase here we will use component values "backwards" since our
         // swapped version of the line is a mirror image.
         //
         if(steep)
@@ -103,6 +103,9 @@ class BH : public DrawWrapper
           SDL_RenderDrawPoint(_renderer, x, y);
         }
 
+        //
+        // Again, beats me why you must subtract dy and not something else.
+        //
         error -= dy;
 
         //
@@ -128,13 +131,17 @@ class BH : public DrawWrapper
     void BresenhamHindu(int xs, int ys, int xe, int ye)
     {
       //
+      // -----------------------------------------------------------------------
+      //
       // There are several implementations of Bresenham algorithm, the one that
-      // people probably see for the first time is not very clear because it uses
-      // some weird variable called error, so I found out better explanation that is
-      // very straightforward (see link above) and doesn't use floating point values.
-      // In the end it doesn't matter which implementation is used because they all
-      // achieve the same end result and even the one that uses floating point
-      // calculation has no impact on performance with modern hardware.
+      // people probably see for the first time is not very clear because it
+      // uses some weird variable called error, so I found out better
+      // explanation that is very straightforward (see link above) and doesn't
+      // use floating point values. Most of the time it probably doesn't matter
+      // which implementation is used because they all achieve more or less the
+      // same end result and have no impact on performance with modern hardware.
+      //
+      // -----------------------------------------------------------------------
       //
       // Consider a line (x1, y1) - (x2, y2):
       //
@@ -153,15 +160,15 @@ class BH : public DrawWrapper
       //   | x1         x2
       //
       // Line equation is y = kx + C.
+      //
       // Let's recall SOHCAHTOA, where Tangent = Opposite / Adjacent.
       // So it's easy to see that in line equation k = dy / dx = tan(a).
-      // It's obvious that if k = 1 then a = 45 deg. If k < 1 then angle is < 45,
-      // and if k > 1 then it's > 45.
+      // It's obvious that if k = 1 then a = 45 deg. If k < 1 then angle is less
+      // than 45 degrees, and if k > 1 then it's greater than 45.
       //
-      // Basic idea of Bresenham algorithm is to determine which pixel to fill in
-      // case when our true line intersects both of them. Like this (zoomed in and
-      // not to scale):
-      //
+      // Basic idea of Bresenham algorithm is to determine which pixel to fill
+      // in case when our true line intersects both of them. Like this (zoomed
+      // in and not to scale):
       //
       //                           * (x2, y2)
       //                         /
@@ -177,11 +184,12 @@ class BH : public DrawWrapper
       //     /
       //   * (x1, y1)
       //
-      // Here true line crosses pixels 2 and 5 and we need to choose which one to
-      // fill. The main idea of algorithm is to fill the one whose distance to the
-      // "temporary pixel" (let's called it T) is smaller. So let's imagine that
-      // there is another pixel in between pixels 2 and 5 and line crosses it. Let's
-      // zoom in this part (again, not to scale because ASCII art):
+      // Here true line crosses pixels 2 and 5 and we need to choose which one
+      // to fill. The main idea of algorithm is to fill the one whose distance
+      // to the "temporary pixel" (let's called it T) is smaller. So let's
+      // imagine that there is another pixel in between pixels 2 and 5 and line
+      // crosses it. Let's zoom in that part (again, not to scale because ASCII
+      // art):
       //
       //         -----    -----
       //        |     |  |     |
@@ -198,28 +206,29 @@ class BH : public DrawWrapper
       //         -----    -----
       //           Xk       Xk + 1
       //
-      // Now we just need to find distance between 2 to T (d2) and 5 to T (d1) and
-      // choose the one that is smaller. So if d1 - d2 < 0 then we should turn pixel
-      // 5 on, otherwise if d1 - d2 >= 0 it's pixel 2. One needs not to be deceived
-      // by everything looking the same size: line can cross pixels with slope much
-      // closer to a line parallel to X axis, so, for example, our T could be closer
-      // to pixel 5 than it is portrayed on the picture.
+      // Now we just need to find distance between 2 to T (d2) and 5 to T (d1),
+      // and choose the one that is smaller. So if d1 - d2 < 0 then we should
+      // turn pixel 5 on, otherwise if d1 - d2 >= 0 it's pixel 2. One needs not
+      // to be deceived by everything looking the same size on the illustration
+      // (lol) above: line can cross pixels with a slope much closer to a line
+      // parallel to X axis, so, for example, our T could be closer to pixel 5
+      // than it is portrayed on the picture.
       //
       // For simplicity sake let's consider that our line has k < 1 for now.
       // For k >= 1 it's just a matter of swapping some variables (more on that
       // later).
       //
       // To draw a line we will iterate from x1 to x2. Since k < 1 we have more
-      // points across X axis, so our x will always increase when we traverse from x1
-      // to x2, but whether y should increase or not given any x sample - that's what
-      // we'll have to decide.
+      // points across X axis, so our x will always increase when we traverse
+      // from x1 to x2, but whether y should increase or not given any x sample
+      // - that's what we'll have to decide.
       //
       // So it's time for some math:
       //
       // Xnext = Xk + 1
       //
-      // We're interested in what Y we should choose for point Xk + 1, whether it
-      // will remain Yk or it will be Yk + 1.
+      // We're interested in what Y we should choose for point Xk + 1, whether
+      // it will remain Yk or it will be Yk + 1.
       //
       //           - Yk
       // Ynext -> |
@@ -239,8 +248,13 @@ class BH : public DrawWrapper
       // d1 = k(Xk + 1) + C - Yk
       // d2 = (Yk + 1) - [ k(Xk + 1) + C ] = Yk + 1 - k(Xk + 1) - C
       //
-      // If (d1 - d2) <  0 then our value Y for this X sample should remain as Yk.
-      // If (d1 - d2) >= 0 then our value Y for this X sample should be Yk + 1.
+      // If (d1 - d2) < 0:
+      //   then our value Y for this X sample should remain as Yk.
+      //
+      // If (d1 - d2) >= 0:
+      //   then our value Y for this X sample should be Yk + 1.
+      //
+      // Let's actually subtract d1 and d2:
       //
       // (d1 - d2) = [ k(Xk + 1) + C - Yk ] - [ Yk + 1 - k(Xk + 1) - C ]
       //
@@ -251,8 +265,8 @@ class BH : public DrawWrapper
       //
       // (d1 - d2) = 2k(Xk + 1) - 2Yk + 2C - 1
       //
-      // We still have k in our equation which is dy / dx. To get rid of floating
-      // point calculation we just multiply the whole thing by dx:
+      // We still have k in our equation which is dy / dx. To get rid of
+      // floating point calculation we just multiply the whole thing by dx:
       //
       //                             dy
       // dx * (d1 - d2) = dx * ( 2 * -- (Xk + 1) - 2Yk + 2C - 1)
@@ -264,9 +278,11 @@ class BH : public DrawWrapper
       //
       // dx * (d1 - d2) = 2dyXk + 2dy - 2dxYk + 2dxC - dx = Pk
       //                          ~~~           ~~~~   ~~
-      // We can observe that highlighted variables are constant. For some reason that
-      // is not very clear to me we can discard them as irrelevant, because we're
-      // only interested in terms that depend on Xk and Yk. So we're left with:
+      // We can observe that highlighted variables are constant. For some reason
+      // that is not very clear to me we can discard them as irrelevant, because
+      // we're only interested in terms that depend on Xk and Yk.
+      //
+      // So we're left with:
       //
       // Pk = 2dyXk - 2dxYk
       //
@@ -274,8 +290,8 @@ class BH : public DrawWrapper
       //
       // Pnext = 2dyXnext - 2dxYnext
       //
-      // Xnext is always Xk + 1 since we're dealing with a line with k < 1.
-      // But value of Ynext we'll have to decide.
+      // Xnext is always Xk + 1 because, like I said, we're dealing with a line
+      // with k < 1. But value of Ynext we'll have to decide.
       // By subtracting Pnext - Pk we can find out how much a decision variable
       // should change at every iteration.
       //
@@ -286,7 +302,8 @@ class BH : public DrawWrapper
       //
       // (Pnext - Pk) = 2dy * (Xnext - Xk) - 2dx * (Ynext - Yk)
       //
-      // If (Pnext - Pk) < 0 then we should remain on the same Yk, so Ynext = Yk:
+      // If (Pnext - Pk) < 0 then we should remain on the same Yk,
+      // so Ynext = Yk. X is always increasing, so Xnext = Xk + 1:
       //
       // Pnext = Pk + 2dy(Xk + 1 - Xk) - 2dx * (Yk - Yk)
       //
@@ -296,7 +313,7 @@ class BH : public DrawWrapper
       // | Pnext = Pk + 2dy |
       // +------------------+
       //
-      // If (Pnext - Pk) >= 0 then Ynext = Yk + 1
+      // If (Pnext - Pk) >= 0 then Ynext = Yk + 1. Xnext is still Xk + 1:
       //
       // Pnext = Pk + 2dy(Xk + 1 - Xk) - 2dx * (Yk + 1 - Yk)
       //
@@ -318,12 +335,12 @@ class BH : public DrawWrapper
       // C = y - kx or C = y - -- x
       //                       dx
       //
-      // Let's plug it in the formula above:
+      // Let's plug it in the formula for Pk above:
       //                                     dy
       // Pk = 2dyXk + 2dy - 2dxYk + 2dx[ y - -- x ] - dx
       //                                     dx
       //
-      // For starting point let's call x X1 and y -> Y1 and also open up the
+      // For starting point let's call x = X1 and y = Y1 and also open up the
       // brackets:
       //
       // Pk1 = 2dyX1 + 2dy - 2dxY1 + 2dxY1 - 2dyX1 - dx
@@ -336,16 +353,18 @@ class BH : public DrawWrapper
       //
       // ============================================================================
       //
-      // Before we start let's recall that explanation above was done for a line with
-      // k < 1 and I mentioned that "more on that later". Well, *now* is "later".
+      // Before we start let's recall that explanation above was done for a line
+      // with k < 1 and I mentioned that "more on that later".
+      //
+      // Well, *now* is "later".
       //
       // First let's consider the following two equations:
       //
       // 1) y = 10x    2) y = 0.1x
       //
-      // It's obvious to see that these lines are mirrored across axis y = x and in
-      // order to create mirrored line we just need to invert k, i.e. k = 1/k or
-      // 1 / (dy / dx) = dx / dy
+      // It's obvious to see that these lines are mirrored across axis y = x and
+      // in order to create mirrored line we just need to invert k, i.e. k = 1/k
+      // or 1 / (dy / dx) = dx / dy
       //
       // So, whenever we have line with k > 1 we can convert it to the mirrored
       // version which will have k < 1 by swapping y from 1) as x for 2):
@@ -360,28 +379,28 @@ class BH : public DrawWrapper
       //
       // Thus we kinda reduced the problem to already solved one.
       //
-      // Now notice that when k < 1 it means that we have more X values than Y and Y
-      // values are the ones that we need to determine whether to increment or not
-      // during rasterization loop. So by checking the k value beforehand we can
-      // create two execution branches that will increment either X constantly and
-      // determine Y or vice versa. How exactly? If we have a line with k > 1 we
-      // mirror it and then use the same calculations as usual but when we actually
-      // draw stuff we will iterate over Y axis instead of X and increment X (or not)
-      // instead of Y, and since everything is a mirror image it will all work out
-      // nicely.
+      // Now notice that when k < 1 it means that we have more X values than Y
+      // and Y values are the ones that we need to determine whether to
+      // increment or not during rasterization loop. So by checking the k value
+      // beforehand we can create two execution branches that will increment
+      // either X constantly and determine Y or vice versa. How exactly? If we
+      // have a line with k > 1 we mirror it and then use the same calculations
+      // as usual but when we actually draw stuff we will iterate over Y axis
+      // instead of X and increment X (or not) instead of Y, and since
+      // everything is a mirror image it will all work out nicely.
       //
-      // Edge case when dx = 0 (line is vertical) can be handled separately but it's
-      // not necessary here because it falls into k > 1 case and we're not using
-      // division.
+      // Edge cases when line is vertical (dx = 0) and horizontal (dy = 0) can
+      // be handled separately.
       //
       // This leaves the last question: direction of a line.
+      //
       // If we sort points by X we can then have only two cases:
       //
       // 1) line goes up
       // 2) line goes down
       //
-      // So by finding out which type of line is our case we can determine whether
-      // we need to increment Y or decrement it.
+      // So by finding out which type of line is our case we can determine
+      // whether we need to increment Y or decrement it.
       //
       // ============================================================================
 
@@ -408,7 +427,8 @@ class BH : public DrawWrapper
       bool goesDown = (y2 > y1);
 
       //
-      // These will be our pixel coordinates to fill. Prime them with starting point.
+      // These will be our pixel coordinates to fill.
+      // Prime them with starting point.
       //
       int x = x1;
       int y = y1;
@@ -420,9 +440,10 @@ class BH : public DrawWrapper
       bool vertical   = (dx == 0);
 
       //
-      // Let's try to avoid any floating point calculation: if dy is greater than dx
-      // this means that k > 1, so our line slope is "steep", that is its angle is
-      // greater than 45 degrees. Otherwise we'll consider line slope to be "gentle".
+      // Let's try to avoid any floating point calculation: if k > 1 then it
+      // means that dy is greater than dx, so our line slope is "steep", that is
+      // its angle is greater than 45 degrees. Otherwise we'll consider line
+      // slope to be "gentle".
       //
       bool steep = (dy > dx);
 
@@ -434,6 +455,9 @@ class BH : public DrawWrapper
         std::swap(dx, dy);
       }
 
+      //
+      // Initial value for Pk (Pk1 in the longread above).
+      //
       int P = 2 * dy - dx;
 
       SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
@@ -472,15 +496,18 @@ class BH : public DrawWrapper
       else
       {
         //
-        // If line is steep just swap stuff around. This time we're going across Y
-        // axis and must determine whether to increase X or not. Notice that decision
-        // parameter calculation remained the same but it actually is working on
-        // mirrored line but doesn't know about it. :-)
+        // If line is steep just swap stuff around. This time we're going across
+        // Y axis and must determine whether to increase X or not. Notice that
+        // decision parameter calculation remained the same but it actually is
+        // working on mirrored line but doesn't know about it. :-)
         //
-        // Here everything will work too since we're using integers, so
-        // condition is sufficient. But in general since line is steep it can go
-        // either up or down, so Y1 needs to be checked against Y2 on less than
-        // or greater than, depending on the case.
+        // Here loop condition will always work as well since we're using
+        // integers, but in general since line is steep it can go either up or
+        // down, so Y1 needs to be checked against Y2 on "less than" or "greater
+        // than" condition type, depending on the case.
+        // This could be important if you want to plot pixels "zoomed in" by
+        // drawing them as rectangles of certain size instead of points. Then
+        // you can no longer rely on such exact comparison.
         //
         while (y != y2)
         {
@@ -488,7 +515,7 @@ class BH : public DrawWrapper
 
           //
           // This time Y is always incremented (or decremented, depending on
-          // direction).
+          // line direction).
           //
           y = goesDown ? (y + 1) : (y - 1);
 

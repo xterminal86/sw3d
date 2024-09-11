@@ -1,22 +1,132 @@
 #include "sw3d.h"
 #include "instant-font.h"
 
-const size_t QualityReductionFactor = 4;
+const size_t QualityReductionFactor = 10;
 
 int X1 = 10;
 int Y1 = 5;
 int X2 = 50;
 int Y2 = 20;
 
+int xStart = 0;
+int yStart = 0;
+int xEnd   = 0;
+int yEnd   = 0;
+
+bool ShowText = true;
+
+bool ShowHindu   = true;
+bool ShowCorrect = false;
+
+bool gSteep = false;
+
 using namespace SW3D;
 
 class BH : public DrawWrapper
 {
   public:
-    void BresenhamHindu(int x1, int y1, int x2, int y2)
+    //
+    // "Classic" implementation that uses error variable.
+    //
+    void BresenhamCorrect(int sx, int sy, int ex, int ey)
     {
+      int x1 = sx;
+      int y1 = sy;
+      int x2 = ex;
+      int y2 = ey;
+
+      const bool steep = std::abs(y2 - y1) > std::abs(x2 - x1);
+
+      gSteep = steep;
+
       //
-      // https://www.youtube.com/watch?v=RGB-wlatStc
+      // If line is steep make it gentle by swapping components.
+      //
+      if(steep)
+      {
+        std::swap(x1, y1);
+        std::swap(x2, y2);
+      }
+
+      //
+      // Sort by X so that x1 is always the leftmost.
+      //
+      if(x1 > x2)
+      {
+        std::swap(x1, x2);
+        std::swap(y1, y2);
+      }
+
+      xStart = x1;
+      yStart = y1;
+
+      xEnd = x2;
+      yEnd = y2;
+
+      const double dx = x2 - x1;
+      const double dy = std::abs(y2 - y1);
+
+      //
+      // Set error to be half the distance across X between points.
+      // Why 2.0 exactly? To me it's unclear but in my opinion the motivation
+      // is this: suppose we want to draw a line from (0, 0) to (20, 1).
+      // We would like our line to go across Y = 0 for exactly half the distance
+      // between X1 and X2 before going up 1 pixel. So that's why we use half
+      // the distance.
+      //
+      double error = dx / 2.0;
+
+      //
+      // Draw direction depending on whether line goes up or down.
+      //
+      const int ystep = (y1 < y2) ? 1 : -1;
+
+      int y = (int)y1;
+
+      const int maxX = (int)x2;
+
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 0, 255);
+
+      for(int x = (int)x1; x < maxX; x++)
+      {
+        //
+        // If line was steep we swapped components in the code above but during
+        // drawing here we will use component values "backwards" since our
+        // swapped version of the line is a mirror image.
+        //
+        if(steep)
+        {
+          SDL_RenderDrawPoint(_renderer, y, x);
+        }
+        else
+        {
+          SDL_RenderDrawPoint(_renderer, x, y);
+        }
+
+        error -= dy;
+
+        //
+        // If line is steep its dy will be greater than dx meaning that error
+        // will become negative. This signifies that we need to go "up" or
+        // "down" depending on line direction (ystep is already set accordingly).
+        // Again, one should think that we're dealing with gentle sloped line
+        // here because we will be using mirrored values for x and y (see above).
+        //
+        if(error < 0)
+        {
+          y += ystep;
+          error += dx;
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
+    //
+    // https://www.youtube.com/watch?v=RGB-wlatStc
+    //
+    void BresenhamHindu(int xs, int ys, int xe, int ye)
+    {
       //
       // There are several implementations of Bresenham algorithm, the one that
       // people probably see for the first time is not very clear because it uses
@@ -275,34 +385,39 @@ class BH : public DrawWrapper
       //
       // ============================================================================
 
+      int x1 = xs;
+      int y1 = ys;
+      int x2 = xe;
+      int y2 = ye;
+
       //
       // Sort by X so that starting point is always the left one.
       //
-      int xStart = (x1 > x2) ? x2 : x1;
+      if (x1 > x2)
+      {
+        std::swap(x1, x2);
+        std::swap(y1, y2);
+      }
 
-      //
-      // Make sure that starting Y is correct as well, depending on the xStart we
-      // chose.
-      //
-      int yStart = (xStart == x1) ? y1 : y2;
+      xStart = x1;
+      yStart = y1;
 
-      //
-      // Same principle for end points because our rasterization loop is tied to
-      // condition of "while less than end point".
-      //
-      int xEnd = (xStart == x1) ? x2 : x1;
-      int yEnd = (xStart == x1) ? y2 : y1;
+      xEnd = x2;
+      yEnd = y2;
 
-      bool goesDown = (yEnd > yStart);
+      bool goesDown = (y2 > y1);
 
       //
       // These will be our pixel coordinates to fill. Prime them with starting point.
       //
-      int x = xStart;
-      int y = yStart;
+      int x = x1;
+      int y = y1;
 
-      int dx = std::abs(xEnd - xStart);
-      int dy = std::abs(yEnd - yStart);
+      int dx = std::abs(x2 - x1);
+      int dy = std::abs(y2 - y1);
+
+      bool horizontal = (dy == 0);
+      bool vertical   = (dx == 0);
 
       //
       // Let's try to avoid any floating point calculation: if dy is greater than dx
@@ -319,32 +434,38 @@ class BH : public DrawWrapper
         std::swap(dx, dy);
       }
 
-      int P = 2 * dx - dy;
+      int P = 2 * dy - dx;
 
-      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+      SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
 
       //
       // Gentle slope, everything goes as planned.
       //
       if (not steep)
       {
-        while (x <= xEnd)
+        //
+        // This will always work because points are sorted by X.
+        //
+        while (x != x2)
         {
           SDL_RenderDrawPoint(_renderer, x, y);
 
           x++;
 
-          //
-          // Our decision parameter.
-          //
-          if (P < 0)
+          if (not horizontal)
           {
-            P += 2 * dy;
-          }
-          else
-          {
-            P += 2 * dy - 2 * dx;
-            y = goesDown ? (y + 1) : (y - 1);
+            //
+            // Our decision parameter.
+            //
+            if (P < 0)
+            {
+              P += 2 * dy;
+            }
+            else
+            {
+              P += 2 * dy - 2 * dx;
+              y = goesDown ? (y + 1) : (y - 1);
+            }
           }
         }
       }
@@ -356,7 +477,12 @@ class BH : public DrawWrapper
         // parameter calculation remained the same but it actually is working on
         // mirrored line but doesn't know about it. :-)
         //
-        while (y <= yEnd)
+        // Here everything will work too since we're using integers, so
+        // condition is sufficient. But in general since line is steep it can go
+        // either up or down, so Y1 needs to be checked against Y2 on less than
+        // or greater than, depending on the case.
+        //
+        while (y != y2)
         {
           SDL_RenderDrawPoint(_renderer, x, y);
 
@@ -366,23 +492,20 @@ class BH : public DrawWrapper
           //
           y = goesDown ? (y + 1) : (y - 1);
 
-          if (P < 0)
+          if (not vertical)
           {
-            P += 2 * dy;
-          }
-          else
-          {
-            P += 2 * dy - 2 * dx;
-            x++;
+            if (P < 0)
+            {
+              P += 2 * dy;
+            }
+            else
+            {
+              P += 2 * dy - 2 * dx;
+              x++;
+            }
           }
         }
       }
-
-      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-      SDL_RenderDrawPoint(_renderer, xStart, yStart);
-
-      SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
-      SDL_RenderDrawPoint(_renderer, xEnd, yEnd);
     }
 
     // -------------------------------------------------------------------------
@@ -391,7 +514,21 @@ class BH : public DrawWrapper
     {
       SaveColor();
 
-      BresenhamHindu(X1, Y1, X2, Y2);
+      if (ShowHindu)
+      {
+        BresenhamHindu(X1, Y1, X2, Y2);
+      }
+
+      if (ShowCorrect)
+      {
+        BresenhamCorrect(X1, Y1, X2, Y2);
+      }
+
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+      SDL_RenderDrawPoint(_renderer, xStart, yStart);
+
+      SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
+      SDL_RenderDrawPoint(_renderer, xEnd, yEnd);
 
       RestoreColor();
     }
@@ -400,21 +537,82 @@ class BH : public DrawWrapper
 
     void DrawToScreen() override
     {
-      IF::Instance().Printf(X1 * QualityReductionFactor,
-                             Y1 * QualityReductionFactor - 4 * QualityReductionFactor,
-                             IF::TextParams::Set(0xFFFFFF,
-                                                 IF::TextAlignment::LEFT,
-                                                 2.0),
-                             "(%d, %d)",
-                             X1, Y1);
+      if (ShowText)
+      {
+        IF::Instance().Printf(X1 * QualityReductionFactor,
+                              Y1 * QualityReductionFactor - 4 * QualityReductionFactor,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "(%d, %d)",
+                              X1, Y1);
 
-      IF::Instance().Printf(X2 * QualityReductionFactor,
-                             Y2 * QualityReductionFactor - 4 * QualityReductionFactor,
-                             IF::TextParams::Set(0xFFFFFF,
-                                                 IF::TextAlignment::LEFT,
-                                                 2.0),
-                             "(%d, %d)",
-                             X2, Y2);
+        IF::Instance().Printf(X2 * QualityReductionFactor,
+                              Y2 * QualityReductionFactor - 4 * QualityReductionFactor,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "(%d, %d)",
+                              X2, Y2);
+
+        IF::Instance().Printf(xStart * QualityReductionFactor,
+                              yStart * QualityReductionFactor +
+                              4 * QualityReductionFactor,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "1");
+
+        IF::Instance().Printf(xEnd * QualityReductionFactor,
+                              yEnd * QualityReductionFactor +
+                              4 * QualityReductionFactor,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "2");
+
+        if (ShowCorrect and not ShowHindu and gSteep)
+        {
+          IF::Instance().Printf(xStart * QualityReductionFactor +
+                                2 * QualityReductionFactor,
+                                yStart * QualityReductionFactor,
+                                IF::TextParams::Set(0xFFFF00,
+                                                    IF::TextAlignment::LEFT,
+                                                    2.0),
+                                "(%d, %d)",
+                                xStart, yStart);
+
+          IF::Instance().Printf(xEnd * QualityReductionFactor +
+                                2 * QualityReductionFactor,
+                                yEnd * QualityReductionFactor,
+                                IF::TextParams::Set(0xFFFF00,
+                                                    IF::TextAlignment::LEFT,
+                                                    2.0),
+                                "(%d, %d)",
+                                xEnd, yEnd);
+        }
+
+        IF::Instance().Printf(0,
+                              _windowHeight - 20 * 3,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "'1' - Hindu Bresenham");
+
+        IF::Instance().Printf(0,
+                              _windowHeight - 20 * 2,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "'2' - 'classic' Bresenham");
+
+        IF::Instance().Printf(0,
+                              _windowHeight - 20,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "WASD and arrow keys - move points");
+      }
     }
 
     void HandleEvent(const SDL_Event& evt) override
@@ -459,6 +657,18 @@ class BH : public DrawWrapper
 
             case SDLK_s:
               Y2++;
+              break;
+
+            case SDLK_TAB:
+              ShowText = not ShowText;
+              break;
+
+            case SDLK_1:
+              ShowHindu = not ShowHindu;
+              break;
+
+            case SDLK_2:
+              ShowCorrect = not ShowCorrect;
               break;
 
             default:

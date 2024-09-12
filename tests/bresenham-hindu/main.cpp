@@ -508,14 +508,6 @@ class BH : public DrawWrapper
         // decision parameter calculation remained the same but it actually is
         // working on mirrored line but doesn't know about it. :-)
         //
-        // Here loop condition will always work as well since we're using
-        // integers, but in general since line is steep it can go either up or
-        // down, so y needs to be checked against Y2 on "less than" or "greater
-        // than" condition type, depending on the case.
-        // This could be important if you want to plot pixels "zoomed in" by
-        // drawing them as rectangles of certain size instead of points. Then
-        // you can no longer rely on such exact comparison.
-        //
         while (y != y2)
         {
           SDL_RenderDrawPoint(_renderer, x, y);

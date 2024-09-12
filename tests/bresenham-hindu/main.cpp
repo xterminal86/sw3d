@@ -215,6 +215,9 @@ class BH : public DrawWrapper
       // illustration (lol) above: line can cross pixels with a slope much
       // closer to a line parallel to X axis, so, for example, our T could be
       // closer to pixel 5 than it is portrayed on the picture.
+      // For example, consider our true line equation to be y = 0.25x
+      // For x = 9 we will have y = 2.25, which is 0.25 away from pixel center
+      // at (9, 2) and 0.75 from pixel (9, 3).
       //
       // For simplicity sake let's consider that our line has k < 1 for now.
       // For k >= 1 it's just a matter of swapping some variables (more on that

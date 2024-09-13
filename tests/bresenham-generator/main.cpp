@@ -18,6 +18,8 @@ class BLG
     ///
     void Init(int x1, int y1, int x2, int y2)
     {
+      _done = false;
+
       _xs = x1;
       _ys = y1;
       _xe = x2;
@@ -52,7 +54,8 @@ class BLG
     ///
     /// \brief Returns next point for current path or nullptr if end was reached.
     ///
-    /// \return pointer to std::pair<int, int> containing next point values.
+    /// \return pointer to std::pair<int, int> containing next point values or
+    /// nullptr if generator has fininshed.
     ///
     Point* Next()
     {

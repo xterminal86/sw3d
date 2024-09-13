@@ -620,25 +620,32 @@ class BH : public DrawWrapper
         }
 
         IF::Instance().Printf(0,
-                              _windowHeight - 20 * 3,
+                              _windowHeight - 20 * 4,
                               IF::TextParams::Set(0xFFFFFF,
                                                   IF::TextAlignment::LEFT,
                                                   2.0),
                               "'1' - Hindu Bresenham");
 
         IF::Instance().Printf(0,
-                              _windowHeight - 20 * 2,
+                              _windowHeight - 20 * 3,
                               IF::TextParams::Set(0xFFFFFF,
                                                   IF::TextAlignment::LEFT,
                                                   2.0),
                               "'2' - 'classic' Bresenham");
 
         IF::Instance().Printf(0,
-                              _windowHeight - 20,
+                              _windowHeight - 20 * 2,
                               IF::TextParams::Set(0xFFFFFF,
                                                   IF::TextAlignment::LEFT,
                                                   2.0),
                               "WASD and arrow keys - move points");
+
+        IF::Instance().Printf(0,
+                              _windowHeight - 20,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "'TAB' - hide text");
       }
     }
 

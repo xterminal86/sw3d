@@ -21,7 +21,17 @@ bool ShowDumb    = false;
 
 bool gSteep = false;
 
-bool VerticalMode = false;
+enum class DemoMode
+{
+  NORMAL = 0,
+  VERTICAL,
+  DUMB,
+  LAST_ELEMENT
+};
+
+DemoMode gMode = DemoMode::NORMAL;
+
+uint8_t gModeIndex = (uint8_t)DemoMode::NORMAL;
 
 using namespace SW3D;
 
@@ -33,8 +43,19 @@ class BH : public DrawWrapper
     //
     void LineDumb(int sx, int sy, int ex, int ey)
     {
-      int dy = ey - sy;
-      int dx = ex - sx;
+      int x1 = sx;
+      int y1 = sy;
+      int x2 = ex;
+      int y2 = ey;
+
+      if (x1 > x2)
+      {
+        std::swap(x1, x2);
+        std::swap(y1, y2);
+      }
+
+      int dy = y2 - y1;
+      int dx = x2 - x1;
 
       double k = 0;
 
@@ -43,11 +64,11 @@ class BH : public DrawWrapper
         k = (double)dy / (double)dx;
       }
 
-      double b = (double)ey - (double)ex * k;
+      double b = (double)y2 - (double)x2 * k;
 
       SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-      for (int x = sx; x <= ex; x++)
+      for (int x = x1; x <= x2; x++)
       {
         int y = (int)(k * x + b);
         SDL_RenderDrawPoint(_renderer, x, y);
@@ -678,45 +699,32 @@ class BH : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void DrawToFrameBuffer() override
+    void DrawNormal()
     {
       SaveColor();
 
-      if (not VerticalMode)
+      if (ShowHindu)
       {
-        if (ShowHindu)
-        {
-          BresenhamHindu(X1, Y1, X2, Y2);
-        }
+        BresenhamHindu(X1, Y1, X2, Y2);
+      }
 
-        if (ShowCorrect)
-        {
-          BresenhamCorrect(X1, Y1, X2, Y2);
-        }
+      if (ShowCorrect)
+      {
+        BresenhamCorrect(X1, Y1, X2, Y2);
+      }
 
-        if (ShowDumb)
-        {
-          LineDumb(X1, Y1, X2, Y2);
+      if (ShowDumb)
+      {
+        LineDumb(X1, Y1, X2, Y2);
 
-          SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-          SDL_RenderDrawPoint(_renderer, X1, Y1);
+        SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+        SDL_RenderDrawPoint(_renderer, X1, Y1);
 
-          SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
-          SDL_RenderDrawPoint(_renderer, X2, Y2);
-        }
-        else
-        {
-          SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-          SDL_RenderDrawPoint(_renderer, xStart, yStart);
-
-          SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
-          SDL_RenderDrawPoint(_renderer, xEnd, yEnd);
-        }
+        SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
+        SDL_RenderDrawPoint(_renderer, X2, Y2);
       }
       else
       {
-        BresenhamVertical(X1, Y1, X2, Y2);
-
         SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
         SDL_RenderDrawPoint(_renderer, xStart, yStart);
 
@@ -729,109 +737,191 @@ class BH : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void DrawToScreen() override
+    void DrawVertical()
     {
-      if (not VerticalMode)
+      SaveColor();
+
+      BresenhamVertical(X1, Y1, X2, Y2);
+
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+      SDL_RenderDrawPoint(_renderer, xStart, yStart);
+
+      SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
+      SDL_RenderDrawPoint(_renderer, xEnd, yEnd);
+
+      RestoreColor();
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawDumb()
+    {
+      SaveColor();
+
+      LineDumb(X1, Y1, X2, Y2);
+
+      RestoreColor();
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawToFrameBuffer() override
+    {
+      switch (gMode)
       {
-        if (ShowText)
-        {
-          IF::Instance().Printf(X1 * QualityReductionFactor,
-                                Y1 * QualityReductionFactor - 4 * QualityReductionFactor,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "(%d, %d)",
-                                X1, Y1);
+        case DemoMode::NORMAL:
+          DrawNormal();
+          break;
 
-          IF::Instance().Printf(X2 * QualityReductionFactor,
-                                Y2 * QualityReductionFactor - 4 * QualityReductionFactor,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "(%d, %d)",
-                                X2, Y2);
+        case DemoMode::VERTICAL:
+          DrawVertical();
+          break;
 
-          IF::Instance().Printf(xStart * QualityReductionFactor,
-                                yStart * QualityReductionFactor +
-                                4 * QualityReductionFactor,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "1");
-
-          IF::Instance().Printf(xEnd * QualityReductionFactor,
-                                yEnd * QualityReductionFactor +
-                                4 * QualityReductionFactor,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "2");
-
-          if (ShowCorrect and not ShowHindu and gSteep)
-          {
-            IF::Instance().Printf(xStart * QualityReductionFactor +
-                                  2 * QualityReductionFactor,
-                                  yStart * QualityReductionFactor,
-                                  IF::TextParams::Set(0xFFFF00,
-                                                      IF::TextAlignment::LEFT,
-                                                      2.0),
-                                  "(%d, %d)",
-                                  xStart, yStart);
-
-            IF::Instance().Printf(xEnd * QualityReductionFactor +
-                                  2 * QualityReductionFactor,
-                                  yEnd * QualityReductionFactor,
-                                  IF::TextParams::Set(0xFFFF00,
-                                                      IF::TextAlignment::LEFT,
-                                                      2.0),
-                                  "(%d, %d)",
-                                  xEnd, yEnd);
-          }
-
-          IF::Instance().Printf(0,
-                                _windowHeight - 20 * 5,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "'1' - Hindu Bresenham");
-
-          IF::Instance().Printf(0,
-                                _windowHeight - 20 * 4,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "'2' - 'classic' Bresenham");
-
-          IF::Instance().Printf(0,
-                                _windowHeight - 20 * 3,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "'3' - (mx + c)");
-
-          IF::Instance().Printf(0,
-                                _windowHeight - 20 * 2,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "WASD and arrow keys - move points");
-
-          IF::Instance().Printf(0,
-                                _windowHeight - 20,
-                                IF::TextParams::Set(0xFFFFFF,
-                                                    IF::TextAlignment::LEFT,
-                                                    2.0),
-                                "'TAB' - hide text");
-        }
+        case DemoMode::DUMB:
+          DrawDumb();
+          break;
       }
-      else
+    }
+
+    // -------------------------------------------------------------------------
+
+    void PrintNormal()
+    {
+      IF::Instance().Printf(X1 * QualityReductionFactor,
+                            Y1 * QualityReductionFactor - 4 * QualityReductionFactor,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "(%d, %d)",
+                            X1, Y1);
+
+      IF::Instance().Printf(X2 * QualityReductionFactor,
+                            Y2 * QualityReductionFactor - 4 * QualityReductionFactor,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "(%d, %d)",
+                            X2, Y2);
+
+      IF::Instance().Printf(xStart * QualityReductionFactor,
+                            yStart * QualityReductionFactor +
+                            4 * QualityReductionFactor,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "1");
+
+      IF::Instance().Printf(xEnd * QualityReductionFactor,
+                            yEnd * QualityReductionFactor +
+                            4 * QualityReductionFactor,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "2");
+
+      if (ShowCorrect and not ShowHindu and gSteep)
       {
-        IF::Instance().Printf(0,
-                              _windowHeight - 20,
-                              IF::TextParams::Set(0xFFFFFF,
+        IF::Instance().Printf(xStart * QualityReductionFactor +
+                              2 * QualityReductionFactor,
+                              yStart * QualityReductionFactor,
+                              IF::TextParams::Set(0xFFFF00,
                                                   IF::TextAlignment::LEFT,
                                                   2.0),
-                              "Vertical mode");
+                              "(%d, %d)",
+                              xStart, yStart);
+
+        IF::Instance().Printf(xEnd * QualityReductionFactor +
+                              2 * QualityReductionFactor,
+                              yEnd * QualityReductionFactor,
+                              IF::TextParams::Set(0xFFFF00,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "(%d, %d)",
+                              xEnd, yEnd);
+      }
+
+      IF::Instance().Printf(0,
+                            _windowHeight - 20 * 5,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'1' - Hindu Bresenham");
+
+      IF::Instance().Printf(0,
+                            _windowHeight - 20 * 4,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'2' - 'classic' Bresenham");
+
+      IF::Instance().Printf(0,
+                            _windowHeight - 20 * 3,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'3' - (mx + c)");
+
+      IF::Instance().Printf(0,
+                            _windowHeight - 20 * 2,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "WASD and arrow keys - move points");
+
+      IF::Instance().Printf(0,
+                            _windowHeight - 20,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'TAB' - hide text");
+    }
+
+    // -------------------------------------------------------------------------
+
+    void PrintVertical()
+    {
+      IF::Instance().Printf(0,
+                            _windowHeight - 20,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "Vertical mode");
+    }
+
+    // -------------------------------------------------------------------------
+
+    void PrintDumb()
+    {
+      IF::Instance().Printf(0,
+                            _windowHeight - 20,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "Dumb mode");
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawToScreen() override
+    {
+      if (not ShowText)
+      {
+        return;
+      }
+
+      switch (gMode)
+      {
+        case DemoMode::NORMAL:
+          PrintNormal();
+          break;
+
+        case DemoMode::VERTICAL:
+          PrintVertical();
+          break;
+
+        case DemoMode::DUMB:
+          PrintDumb();
+          break;
       }
     }
 
@@ -880,8 +970,12 @@ class BH : public DrawWrapper
               break;
 
             case SDLK_m:
-              VerticalMode = not VerticalMode;
-              break;
+            {
+              gModeIndex++;
+              gModeIndex %= (uint8_t)DemoMode::LAST_ELEMENT;
+              gMode = (DemoMode)gModeIndex;
+            }
+            break;
 
             case SDLK_TAB:
               ShowText = not ShowText;

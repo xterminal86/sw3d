@@ -3,10 +3,10 @@
 
 const size_t QualityReductionFactor = 10;
 
-int X1 = 10;
-int Y1 = 5;
+int X1 = 30;
+int Y1 = 20;
 int X2 = 50;
-int Y2 = 20;
+int Y2 = 40;
 
 int xStart = 0;
 int yStart = 0;
@@ -68,10 +68,30 @@ class BH : public DrawWrapper
 
       SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
-      for (int x = x1; x <= x2; x++)
+      bool steep = std::abs(dy) > std::abs(dx);
+
+      int loopStart = steep ? y1 : x1;
+      int loopEnd   = steep ? y2 : x2;
+
+      if (loopStart > loopEnd)
       {
-        int y = (int)(k * x + b);
-        SDL_RenderDrawPoint(_renderer, x, y);
+        std::swap(loopStart, loopEnd);
+      }
+
+      int i = loopStart;
+
+      for (int i = loopStart; i <= loopEnd; i++)
+      {
+        if (steep)
+        {
+          int x = (int)(i - b) / k;
+          SDL_RenderDrawPoint(_renderer, x, i);
+        }
+        else
+        {
+          int y = (int)(k * i + b);
+          SDL_RenderDrawPoint(_renderer, i, y);
+        }
       }
     }
 
@@ -760,6 +780,12 @@ class BH : public DrawWrapper
 
       LineDumb(X1, Y1, X2, Y2);
 
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+      SDL_RenderDrawPoint(_renderer, X1, Y1);
+
+      SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
+      SDL_RenderDrawPoint(_renderer, X2, Y2);
+
       RestoreColor();
     }
 
@@ -892,6 +918,22 @@ class BH : public DrawWrapper
 
     void PrintDumb()
     {
+      IF::Instance().Printf(X1 * QualityReductionFactor,
+                            Y1 * QualityReductionFactor - 4 * QualityReductionFactor,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "(%d, %d)",
+                            X1, Y1);
+
+      IF::Instance().Printf(X2 * QualityReductionFactor,
+                            Y2 * QualityReductionFactor - 4 * QualityReductionFactor,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "(%d, %d)",
+                            X2, Y2);
+
       IF::Instance().Printf(0,
                             _windowHeight - 20,
                             IF::TextParams::Set(0xFFFFFF,

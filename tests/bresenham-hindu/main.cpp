@@ -26,6 +26,7 @@ enum class DemoMode
   NORMAL = 0,
   VERTICAL,
   DUMB,
+  DDA,
   LAST_ELEMENT
 };
 
@@ -38,6 +39,51 @@ using namespace SW3D;
 class BH : public DrawWrapper
 {
   public:
+    // -------------------------------------------------------------------------
+
+    //
+    // DDA algorithm.
+    //
+    void LineDDA(int sx, int sy, int ex, int ey)
+    {
+      int x1 = sx;
+      int y1 = sy;
+      int x2 = ex;
+      int y2 = ey;
+
+      if (x1 > x2)
+      {
+        std::swap(x1, x2);
+        std::swap(y1, y2);
+      }
+
+      bool goesDown = (y2 > y1);
+
+      int dx = std::abs(x2 - x1);
+      int dy = std::abs(y2 - y1);
+
+      int steps = dx > dy ? dx : dy;
+
+      double xInc = dx / (double)steps;
+      double yInc = dy / (double)steps;
+
+      double x = x1;
+      double y = y1;
+
+      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+
+      for (int i = 0; i <= steps; i++)
+      {
+        SDL_RenderDrawPoint(_renderer, (int)x, (int)y);
+
+        x += xInc;
+
+        y = goesDown ? y + yInc : y - yInc;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
     //
     // Straight implementation.
     //
@@ -791,6 +837,23 @@ class BH : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void DrawDDA()
+    {
+      SaveColor();
+
+      LineDDA(X1, Y1, X2, Y2);
+
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+      SDL_RenderDrawPoint(_renderer, X1, Y1);
+
+      SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
+      SDL_RenderDrawPoint(_renderer, X2, Y2);
+
+      RestoreColor();
+    }
+
+    // -------------------------------------------------------------------------
+
     void DrawToFrameBuffer() override
     {
       switch (gMode)
@@ -805,6 +868,10 @@ class BH : public DrawWrapper
 
         case DemoMode::DUMB:
           DrawDumb();
+          break;
+
+        case DemoMode::DDA:
+          DrawDDA();
           break;
       }
     }
@@ -944,6 +1011,18 @@ class BH : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void PrintDDA()
+    {
+      IF::Instance().Printf(0,
+                            _windowHeight - 20,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "DDA mode");
+    }
+
+    // -------------------------------------------------------------------------
+
     void DrawToScreen() override
     {
       if (not ShowText)
@@ -963,6 +1042,10 @@ class BH : public DrawWrapper
 
         case DemoMode::DUMB:
           PrintDumb();
+          break;
+
+        case DemoMode::DDA:
+          PrintDDA();
           break;
       }
     }

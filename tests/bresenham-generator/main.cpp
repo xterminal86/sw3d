@@ -2,7 +2,6 @@
 #include <cstdio>
 #include <utility>
 #include <cmath>
-#include <map>
 
 class BLG
 {
@@ -20,7 +19,6 @@ class BLG
     void Init(int x1, int y1, int x2, int y2)
     {
       _initialized = false;
-      _solved      = false;
       _done        = false;
 
       _xs = x1;
@@ -28,13 +26,13 @@ class BLG
       _xe = x2;
       _ye = y2;
 
-      if (_xs > _xe)
+      if(_ys > _ye)
       {
         std::swap(_xs, _xe);
         std::swap(_ys, _ye);
       }
 
-      _goesDown = (_ye > _ys);
+      _goesRight = (_xe > _xs);
 
       _x = _xs;
       _y = _ys;
@@ -42,14 +40,14 @@ class BLG
       _dx = std::abs(_xe - _xs);
       _dy = std::abs(_ye - _ys);
 
-      _steep = (_dy > _dx);
+      _gentle = (_dy < _dx);
 
-      if (_steep)
+      if (_gentle)
       {
         std::swap(_dx, _dy);
       }
 
-      _P = 2 * _dy - _dx;
+      _P = 2 * _dx - _dy;
 
       _initialized = true;
     }
@@ -69,23 +67,23 @@ class BLG
         return nullptr;
       }
 
-      if (not _steep)
+      if (not _gentle)
       {
-        if (_x != _xe)
+        if (_y != _ye)
         {
           _point.first  = _x;
           _point.second = _y;
 
-          _x++;
+          _y++;
 
           if (_P < 0)
           {
-            _P += 2 * _dy;
+            _P += 2 * _dx;
           }
           else
           {
-            _P += 2 * _dy - 2 * _dx;
-            _y = _goesDown ? (_y + 1) : (_y - 1);
+            _P += 2 * _dx - 2 * _dy;
+            _x = _goesRight ? (_x + 1) : (_x - 1);
           }
         }
         else
@@ -98,21 +96,21 @@ class BLG
       }
       else
       {
-        if (_y != _ye)
+        if (_x != _xe)
         {
           _point.first  = _x;
           _point.second = _y;
 
-          _y = _goesDown ? (_y + 1) : (_y - 1);
+          _x = _goesRight ? (_x + 1) : (_x - 1);
 
           if (_P < 0)
           {
-            _P += 2 * _dy;
+            _P += 2 * _dx;
           }
           else
           {
-            _P += 2 * _dy - 2 * _dx;
-            _x++;
+            _P += 2 * _dx - 2 * _dy;
+            _y++;
           }
         }
         else
@@ -125,61 +123,6 @@ class BLG
       }
 
       return &_point;
-    }
-
-    // -------------------------------------------------------------------------
-
-    //
-    // Gather all line points across Y scanlines.
-    //
-    void GatherScanlines()
-    {
-      if (not _initialized or _solved)
-      {
-        return;
-      }
-
-      _lastXByScanline = std::map<int, int>();
-
-      Point* p = Next();
-      while (p != nullptr)
-      {
-        int xPos      = p->first;
-        int yScanline = p->second;
-
-        if (_lastXByScanline.count(yScanline) == 0)
-        {
-          _lastXByScanline[yScanline] = xPos;
-        }
-        else
-        {
-          //
-          // Take last point across X if line goes down, and first point across
-          // X if line goes up since our implementation draws line from bottom
-          // to top basically.
-          //
-          bool lastRightX = (_goesDown
-                         and xPos > _lastXByScanline[yScanline]);
-          bool firstLeftX = (not _goesDown
-                         and xPos < _lastXByScanline[yScanline]);
-
-          if (lastRightX or firstLeftX)
-          {
-            _lastXByScanline[yScanline] = xPos;
-          }
-        }
-
-        p = Next();
-      }
-
-      _solved = true;
-    }
-
-    // -------------------------------------------------------------------------
-
-    const std::map<int, int>& GetScanlines()
-    {
-      return _lastXByScanline;
     }
 
     // -------------------------------------------------------------------------
@@ -198,19 +141,12 @@ class BLG
 
     int _P = 0;
 
-    bool _goesDown    = false;
-    bool _steep       = false;
+    bool _goesRight   = false;
+    bool _gentle      = false;
     bool _done        = false;
     bool _initialized = false;
-    bool _solved      = false;
 
     Point _point;
-
-    //
-    // Proper X point across Y scanline depending on line direction.
-    // I.e. max X for lines going down and min X for lines going up.
-    //
-    std::map<int, int> _lastXByScanline;
 };
 
 
@@ -243,17 +179,6 @@ int main(int argc, char* argv[])
   Test(10, 10, 20, 15);
   Test(10, 10, 20, 5);
   Test(10, 10, 15, 20);
-
-  BLG bg;
-  bg.Init(10, 10, 15, 20);
-  bg.GatherScanlines();
-
-  auto s = bg.GetScanlines();
-
-  for (auto& kvp : s)
-  {
-    printf("scanline Y: %d, X = %d\n", kvp.first, kvp.second);
-  }
 
   return 0;
 }

@@ -45,34 +45,28 @@ TriangleSimple CurrentTriangle = FlatTop;
 double dx = 0.0;
 double dy = 0.0;
 
-struct ParamsDDA
-{
-  double x1;
-  double y1;
-  double x2;
-  double y2;
-  double dx;
-  double dy;
-  double steps;
-  double xInc;
-  double yInc;
-};
-
-ParamsDDA ParamsDDA_;
-
 enum class TriangleType
 {
   UNDEFINED = 0,
   FLAT_TOP,
   FLAT_BOTTOM,
-  COMPOSITE_MR,
-  COMPOSITE_ML
+  MAJOR_RIGHT,
+  MAJOR_LEFT
 };
 
 enum class WindingOrder
 {
   CW = 0,
   CCW
+};
+
+const std::unordered_map<TriangleType, std::string> TriangleTypeByType =
+{
+  { TriangleType::UNDEFINED,   "UNDEFINED"   },
+  { TriangleType::FLAT_TOP,    "FLAT_TOP"    },
+  { TriangleType::FLAT_BOTTOM, "FLAT_BOTTOM" },
+  { TriangleType::MAJOR_RIGHT, "MAJOR_RIGHT" },
+  { TriangleType::MAJOR_LEFT,  "MAJOR_LEFT"  }
 };
 
 // =============================================================================
@@ -124,7 +118,7 @@ bool SortVertices(TriangleSimple& t)
 
 // =============================================================================
 
-void CheckWinding(TriangleSimple& t)
+void CheckAndFixWinding(TriangleSimple& t)
 {
   WindingOrder wo = GetWindingOrder(t);
   if (wo == WindingOrder::CCW)
@@ -132,9 +126,11 @@ void CheckWinding(TriangleSimple& t)
     //
     // Since we decided to stick to CW winding order if we encountered CCW one
     // just swap two adjacent vertices to change it.
+    // We will swap 2nd and 3rd because we decided on certain configurations
+    // of vertices for all triangle types.
     //
-    std::swap(t.Points[0].X, t.Points[1].X);
-    std::swap(t.Points[0].Y, t.Points[1].Y);
+    std::swap(t.Points[1].X, t.Points[2].X);
+    std::swap(t.Points[1].Y, t.Points[2].Y);
   }
 }
 
@@ -237,7 +233,7 @@ void CrossProductTest()
       printf("Before:\n%s", ToString(toTest).data());
 
       SortVertices(toTest);
-      CheckWinding(toTest);
+      CheckAndFixWinding(toTest);
 
       printf("After:\n%s", ToString(toTest).data());
 
@@ -278,9 +274,9 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   //          |           |             |
   // 1     2  |     1     |      1      |      1
   //          |           |             |
-  //          |           | - 2- - x -  |  - x- - 2- -
+  //          |           | - 3- - x -  |  - x- - 2- -
   //    3     |  2     3  |             |
-  //          |           |          3  |  3
+  //          |           |          2  |  3
   //
   // Because we decided on CW ordering we need to swap two vertices in certain
   // cases: 1 <-> 2 for FB and C (MR). It doesn't matter which ones are swapped,
@@ -300,13 +296,17 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   {
     res = TriangleType::FLAT_TOP;
   }
-  else if (t.Points[0].Y == t.Points[2].Y)
+  else if (t.Points[1].Y == t.Points[2].Y)
   {
     res = TriangleType::FLAT_BOTTOM;
   }
-  else
+  else if (t.Points[1].Y > t.Points[2].Y)
   {
-    // TODO:
+    res = TriangleType::MAJOR_RIGHT;
+  }
+  else if (t.Points[1].Y < t.Points[2].Y)
+  {
+    res = TriangleType::MAJOR_LEFT;
   }
 
   return res;
@@ -357,10 +357,18 @@ void SortingTest()
     t.Points[1] = {  7,  5, 0 };
     t.Points[2] = { 15, 15, 0 };
 
+    //
+    //      1
+    //
+    //  3
+    //
+    //
+    //           2
+    //
     TriangleSimple expected;
     expected.Points[0] = {  7,  5, 0 };
-    expected.Points[1] = {  5, 10, 0 };
-    expected.Points[2] = { 15, 15, 0 };
+    expected.Points[1] = { 15, 15, 0 };
+    expected.Points[2] = {  5, 10, 0 };
 
     for (const Indices& i : indices)
     {
@@ -370,8 +378,18 @@ void SortingTest()
       toTest.Points[2] = t.Points[i.Ind[2]];
 
       SortVertices(toTest);
+      CheckAndFixWinding(toTest);
 
-      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+      printf("%s\n", ToString(toTest).data());
+
+      TriangleType tt = GetTriangleType(toTest);
+
+      printf("Got expected vertices? %s\n",
+             (toTest == expected) ? "OK" : "FAIL!");
+      printf("TriangleType is: '%s' - %s\n",
+             TriangleTypeByType.at(tt).data(),
+             (tt == TriangleType::MAJOR_RIGHT) ? "OK" : "FAIL!");
+      printf("\n");
     }
 
     printf("\n");
@@ -390,6 +408,14 @@ void SortingTest()
     t.Points[1] = {  7,  5, 0 };
     t.Points[2] = { 10, 10, 0 };
 
+    //
+    //      1
+    //
+    //         2
+    //
+    //
+    //  3
+    //
     TriangleSimple expected;
     expected.Points[0] = {  7,  5, 0 };
     expected.Points[1] = { 10, 10, 0 };
@@ -403,8 +429,18 @@ void SortingTest()
       toTest.Points[2] = t.Points[i.Ind[2]];
 
       SortVertices(toTest);
+      CheckAndFixWinding(toTest);
 
-      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+      printf("%s\n", ToString(toTest).data());
+
+      TriangleType tt = GetTriangleType(toTest);
+
+      printf("Got expected vertices? %s\n",
+             (toTest == expected) ? "OK" : "FAIL!");
+      printf("TriangleType is: '%s' - %s\n",
+             TriangleTypeByType.at(tt).data(),
+             (tt == TriangleType::MAJOR_LEFT) ? "OK" : "FAIL!");
+      printf("\n");
     }
 
     printf("\n");
@@ -441,8 +477,18 @@ void SortingTest()
       toTest.Points[2] = t.Points[i.Ind[2]];
 
       SortVertices(toTest);
+      CheckAndFixWinding(toTest);
 
-      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+      printf("%s\n", ToString(toTest).data());
+
+      TriangleType tt = GetTriangleType(toTest);
+
+      printf("Got expected vertices? %s\n",
+             (toTest == expected) ? "OK" : "FAIL!");
+      printf("TriangleType is: '%s' - %s\n",
+             TriangleTypeByType.at(tt).data(),
+             (tt == TriangleType::FLAT_TOP) ? "OK" : "FAIL!");
+      printf("\n");
     }
 
     printf("\n");
@@ -462,14 +508,14 @@ void SortingTest()
     t.Points[2] = {  5, 10, 0 };
 
     //
-    //     2
+    //     1
     //
-    //  1     3
+    //  3     2
     //
     TriangleSimple expected;
-    expected.Points[0] = {  5, 10, 0 };
-    expected.Points[1] = {  7,  5, 0 };
-    expected.Points[2] = { 10, 10, 0 };
+    expected.Points[0] = {  7,  5, 0 };
+    expected.Points[1] = { 10, 10, 0 };
+    expected.Points[2] = {  5, 10, 0 };
 
     for (const Indices& i : indices)
     {
@@ -479,8 +525,18 @@ void SortingTest()
       toTest.Points[2] = t.Points[i.Ind[2]];
 
       SortVertices(toTest);
+      CheckAndFixWinding(toTest);
 
-      printf("%s\n", (toTest == expected) ? "OK" : "FAIL!");
+      printf("%s\n", ToString(toTest).data());
+
+      TriangleType tt = GetTriangleType(toTest);
+
+      printf("Got expected vertices? %s\n",
+             (toTest == expected) ? "OK" : "FAIL!");
+      printf("TriangleType is: '%s' - %s\n",
+             TriangleTypeByType.at(tt).data(),
+             (tt == TriangleType::FLAT_BOTTOM) ? "OK" : "FAIL!");
+      printf("\n");
     }
 
     printf("\n");
@@ -555,8 +611,11 @@ class CTF : public DrawWrapper
     //    considered ascending if its respective vector V[ (X+1)%3 ] - V[X]
     //    (where X can be 0, 1, 2) has a positive y-coordinate."
     //
-    void FillTriangleCustom(const TriangleSimple& t)
+    void FillTriangleCustom(TriangleSimple& t)
     {
+      SortVertices(t);
+      CheckAndFixWinding(t);
+
       // TODO:
       //
       // if FlatTop:
@@ -568,56 +627,6 @@ class CTF : public DrawWrapper
       //   FillFT()
       //   FillFB()
       //
-    }
-
-    // -------------------------------------------------------------------------
-
-    //
-    // DDA stands for "Digital Differential Analyzer".
-    //
-    void DrawLineDDA(double x1, double y1, double x2, double y2)
-    {
-      double dx = x2 - x1;
-      double dy = y2 - y1;
-
-      double steps = (std::fabs(dx) > std::fabs(dy))
-                    ? std::fabs(dx)
-                    : std::fabs(dy);
-
-      ParamsDDA_.x1 = x1;
-      ParamsDDA_.y1 = y1;
-      ParamsDDA_.x2 = x2;
-      ParamsDDA_.y2 = y2;
-
-      ParamsDDA_.dx = dx;
-      ParamsDDA_.dy = dy;
-
-      ParamsDDA_.steps = steps;
-
-      if (steps == 0.0)
-      {
-        ParamsDDA_.xInc = 0.0;
-        ParamsDDA_.yInc = 0.0;
-
-        SDL_RenderDrawPoint(_renderer, std::round(x1), std::round(y1));
-        return;
-      }
-
-      double xInc = dx / steps;
-      double yInc = dy / steps;
-
-      ParamsDDA_.xInc = xInc;
-      ParamsDDA_.yInc = yInc;
-
-      double x = x1;
-      double y = y1;
-
-      for (int i = 0; i <= (int)steps; i++)
-      {
-        SDL_RenderDrawPoint(_renderer, std::round(x), std::round(y));
-        x += xInc;
-        y += yInc;
-      }
     }
 
     // -------------------------------------------------------------------------
@@ -648,8 +657,6 @@ class CTF : public DrawWrapper
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
         FillTriangleCustom(CurrentTriangle);
-
-        DrawLineDDA(10, 50, 50 + dx, 100 + dy);
       }
 
       RestoreColor();
@@ -677,28 +684,6 @@ class CTF : public DrawWrapper
                                                   2.0),
                               "subpixel mode %s",
                               SubpixelDrawing ? "ON" : "OFF");
-
-        IF::Instance().Printf(0, 140,
-                              IF::TextParams::Set(0xFFFFFF,
-                                                  IF::TextAlignment::LEFT,
-                                                  1.0),
-                              "(%.2f ; %.2f) - (%.2f ; %.2f)",
-                              ParamsDDA_.x1,
-                              ParamsDDA_.y1,
-                              ParamsDDA_.x2,
-                              ParamsDDA_.y2);
-
-        IF::Instance().Printf(0, 160,
-                              IF::TextParams::Set(0xFFFFFF,
-                                                  IF::TextAlignment::LEFT,
-                                                  1.0),
-                              "dx = %.2f dy = %.2f steps = %.2f, "
-                              "xInc = %.2f yInc = %.2f",
-                              ParamsDDA_.dx,
-                              ParamsDDA_.dy,
-                              ParamsDDA_.steps,
-                              ParamsDDA_.xInc,
-                              ParamsDDA_.yInc);
       }
     }
 
@@ -756,8 +741,8 @@ class CTF : public DrawWrapper
 
 int main(int argc, char* argv[])
 {
-  CrossProductTest();
-  //SortingTest();
+  //CrossProductTest();
+  SortingTest();
 
   //CTF c;
   //

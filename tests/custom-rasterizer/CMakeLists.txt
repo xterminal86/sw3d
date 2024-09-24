@@ -9,11 +9,13 @@ project (${TARGET_NAME})
 
 include_directories(${SDL2_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator)
 
 add_executable(${TARGET_NAME}
   main.cpp
   ../../types.cpp
   ../../sw3d.cpp
+  ../bresenham-generator/blg.cpp
 )
 
 if (WIN32)

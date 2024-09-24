@@ -12,6 +12,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 
 add_executable(${TARGET_NAME}
   main.cpp
+  blg.h
+  blg.cpp
   ../../types.cpp
   ../../sw3d.cpp
 )

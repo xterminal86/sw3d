@@ -2,6 +2,7 @@
 
 #include "sw3d.h"
 #include "instant-font.h"
+#include "blg.h"
 
 using namespace SW3D;
 
@@ -67,6 +68,12 @@ const std::unordered_map<TriangleType, std::string> TriangleTypeByType =
   { TriangleType::FLAT_BOTTOM, "FLAT_BOTTOM" },
   { TriangleType::MAJOR_RIGHT, "MAJOR_RIGHT" },
   { TriangleType::MAJOR_LEFT,  "MAJOR_LEFT"  }
+};
+
+const std::unordered_map<WindingOrder, std::string> WindingOrderByType =
+{
+  { WindingOrder::CW,  "CW"  },
+  { WindingOrder::CCW, "CCW" }
 };
 
 // =============================================================================
@@ -383,12 +390,16 @@ void SortingTest()
       printf("%s\n", ToString(toTest).data());
 
       TriangleType tt = GetTriangleType(toTest);
+      WindingOrder wo = GetWindingOrder(toTest);
 
       printf("Got expected vertices? %s\n",
              (toTest == expected) ? "OK" : "FAIL!");
       printf("TriangleType is: '%s' - %s\n",
              TriangleTypeByType.at(tt).data(),
              (tt == TriangleType::MAJOR_RIGHT) ? "OK" : "FAIL!");
+      printf("Winding order: '%s' - %s\n",
+             WindingOrderByType.at(wo).data(),
+             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
       printf("\n");
     }
 
@@ -434,12 +445,16 @@ void SortingTest()
       printf("%s\n", ToString(toTest).data());
 
       TriangleType tt = GetTriangleType(toTest);
+      WindingOrder wo = GetWindingOrder(toTest);
 
       printf("Got expected vertices? %s\n",
              (toTest == expected) ? "OK" : "FAIL!");
       printf("TriangleType is: '%s' - %s\n",
              TriangleTypeByType.at(tt).data(),
              (tt == TriangleType::MAJOR_LEFT) ? "OK" : "FAIL!");
+      printf("Winding order: '%s' - %s\n",
+             WindingOrderByType.at(wo).data(),
+             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
       printf("\n");
     }
 
@@ -482,12 +497,16 @@ void SortingTest()
       printf("%s\n", ToString(toTest).data());
 
       TriangleType tt = GetTriangleType(toTest);
+      WindingOrder wo = GetWindingOrder(toTest);
 
       printf("Got expected vertices? %s\n",
              (toTest == expected) ? "OK" : "FAIL!");
       printf("TriangleType is: '%s' - %s\n",
              TriangleTypeByType.at(tt).data(),
              (tt == TriangleType::FLAT_TOP) ? "OK" : "FAIL!");
+      printf("Winding order: '%s' - %s\n",
+             WindingOrderByType.at(wo).data(),
+             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
       printf("\n");
     }
 
@@ -530,12 +549,16 @@ void SortingTest()
       printf("%s\n", ToString(toTest).data());
 
       TriangleType tt = GetTriangleType(toTest);
+      WindingOrder wo = GetWindingOrder(toTest);
 
       printf("Got expected vertices? %s\n",
              (toTest == expected) ? "OK" : "FAIL!");
       printf("TriangleType is: '%s' - %s\n",
              TriangleTypeByType.at(tt).data(),
              (tt == TriangleType::FLAT_BOTTOM) ? "OK" : "FAIL!");
+      printf("Winding order: '%s' - %s\n",
+             WindingOrderByType.at(wo).data(),
+             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
       printf("\n");
     }
 
@@ -584,6 +607,134 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void DrawFT(const TriangleSimple& t)
+    {
+      //
+      // Vertices in t are always:
+      //
+      // 1     2
+      //
+      //
+      //    3
+      //
+      BLG first;
+      first.Init(t.Points[0].X, t.Points[0].Y, t.Points[2].X, t.Points[2].Y);
+
+      BLG second;
+      second.Init(t.Points[1].X, t.Points[1].Y, t.Points[2].X, t.Points[2].Y);
+
+      BLG::Point* p1 = first.Next();
+      BLG::Point* p2 = second.Next();
+
+      while (true)
+      {
+        if (p1 == nullptr and p2 == nullptr)
+        {
+          break;
+        }
+
+        int y1 = p1->second;
+        int y2 = p2->second;
+
+        if (y1 == y2)
+        {
+          for (int x = p1->first; x <= p2->first; x++)
+          {
+            SDL_RenderDrawPoint(_renderer, x, y1);
+          }
+
+          p1 = first.Next();
+          p2 = second.Next();
+        }
+        else
+        {
+          if (y1 < y2)
+          {
+            p1 = first.Next();
+          }
+          else
+          {
+            p2 = second.Next();
+          }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawFB(const TriangleSimple& t)
+    {
+      //
+      // Vertices in t are always:
+      //
+      //    1
+      //
+      //
+      // 3     2
+      //
+
+      //
+      // Lines must be (1 - 3) and (1 - 2) in this order because we use for loop
+      // from x1 to x2. So left line must be first.
+      //
+      BLG first;
+      first.Init(t.Points[0].X, t.Points[0].Y, t.Points[2].X, t.Points[2].Y);
+
+      BLG second;
+      second.Init(t.Points[0].X, t.Points[0].Y, t.Points[1].X, t.Points[1].Y);
+
+      BLG::Point* p1 = first.Next();
+      BLG::Point* p2 = second.Next();
+
+      while (true)
+      {
+        if (p1 == nullptr and p2 == nullptr)
+        {
+          break;
+        }
+
+        int y1 = p1->second;
+        int y2 = p2->second;
+
+        if (y1 == y2)
+        {
+          for (int x = p1->first; x <= p2->first; x++)
+          {
+            SDL_RenderDrawPoint(_renderer, x, y1);
+          }
+
+          p1 = first.Next();
+          p2 = second.Next();
+        }
+        else
+        {
+          if (y1 < y2)
+          {
+            p1 = first.Next();
+          }
+          else
+          {
+            p2 = second.Next();
+          }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawMR(const TriangleSimple& t)
+    {
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawML(const TriangleSimple& t)
+    {
+    }
+
+
+    // -------------------------------------------------------------------------
+
     //
     // From https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage.html
     //
@@ -616,6 +767,29 @@ class CTF : public DrawWrapper
       SortVertices(t);
       CheckAndFixWinding(t);
 
+      TriangleType tt = GetTriangleType(t);
+      switch (tt)
+      {
+        case TriangleType::FLAT_TOP:
+          DrawFT(t);
+          break;
+
+        case TriangleType::FLAT_BOTTOM:
+          DrawFB(t);
+          break;
+
+        case TriangleType::MAJOR_RIGHT:
+          DrawMR(t);
+          break;
+
+        case TriangleType::MAJOR_LEFT:
+          DrawML(t);
+          break;
+
+        default:
+          break;
+      }
+
       // TODO:
       //
       // if FlatTop:
@@ -643,20 +817,13 @@ class CTF : public DrawWrapper
       else
       {
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-
         SDL_RenderDrawPointF(_renderer, dx, dy);
 
         SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
-
         SDL_RenderDrawPoint(_renderer, dx, dy + 6);
 
         SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-
         DrawTriangleContour(CurrentTriangle);
-
-        SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-
-        FillTriangleCustom(CurrentTriangle);
       }
 
       RestoreColor();
@@ -742,15 +909,15 @@ class CTF : public DrawWrapper
 int main(int argc, char* argv[])
 {
   //CrossProductTest();
-  SortingTest();
+  //SortingTest();
 
-  //CTF c;
-  //
-  //if (c.Init(700, 700, QualityReductionFactor))
-  //{
-  //  IF::Instance().Init(c.GetRenderer());
-  //  c.Run(true);
-  //}
+  CTF c;
+
+  if (c.Init(700, 700, QualityReductionFactor))
+  {
+    IF::Instance().Init(c.GetRenderer());
+    c.Run(true);
+  }
 
   return 0;
 }

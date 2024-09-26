@@ -16,21 +16,28 @@ bool ScanlineRasterizer = true;
 const TriangleSimple FlatTop =
 {
   {
-    { 50, 50, 0 }, { 100, 50, 0 }, { 75, 100, 0 }
+    { 50, 100, 0 }, { 150, 100, 0 }, { 100, 150, 0 }
   }
 };
 
 const TriangleSimple FlatBottom =
 {
   {
-    { 75, 0, 0 }, { 50, 50, 0 }, { 100, 50, 0 }
+    { 50, 100, 0 }, { 150, 100, 0 }, { 100, 50, 0 }
   }
 };
 
-const TriangleSimple Composite =
+const TriangleSimple CompositeMR =
 {
   {
-    { 50, 25, 0 }, { 75, 75, 0 }, { 150, 100, 0 }
+    { 100, 50, 0 }, { 50, 100, 0 }, { 150, 150, 0 }
+  }
+};
+
+const TriangleSimple CompositeML =
+{
+  {
+    { 100, 50, 0 }, { 150, 100, 0 }, { 50, 150, 0 }
   }
 };
 
@@ -38,7 +45,8 @@ std::vector<TriangleSimple> Triangles =
 {
   FlatTop,
   FlatBottom,
-  Composite
+  CompositeMR,
+  CompositeML
 };
 
 TriangleSimple CurrentTriangle = FlatTop;
@@ -295,6 +303,29 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   // unambiguous result, we can manually pass points into rasterization function
   // in proper order.
   // So you see, it's everything about order here.
+  //
+  // We still need to find splitting point 'x' to be able to rasterize composite
+  // triangle using two 'primitive' ones.
+  //
+  // From CMR triangle we can observe that:
+  //
+  // v3.y - v1.y
+  // ----------- = a
+  // v2.y - v1.y
+  //
+  // From this splitting point x can be defined as:
+  //
+  // x = (1 - a)v1 + av2
+  //
+  // We can rewrite this expression like this:
+  //
+  // x = v1 - av1 + av2 = v1 + av2 - av1
+  //
+  // +---------------------+
+  // | x = v1 + a(v2 - v1) |
+  // +---------------------+
+  //
+  // And thus we have a formula to determine splitting point given two others.
   //
 
   TriangleType res = TriangleType::UNDEFINED;
@@ -811,6 +842,7 @@ class CTF : public DrawWrapper
 
       if (ScanlineRasterizer)
       {
+        //HighlightPoints();
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
         FillTriangleCustom(CurrentTriangle);
       }
@@ -913,7 +945,7 @@ int main(int argc, char* argv[])
 
   CTF c;
 
-  if (c.Init(700, 700, QualityReductionFactor))
+  if (c.Init(800, 800, QualityReductionFactor))
   {
     IF::Instance().Init(c.GetRenderer());
     c.Run(true);

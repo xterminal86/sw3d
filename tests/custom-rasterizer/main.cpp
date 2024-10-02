@@ -685,44 +685,87 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    //
+    // TODO: implement top-left rule.
+    //
     void Rasterize(BLG& first, BLG& second)
     {
       BLG::Point* p1 = first.Next();
       BLG::Point* p2 = second.Next();
 
+      if (p1 == nullptr or p2 == nullptr)
+      {
+        return;
+      }
+
+      int x1 = 0;
+      int x2 = 0;
+      int y1 = 0;
+      int y2 = 0;
+
+      //
+      // We all start from either the same point or same horizontal line, so Y
+      // should be equal.
+      //
+      int scanlineY = p1->second;
+
+      //
+      // Consider a following configuration:
+      //
+      //                              1
+      //
+      //    3                         2
+      //
+      // In this case there is an extremely gentle slope of one side of a
+      // triangle (1-3) which will have more points with the same Y compared to
+      // the other side (1-2) which has few points, all of which with different
+      // Y. So we should connect leftmost points across 1-3 with rightmost
+      // points of 1-2 (which could also be extremelly gentle sloped).
+      // To do this we will connect previous scanline only after both generators
+      // change their Y.
+      // By drawing like this this we will avoid pixel overdraw.
+      //
       while (true)
       {
+        x1 = p1->first;
+        x2 = p2->first;
+
         //
-        // TODO: figure out why 'and' doesn't work.
+        // Wait until Y for left line changes.
         //
-        if (p1 == nullptr or p2 == nullptr)
+        y1 = p1->second;
+        while (p1 != nullptr and y1 == scanlineY)
         {
-          break;
+          y1 = p1->second;
+          p1 = first.Next();
         }
 
-        int y1 = p1->second;
-        int y2 = p2->second;
-
-        if (y1 == y2)
+        //
+        // Same here for right line.
+        //
+        y2 = p2->second;
+        while (p2 != nullptr and y2 == scanlineY)
         {
-          for (int x = p1->first; x <= p2->first; x++)
-          {
-            SDL_RenderDrawPoint(_renderer, x, y1);
-          }
-
-          p1 = first.Next();
+          y2 = p2->second;
           p2 = second.Next();
         }
-        else
+
+        //
+        // Here we moved to the next scanline, so we can draw previous one.
+        //
+        for (int x = x1; x <= x2; x++)
         {
-          if (y1 < y2)
-          {
-            p1 = first.Next();
-          }
-          else
-          {
-            p2 = second.Next();
-          }
+          SDL_RenderDrawPoint(_renderer, x, scanlineY);
+        }
+
+        scanlineY = y1;
+
+        //
+        // Exit loop if there are no more points.
+        //
+        if (p1 == nullptr and p2 == nullptr)
+        {
+          break;
         }
       }
     }
@@ -774,7 +817,7 @@ class CTF : public DrawWrapper
       // So just delegate drawing of these cases to already workign methods,
       // just be sure to pass vertices in proper order. Since we control the
       // appearance of the new vertex there's no need to do sorting and winding
-      // check as it is done in general case because here we can just manually
+      // check as it was done in general case because here we can just manually
       // pass them properly.
       //
       //    1

@@ -307,17 +307,17 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   // We still need to find splitting point 'x' to be able to rasterize composite
   // triangle using two 'primitive' ones.
   //
-  // From CMR triangle we can observe that:
+  // From C (MR) triangle we can designate:
   //
   // v3.y - v1.y
   // ----------- = a
   // v2.y - v1.y
   //
-  // From this splitting point x can be defined as:
+  // From this equation splitting point x can be defined as:
   //
   // x = (1 - a)v1 + av2
   //
-  // We can rewrite this expression like this:
+  // We can rewrite this expression:
   //
   // x = v1 - av1 + av2 = v1 + av2 - av1
   //
@@ -641,7 +641,7 @@ class CTF : public DrawWrapper
     void DrawFT(const TriangleSimple& t)
     {
       //
-      // Vertices in t are always:
+      // Vertices in 't' are always:
       //
       // 1     2
       //
@@ -654,41 +654,7 @@ class CTF : public DrawWrapper
       BLG second;
       second.Init(t.Points[1].X, t.Points[1].Y, t.Points[2].X, t.Points[2].Y);
 
-      BLG::Point* p1 = first.Next();
-      BLG::Point* p2 = second.Next();
-
-      while (true)
-      {
-        if (p1 == nullptr and p2 == nullptr)
-        {
-          break;
-        }
-
-        int y1 = p1->second;
-        int y2 = p2->second;
-
-        if (y1 == y2)
-        {
-          for (int x = p1->first; x <= p2->first; x++)
-          {
-            SDL_RenderDrawPoint(_renderer, x, y1);
-          }
-
-          p1 = first.Next();
-          p2 = second.Next();
-        }
-        else
-        {
-          if (y1 < y2)
-          {
-            p1 = first.Next();
-          }
-          else
-          {
-            p2 = second.Next();
-          }
-        }
-      }
+      Rasterize(first, second);
     }
 
     // -------------------------------------------------------------------------
@@ -696,7 +662,7 @@ class CTF : public DrawWrapper
     void DrawFB(const TriangleSimple& t)
     {
       //
-      // Vertices in t are always:
+      // Vertices in 't' are always:
       //
       //    1
       //
@@ -714,12 +680,22 @@ class CTF : public DrawWrapper
       BLG second;
       second.Init(t.Points[0].X, t.Points[0].Y, t.Points[1].X, t.Points[1].Y);
 
+      Rasterize(first, second);
+    }
+
+    // -------------------------------------------------------------------------
+
+    void Rasterize(BLG& first, BLG& second)
+    {
       BLG::Point* p1 = first.Next();
       BLG::Point* p2 = second.Next();
 
       while (true)
       {
-        if (p1 == nullptr and p2 == nullptr)
+        //
+        // TODO: figure out why 'and' doesn't work.
+        //
+        if (p1 == nullptr or p2 == nullptr)
         {
           break;
         }
@@ -755,14 +731,93 @@ class CTF : public DrawWrapper
 
     void DrawMR(const TriangleSimple& t)
     {
+      //
+      // Vertices in 't' are always:
+      //
+      //      1
+      //
+      // - 3- - x -
+      //
+      //          2
+      //
+
+      //
+      // First we need to find splitting point. Recall:
+      //
+      // v3.y - v1.y
+      // ----------- = a
+      // v2.y - v1.y
+      //
+      // From this equation splitting point x can be defined as:
+      //
+      // x = (1 - a)v1 + av2
+      //
+      // We can rewrite this expression:
+      //
+      // x = v1 - av1 + av2 = v1 + av2 - av1
+      //
+      // +---------------------+
+      // | x = v1 + a(v2 - v1) |
+      // +---------------------+
+      //
+
+      double a = (t.Points[2].Y - t.Points[0].Y) / (t.Points[1].Y - t.Points[0].Y);
+
+      //
+      // Because multiplication from the left doesn't fucking work.
+      //
+      Vec3 x = t.Points[0] + (t.Points[1] - t.Points[0]) * a;
+
+      //
+      // We have successfully reduced task to already solved ones.
+      //
+      // So just delegate drawing of these cases to already workign methods,
+      // just be sure to pass vertices in proper order. Since we control the
+      // appearance of the new vertex there's no need to do sorting and winding
+      // check as it is done in general case because here we can just manually
+      // pass them properly.
+      //
+      //    1
+      //
+      // 3     x (2)
+      //
+      TriangleSimple fb = { t.Points[0], x, t.Points[2] };
+      DrawFB(fb);
+
+      //
+      // 3 (1)    x (2)
+      //
+      //
+      //
+      //     2 (3)
+      //
+      TriangleSimple ft = { t.Points[2], x, t.Points[1] };
+      DrawFT(ft);
     }
 
     // -------------------------------------------------------------------------
 
     void DrawML(const TriangleSimple& t)
     {
-    }
+      //
+      // Vertices in 't' are always:
+      //
+      //     1
+      //
+      // - x- - 2- -
+      //
+      // 3
+      //
 
+      double a = (t.Points[1].Y - t.Points[0].Y) / (t.Points[2].Y - t.Points[0].Y);
+      Vec3 x = t.Points[0] + (t.Points[2] - t.Points[0]) * a;
+
+      TriangleSimple fb = { t.Points[0], t.Points[1], x };
+      DrawFB(fb);
+
+      TriangleSimple ft = { x, t.Points[1], t.Points[2] };
+      DrawFT(ft);
+    }
 
     // -------------------------------------------------------------------------
 
@@ -820,18 +875,6 @@ class CTF : public DrawWrapper
         default:
           break;
       }
-
-      // TODO:
-      //
-      // if FlatTop:
-      //   FillFT()
-      // elif FlatBottom:
-      //   FillFB();
-      // else:
-      //   SplitTriangles()
-      //   FillFT()
-      //   FillFB()
-      //
     }
 
     // -------------------------------------------------------------------------

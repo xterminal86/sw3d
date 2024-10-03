@@ -8,7 +8,8 @@ using namespace SW3D;
 
 const size_t QualityReductionFactor = 4;
 
-size_t SelectionIndex = 0;
+size_t SelectionIndex    = 0;
+size_t CurrentPointIndex = 0;
 
 bool SubpixelDrawing    = false;
 bool ScanlineRasterizer = true;
@@ -53,6 +54,8 @@ TriangleSimple CurrentTriangle = FlatTop;
 
 double dx = 0.0;
 double dy = 0.0;
+
+Vec3* CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
 
 enum class TriangleType
 {
@@ -728,7 +731,6 @@ class CTF : public DrawWrapper
       while (true)
       {
         x1 = p1->first;
-        x2 = p2->first;
 
         //
         // Wait until Y for left line changes.
@@ -739,6 +741,8 @@ class CTF : public DrawWrapper
           y1 = p1->second;
           p1 = first.Next();
         }
+
+        x2 = p2->first;
 
         //
         // Same here for right line.
@@ -922,15 +926,30 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void HighlightPoint()
+    {
+      static SDL_Rect rect;
+      rect.x = CurrentPoint->X - 5;
+      rect.y = CurrentPoint->Y - 5;
+      rect.w = 10;
+      rect.h = 10;
+      SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+      SDL_RenderDrawRect(_renderer, &rect);
+    }
+
+    // -------------------------------------------------------------------------
+
     void DrawToFrameBuffer() override
     {
       SaveColor();
 
       if (ScanlineRasterizer)
       {
-        //HighlightPoints();
+        HighlightPoint();
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-        FillTriangleCustom(CurrentTriangle);
+        static TriangleSimple tmp;
+        tmp = CurrentTriangle;
+        FillTriangleCustom(tmp);
       }
       else
       {
@@ -970,6 +989,15 @@ class CTF : public DrawWrapper
                               "subpixel mode %s",
                               SubpixelDrawing ? "ON" : "OFF");
       }
+      else
+      {
+        IF::Instance().Printf(0, 0,
+                              IF::TextParams::Set(0xFFFFFF,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "CurrentPoint (%d %d)",
+                              (int)CurrentPoint->X, (int)CurrentPoint->Y);
+      }
     }
 
     void HandleEvent(const SDL_Event& evt) override
@@ -986,18 +1014,42 @@ class CTF : public DrawWrapper
 
             case SDLK_a:
               dx -= 0.1;
+              CurrentPoint->X--;
               break;
 
             case SDLK_d:
               dx += 0.1;
+              CurrentPoint->X++;
               break;
 
             case SDLK_w:
               dy -= 0.1;
+              CurrentPoint->Y--;
               break;
 
             case SDLK_s:
               dy += 0.1;
+              CurrentPoint->Y++;
+              break;
+
+            case SDLK_q:
+              CurrentPoint->X--;
+              CurrentPoint->Y--;
+              break;
+
+            case SDLK_e:
+              CurrentPoint->X++;
+              CurrentPoint->Y--;
+              break;
+
+            case SDLK_c:
+              CurrentPoint->X++;
+              CurrentPoint->Y++;
+              break;
+
+            case SDLK_z:
+              CurrentPoint->X--;
+              CurrentPoint->Y++;
               break;
 
             case SDLK_m:
@@ -1012,6 +1064,21 @@ class CTF : public DrawWrapper
               SelectionIndex++;
               SelectionIndex %= Triangles.size();
               CurrentTriangle = Triangles[SelectionIndex];
+              break;
+
+            case SDLK_1:
+              CurrentPointIndex = 0;
+              CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
+              break;
+
+            case SDLK_2:
+              CurrentPointIndex = 1;
+              CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
+              break;
+
+            case SDLK_3:
+              CurrentPointIndex = 2;
+              CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
               break;
 
             default:

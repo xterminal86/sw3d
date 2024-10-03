@@ -1,2 +1,3 @@
 # sw3d
-Trying to recreate software 3d renderer based on [One Lone Coder](https://github.com/OneLoneCoder) videos
+
+[https://xterminal86.github.io/sw3d/](https://xterminal86.github.io/sw3d/)

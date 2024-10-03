@@ -1,8 +1,8 @@
 # Software 3D renderer tutorial
 
-![](images/title.png)
+<img src="images/title.png" title="" alt="" data-align="center">
 
-At first this project was aimed to be an implementation of things shown in One Lone Coder video series called "3D Graphics Engine". But when my project continued to inflate more and more and code comments started to span across several screens I decided that it *might* be a good idea to put all of that knowledge into an article of some sort, so that it can maybe pop out of Internet search to somebody new to 3D graphics who is trying to figure out how everything works.
+At first this project was aimed to be an implementation of things shown in [One Lone Coder](https://github.com/OneLoneCoder) video series called "3D Graphics Engine". But when my project continued to inflate more and more and code comments started to span across several screens I decided that it *might* be a good idea to put all of that knowledge into an article of some sort, so that it can maybe pop out of Internet search to somebody new to 3D graphics who is trying to figure out how everything works.
 
 As it usually happens, when you decide to research some topic of interest you'll end up going down the rabbit hole of different complexity: you start from something simple (in your opinion) but then everything branches out so much that it's possible to get lost. 
 
@@ -23,29 +23,32 @@ Even though English is not my native language I'll write everything in it for 2 
 
 2. `"Понты дороже денег"` which can roughly be translated as "Showing off is priceless". XD
 
-I hope I won't make lots of grammar and spelling mistakes by doing so. ) 
+I hope I won't make lots of grammar and spelling mistakes by doing so. )
+
 Any comments / remarks / hints regarding this are appreciated though.
 
-And before I forget, here's a list of sources I used in my research:
+And before I forget, here's the list of sources I used in my research:
 
-- [javidx9 - YouTube](https://www.youtube.com/@javidx9)
+- [javidx9 - YouTube](https://www.youtube.com/@javidx9)<br>
   This is where it all started. Like I mentioned earlier, information is not very detailed in his series about 3D graphics (I believe it was unfinished too), so you'll have to research other topics, which aren't covered, by yourself. But it's a good start.
 
-- [3D Programming Fundamentals [Introduction] Tutorial 0 - YouTube](https://www.youtube.com/watch?v=uehGqieEbus&list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA)
-  This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, videos are relatively short (for those of you with ADHD), but some things might still be left out. I'd advise watching this some time after you research things, though I'll probably be relying mostly on this playlist in my articles.
+- [3D Programming Fundamentals [Introduction] Tutorial 0 - YouTube](https://www.youtube.com/watch?v=uehGqieEbus&list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA)<br>
+  This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, videos are relatively short (for those of you with ADHD), but some things might still be left out. I'd advise watching this some time *after* you research things, though I'll probably be relying mostly on this playlist in my articles.
 
-- [Triangle Rasterization - YouTube](https://www.youtube.com/watch?v=k5wtuKWmV48&pp=ygUWdHJpYW5nbGUgcmFzdGVyaXphdGlvbg%3D%3D)
+- [Triangle Rasterization - YouTube](https://www.youtube.com/watch?v=k5wtuKWmV48&pp=ygUWdHJpYW5nbGUgcmFzdGVyaXphdGlvbg%3D%3D)<br>
   I used rasterization method from this video at 0 iteration of the renderer, if you will, because it's simple. But you'll quickly realize that it might not be the best solution (or even acceptable one). Still, the author covers several important topics as well, so you should definitely watch it.
 
-- [Pinhole and Perspective Projection | Image Formation - YouTube](https://www.youtube.com/watch?v=_EhY31MSbNM)
+- [Pinhole and Perspective Projection | Image Formation - YouTube](https://www.youtube.com/watch?v=_EhY31MSbNM)<br>
   Not related to 3D rendering per se, but still interesting (and maybe useful) material to watch.
 
-- [Bresenham's Line Drawing Algorithm - YouTube](https://www.youtube.com/watch?v=RGB-wlatStc)
+- [Bresenham's Line Drawing Algorithm - YouTube](https://www.youtube.com/watch?v=RGB-wlatStc)<br>
   Now this guy. I was undergoing some algorithmic classes once and had trouble understanding dynamic programming, in particular "0/1 backpack problem". So I googled about it and stumbled across this guy's video, which greatly helped back then. Turns out he also has similar video about infamous Bresenham line drawing algorithm. So if you want to finally understand it, watch it. *(Truth be told: there is still one thing left that I didn't understand, but whatever...)*
 
-- [https://www.scratchapixel.com/index.html](https://www.scratchapixel.com/index.html)
+- [https://www.scratchapixel.com/index.html](https://www.scratchapixel.com/index.html)<br>
   A site that did the same thing I'm trying to do here, so I'll just quote from the starting page: `"Teaching computer graphics programming to regular folks"`. Again, not everything might be explained (or in detail that you want), but it's definitely worth looking into.
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing of these lines my renderer is still incomplete.
 
-[ Next: Preparations ](p0.md)
+<br><br>
+
+[ Next up: Preparations ](p0.md)

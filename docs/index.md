@@ -43,13 +43,9 @@ And before I forget, here's a list of sources I used in my research:
 - [Bresenham's Line Drawing Algorithm - YouTube](https://www.youtube.com/watch?v=RGB-wlatStc)
   Now this guy. I was undergoing some algorithmic classes once and had trouble understanding dynamic programming, in particular "0/1 backpack problem". So I googled about it and stumbled across this guy's video, which greatly helped back then. Turns out he also has similar video about infamous Bresenham line drawing algorithm. So if you want to finally understand it, watch it. *(Truth be told: there is still one thing left that I didn't understand, but whatever...)*
 
-- https://www.scratchapixel.com/index.html
+- [https://www.scratchapixel.com/index.html](https://www.scratchapixel.com/index.html)
   A site that did the same thing I'm trying to do here, so I'll just quote from the starting page: `"Teaching computer graphics programming to regular folks"`. Again, not everything might be explained (or in detail that you want), but it's definitely worth looking into.
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing of these lines my renderer is still incomplete.
-
-
-
-
 
 [ Next: Preparations ](p0.md)

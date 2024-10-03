@@ -1,1 +1,3 @@
-# This is a test
+# Software 3D renderer tutorial
+
+![](docs/title.png)

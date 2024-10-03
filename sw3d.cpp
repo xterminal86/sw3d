@@ -81,13 +81,15 @@ namespace SW3D
     }
 
     //
+    // Old versions of SDL2 don't support subpixel drawing hints.
     // Out of the box subpixel precision line drawing works only with this
     // hint set to "2" or "3" on Windows. It is unclear which one is better,
     // but I decided to use "3". Not sure if it works at all for subpixel points
     // drawing since test project (cr) showed no difference.
     // Maybe disable it eventually or implement custom subpixel drawing somehow.
     //
-#if SDL_MAJOR_VERSION >= 2 and SDL_MINOR_VERSION >= 0 and SDL_PATCHLEVEL >= 20
+#if (SDL_MAJOR_VERSION == 2 and SDL_MINOR_VERSION == 0 and SDL_PATCHLEVEL >= 20) \
+ or (SDL_MAJOR_VERSION >= 2 and SDL_MINOR_VERSION > 0)
     const char* lineHint = "3";
 
     ok = SDL_SetHint(SDL_HINT_RENDER_LINE_METHOD, lineHint);

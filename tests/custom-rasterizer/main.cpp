@@ -13,6 +13,7 @@ size_t CurrentPointIndex = 0;
 
 bool SubpixelDrawing    = false;
 bool ScanlineRasterizer = true;
+bool Wireframe          = false;
 
 const TriangleSimple FlatTop =
 {
@@ -57,13 +58,22 @@ double dy = 0.0;
 
 Vec3* CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
 
+enum class PointCaptureType
+{
+  UNDEFINED = 0,
+  FIRST,
+  LAST
+};
+
 enum class TriangleType
 {
   UNDEFINED = 0,
   FLAT_TOP,
   FLAT_BOTTOM,
   MAJOR_RIGHT,
-  MAJOR_LEFT
+  MAJOR_LEFT,
+  VERTICAL_LINE,
+  HORIZONTAL_LINE
 };
 
 enum class WindingOrder
@@ -74,11 +84,13 @@ enum class WindingOrder
 
 const std::unordered_map<TriangleType, std::string> TriangleTypeByType =
 {
-  { TriangleType::UNDEFINED,   "UNDEFINED"   },
-  { TriangleType::FLAT_TOP,    "FLAT_TOP"    },
-  { TriangleType::FLAT_BOTTOM, "FLAT_BOTTOM" },
-  { TriangleType::MAJOR_RIGHT, "MAJOR_RIGHT" },
-  { TriangleType::MAJOR_LEFT,  "MAJOR_LEFT"  }
+  { TriangleType::UNDEFINED,       "UNDEFINED"       },
+  { TriangleType::FLAT_TOP,        "FLAT_TOP"        },
+  { TriangleType::FLAT_BOTTOM,     "FLAT_BOTTOM"     },
+  { TriangleType::MAJOR_RIGHT,     "MAJOR_RIGHT"     },
+  { TriangleType::MAJOR_LEFT,      "MAJOR_LEFT"      },
+  { TriangleType::HORIZONTAL_LINE, "HORIZONTAL LINE" },
+  { TriangleType::VERTICAL_LINE,   "VERTICAL LINE"   },
 };
 
 const std::unordered_map<WindingOrder, std::string> WindingOrderByType =
@@ -331,26 +343,51 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   // And thus we have a formula to determine splitting point given two others.
   //
 
-  TriangleType res = TriangleType::UNDEFINED;
+  int y1 = (int)t.Points[0].Y;
+  int y2 = (int)t.Points[1].Y;
+  int y3 = (int)t.Points[2].Y;
 
-  if (t.Points[0].Y == t.Points[1].Y)
+  int x1 = (int)t.Points[0].X;
+  int x2 = (int)t.Points[1].X;
+  int x3 = (int)t.Points[2].X;
+
+  bool isHorizontal = (y1 == y2 and y2 == y3);
+  if (isHorizontal)
   {
-    res = TriangleType::FLAT_TOP;
-  }
-  else if (t.Points[1].Y == t.Points[2].Y)
-  {
-    res = TriangleType::FLAT_BOTTOM;
-  }
-  else if (t.Points[1].Y > t.Points[2].Y)
-  {
-    res = TriangleType::MAJOR_RIGHT;
-  }
-  else if (t.Points[1].Y < t.Points[2].Y)
-  {
-    res = TriangleType::MAJOR_LEFT;
+    return TriangleType::HORIZONTAL_LINE;
   }
 
-  return res;
+  bool isVertical = (x1 == x2 and x2 == x3);
+  if (isVertical)
+  {
+    return TriangleType::VERTICAL_LINE;
+  }
+
+  bool isFlatTop = (y1 == y2);
+  if (isFlatTop)
+  {
+    return TriangleType::FLAT_TOP;
+  }
+
+  bool isFlatBottom = (y2 == y3);
+  if (isFlatBottom)
+  {
+    return TriangleType::FLAT_BOTTOM;
+  }
+
+  bool isMajorRight = (y2 > y3);
+  if (isMajorRight)
+  {
+    return TriangleType::MAJOR_RIGHT;
+  }
+
+  bool isMajorLeft = (y2 < y3);
+  if (isMajorLeft)
+  {
+    return TriangleType::MAJOR_LEFT;
+  }
+
+  return TriangleType::UNDEFINED;
 }
 
 // =============================================================================
@@ -600,6 +637,104 @@ void SortingTest()
   }
 
   // ---------------------------------------------------------------------------
+
+  //
+  // Edge case - horizontal line
+  //
+  {
+    printf("=== Horizontal line ===\n\n");
+
+    TriangleSimple t;
+    t.Points[0] = { 10, 10, 0 };
+    t.Points[1] = { 15, 10, 0 };
+    t.Points[2] = { 20, 10, 0 };
+
+    //
+    //  1  3  2
+    //
+    TriangleSimple expected;
+    expected.Points[0] = { 10, 10, 0 };
+    expected.Points[1] = { 20, 10, 0 };
+    expected.Points[2] = { 15, 10, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      SortVertices(toTest);
+      CheckAndFixWinding(toTest);
+
+      printf("%s\n", ToString(toTest).data());
+
+      TriangleType tt = GetTriangleType(toTest);
+      WindingOrder wo = GetWindingOrder(toTest);
+
+      printf("Got expected vertices? %s\n",
+             (toTest == expected) ? "OK" : "FAIL!");
+      printf("TriangleType is: '%s' - %s\n",
+             TriangleTypeByType.at(tt).data(),
+             (tt == TriangleType::HORIZONTAL_LINE) ? "OK" : "FAIL!");
+      printf("Winding order: '%s' - %s\n",
+             WindingOrderByType.at(wo).data(),
+             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
+      printf("\n");
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+
+  //
+  // Edge case - horizontal line
+  //
+  {
+    printf("=== Vertical line ===\n\n");
+
+    TriangleSimple t;
+    t.Points[0] = { 10, 10, 0 };
+    t.Points[1] = { 10, 15, 0 };
+    t.Points[2] = { 10, 20, 0 };
+
+    //
+    //  1
+    //
+    //  3
+    //
+    //  2
+    //
+    TriangleSimple expected;
+    expected.Points[0] = { 10, 10, 0 };
+    expected.Points[1] = { 10, 20, 0 };
+    expected.Points[2] = { 10, 15, 0 };
+
+    for (const Indices& i : indices)
+    {
+      TriangleSimple toTest;
+      toTest.Points[0] = t.Points[i.Ind[0]];
+      toTest.Points[1] = t.Points[i.Ind[1]];
+      toTest.Points[2] = t.Points[i.Ind[2]];
+
+      SortVertices(toTest);
+      CheckAndFixWinding(toTest);
+
+      printf("%s\n", ToString(toTest).data());
+
+      TriangleType tt = GetTriangleType(toTest);
+      WindingOrder wo = GetWindingOrder(toTest);
+
+      printf("Got expected vertices? %s\n",
+             (toTest == expected) ? "OK" : "FAIL!");
+      printf("TriangleType is: '%s' - %s\n",
+             TriangleTypeByType.at(tt).data(),
+             (tt == TriangleType::HORIZONTAL_LINE) ? "OK" : "FAIL!");
+      printf("Winding order: '%s' - %s\n",
+             WindingOrderByType.at(wo).data(),
+             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
+      printf("\n");
+    }
+  }
 }
 
 // =============================================================================
@@ -657,7 +792,14 @@ class CTF : public DrawWrapper
       BLG second;
       second.Init(t.Points[1].X, t.Points[1].Y, t.Points[2].X, t.Points[2].Y);
 
-      Rasterize(first, second);
+      if (Wireframe)
+      {
+        RasterizeWireframe(first, second, t, TriangleType::FLAT_TOP);
+      }
+      else
+      {
+        Rasterize(first, second, t, TriangleType::FLAT_TOP);
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -683,7 +825,14 @@ class CTF : public DrawWrapper
       BLG second;
       second.Init(t.Points[0].X, t.Points[0].Y, t.Points[1].X, t.Points[1].Y);
 
-      Rasterize(first, second);
+      if (Wireframe)
+      {
+        RasterizeWireframe(first, second, t, TriangleType::FLAT_BOTTOM);
+      }
+      else
+      {
+        Rasterize(first, second, t, TriangleType::FLAT_BOTTOM);
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -691,7 +840,10 @@ class CTF : public DrawWrapper
     //
     // TODO: implement top-left rule.
     //
-    void Rasterize(BLG& first, BLG& second)
+    void Rasterize(BLG& first,
+                   BLG& second,
+                   const TriangleSimple& t,
+                   TriangleType tt)
     {
       BLG::Point* p1 = first.Next();
       BLG::Point* p2 = second.Next();
@@ -701,75 +853,199 @@ class CTF : public DrawWrapper
         return;
       }
 
-      int x1 = 0;
-      int x2 = 0;
-      int y1 = 0;
-      int y2 = 0;
+      int x1 = p1->first;
+      int x2 = p2->first;
+
+      int y1 = t.Points[0].Y;
+      int y2 = t.Points[0].Y;
+
+      PointCaptureType ctLine1 = PointCaptureType::UNDEFINED;
+      PointCaptureType ctLine2 = PointCaptureType::UNDEFINED;
+
+      switch (tt)
+      {
+        case TriangleType::FLAT_BOTTOM:
+        {
+          //
+          // For cases like:
+          //
+          // 1
+          //
+          //
+          //     3     2
+          //
+          ctLine1 = (t.Points[2].X <= t.Points[0].X)
+                    ? PointCaptureType::LAST
+                    : PointCaptureType::FIRST;
+
+          ctLine2 = (t.Points[1].X <= t.Points[0].X)
+                    ? PointCaptureType::FIRST
+                    : PointCaptureType::LAST;
+
+          y2 = t.Points[1].Y;
+        }
+        break;
+
+        case TriangleType::FLAT_TOP:
+        {
+          ctLine1 = (t.Points[2].X <= t.Points[0].X)
+                    ? PointCaptureType::LAST
+                    : PointCaptureType::FIRST;
+
+          ctLine2 = (t.Points[2].X <= t.Points[1].X)
+                    ? PointCaptureType::FIRST
+                    : PointCaptureType::LAST;
+
+          y2 = t.Points[2].Y;
+        }
+        break;
+      }
 
       //
-      // We all start from either the same point or same horizontal line, so Y
-      // should be equal.
+      // Consider following configuration:
       //
-      int scanlineY = p1->second;
-
+      //              1
       //
-      // Consider a following configuration:
-      //
-      //                              1
-      //
-      //    3                         2
+      // 3            2
       //
       // In this case there is an extremely gentle slope of one side of a
       // triangle (1-3) which will have more points with the same Y compared to
       // the other side (1-2) which has few points, all of which with different
-      // Y. So we should connect leftmost points across 1-3 with rightmost
-      // points of 1-2 (which could also be extremelly gentle sloped).
-      // To do this we will connect previous scanline only after both generators
-      // change their Y.
-      // By drawing like this this we will avoid pixel overdraw.
+      // Y.
       //
-      while (true)
+      // Generally it's obvious that we need to connect leftmost points of the
+      // left line with rightmost points of the right line to avoid pixel
+      // overdraw. For example:
+      //
+      //                 1
+      //               *...*
+      //          *....     ....*
+      //     *....               ....*
+      //     3                       2
+      //
+      // '*' are the points we need. Another example:
+      //
+      //
+      //     1                       2
+      //     *....               ....*
+      //          *....     ....*
+      //               *...*
+      //                 3
+      //
+      // The little problem is that our implementation is general - it handles
+      // all cases so we need to check for each type of case to determine what
+      // kind of X we need to remember. That is our generator lines always go
+      // down (from min Y to max Y) and thus in FT case we need to save leftmost
+      // and rightmost points as explained above, which happen to be first
+      // points of a generator. But in FB situation is a little bit different:
+      // generator lines still go down but this time they produce points from
+      // "inside-out", so we can't just save first point of any generator and
+      // wait until Y scanline changes.
+      //
+      for (int currentScanline = y1; currentScanline <= y2; currentScanline++)
       {
-        x1 = p1->first;
+        if (p1 != nullptr
+        and p1->second == currentScanline
+        and ctLine1 == PointCaptureType::FIRST)
+        {
+          x1 = p1->first;
+        }
 
         //
         // Wait until Y for left line changes.
         //
-        y1 = p1->second;
-        while (p1 != nullptr and y1 == scanlineY)
+        while (p1 != nullptr and p1->second == currentScanline)
         {
-          y1 = p1->second;
+          if (ctLine1 == PointCaptureType::LAST)
+          {
+            x1 = p1->first;
+          }
+
           p1 = first.Next();
         }
 
-        x2 = p2->first;
+        if (p2 != nullptr
+        and p2->second == currentScanline
+        and ctLine2 == PointCaptureType::FIRST)
+        {
+          x2 = p2->first;
+        }
 
         //
         // Same here for right line.
         //
-        y2 = p2->second;
-        while (p2 != nullptr and y2 == scanlineY)
+        while (p2 != nullptr and p2->second == currentScanline)
         {
-          y2 = p2->second;
+          if (ctLine2 == PointCaptureType::LAST)
+          {
+            x2 = p2->first;
+          }
+
           p2 = second.Next();
         }
 
         //
-        // Here we moved to the next scanline, so we can draw previous one.
+        // Here we moved to the next scanline, so we can connect previous one.
         //
         for (int x = x1; x <= x2; x++)
         {
-          SDL_RenderDrawPoint(_renderer, x, scanlineY);
+          SDL_RenderDrawPoint(_renderer, x, currentScanline);
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
+    void RasterizeWireframe(BLG& first,
+                            BLG& second,
+                            const TriangleSimple& t,
+                            TriangleType tt)
+    {
+      BLG::Point* p1 = first.Next();
+      BLG::Point* p2 = second.Next();
+
+      if (p1 == nullptr or p2 == nullptr)
+      {
+        return;
+      }
+
+      int x1 = p1->first;
+      int x2 = p2->first;
+
+      int y1 = t.Points[0].Y;
+      int y2 = t.Points[0].Y;
+
+      if (tt == TriangleType::FLAT_TOP)
+      {
+        y2 = t.Points[2].Y;
+
+        for (int x = t.Points[0].X; x <= t.Points[1].X; x++)
+        {
+          SDL_RenderDrawPoint(_renderer, x, t.Points[0].Y);
+        }
+      }
+      else if (tt == TriangleType::FLAT_BOTTOM)
+      {
+        y2 = t.Points[1].Y;
+
+        for (int x = t.Points[2].X; x <= t.Points[1].X; x++)
+        {
+          SDL_RenderDrawPoint(_renderer, x, t.Points[1].Y);
+        }
+      }
+
+      for (int currentScanline = y1; currentScanline <= y2; currentScanline++)
+      {
+        while (p1 != nullptr and p1->second == currentScanline)
+        {
+          SDL_RenderDrawPoint(_renderer, p1->first, p1->second);
+          p1 = first.Next();
         }
 
-        scanlineY = y1;
-
-        //
-        // Exit loop if there are no more points.
-        //
-        if (p1 == nullptr and p2 == nullptr)
+        while (p2 != nullptr and p2->second == currentScanline)
         {
-          break;
+          SDL_RenderDrawPoint(_renderer, p2->first, p2->second);
+          p2 = second.Next();
         }
       }
     }
@@ -868,6 +1144,52 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void DrawVL(const TriangleSimple& t)
+    {
+      //
+      // Vertices in 't' are always:
+      //
+      // 1
+      //
+      // 3
+      //
+      // 2
+      //
+
+      int x  = t.Points[0].X;
+
+      int y1 = t.Points[0].Y;
+      int y2 = t.Points[1].Y;
+
+      for (int scanline = y1; scanline <= y2; scanline++)
+      {
+        SDL_RenderDrawPoint(_renderer, x, scanline);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
+    void DrawHL(const TriangleSimple& t)
+    {
+      //
+      // Vertices in 't' are always:
+      //
+      // 1  3  2
+      //
+
+      int scanline = t.Points[0].Y;
+
+      int x1 = t.Points[0].X;
+      int x2 = t.Points[1].X;
+
+      for (int x = x1; x <= x2; x++)
+      {
+        SDL_RenderDrawPoint(_renderer, x, scanline);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+
     //
     // From https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage.html
     //
@@ -903,6 +1225,14 @@ class CTF : public DrawWrapper
       TriangleType tt = GetTriangleType(t);
       switch (tt)
       {
+        case TriangleType::VERTICAL_LINE:
+          DrawVL(t);
+          break;
+
+        case TriangleType::HORIZONTAL_LINE:
+          DrawHL(t);
+          break;
+
         case TriangleType::FLAT_TOP:
           DrawFT(t);
           break;
@@ -1054,6 +1384,10 @@ class CTF : public DrawWrapper
 
             case SDLK_m:
               ScanlineRasterizer = not ScanlineRasterizer;
+              break;
+
+            case SDLK_f:
+              Wireframe = not Wireframe;
               break;
 
             case SDLK_SPACE:

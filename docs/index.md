@@ -26,15 +26,13 @@ Even though English is not my native language I'll write everything in it for 2 
 I hope I won't make lots of grammar and spelling mistakes by doing so. ) 
 Any comments / remarks / hints regarding this are appreciated though.
 
-
-
 And before I forget, here's a list of sources I used in my research:
 
 - [javidx9 - YouTube](https://www.youtube.com/@javidx9)
   This is where it all started. Like I mentioned earlier, information is not very detailed in his series about 3D graphics (I believe it was unfinished too), so you'll have to research other topics, which aren't covered, by yourself. But it's a good start.
 
 - [3D Programming Fundamentals [Introduction] Tutorial 0 - YouTube](https://www.youtube.com/watch?v=uehGqieEbus&list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA)
-  This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, but some things might still be left out. I'd advise watching this some time after you research things, though I'll probably be relying mostly on this playlist in my articles.
+  This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, videos are relatively short (for those of you with ADHD), but some things might still be left out. I'd advise watching this some time after you research things, though I'll probably be relying mostly on this playlist in my articles.
 
 - [Triangle Rasterization - YouTube](https://www.youtube.com/watch?v=k5wtuKWmV48&pp=ygUWdHJpYW5nbGUgcmFzdGVyaXphdGlvbg%3D%3D)
   I used rasterization method from this video at 0 iteration of the renderer, if you will, because it's simple. But you'll quickly realize that it might not be the best solution (or even acceptable one). Still, the author covers several important topics as well, so you should definitely watch it.
@@ -50,6 +48,14 @@ And before I forget, here's a list of sources I used in my research:
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing of these lines my renderer is still incomplete.
 
-
-
-[Next](p0.md)
+<center>
+<table width="100%" border="0">
+<tr>
+  <td width="30%"></td>
+  <td width="30%"></td>
+  <td width="30%">
+    <center><a href="p0.md">Next</a></center>
+  </td>
+</tr>
+</table>
+</center>

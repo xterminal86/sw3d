@@ -49,12 +49,12 @@ And before I forget, here's a list of sources I used in my research:
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing of these lines my renderer is still incomplete.
 
 <center>
-<table width="100%" border="0">
+<table width="600px">
 <tr>
-  <td width="30%"></td>
-  <td width="30%"></td>
-  <td width="30%">
-    <center><a href="p0.md">Next</a></center>
+  <td width="200px"></td>
+  <td width="200px"></td>
+  <td width="200px" align="center">
+    <a href="p0.md">Next</a>
   </td>
 </tr>
 </table>

@@ -48,4 +48,8 @@ And before I forget, here's a list of sources I used in my research:
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing of these lines my renderer is still incomplete.
 
-[ Next ](p0.md)
+
+
+
+
+[ Next: Preparations ](p0.md)

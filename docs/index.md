@@ -1,3 +1,3 @@
 # Software 3D renderer tutorial
 
-![](docs/title.png)
+![](images/title.png)

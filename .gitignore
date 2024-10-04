@@ -4,6 +4,7 @@ CMakeLists.txt.user
 core.*
 *.txt
 !CMakeLists.txt
+!docs/NOTE.txt
 *.out
 *.exe
 /*.bmp

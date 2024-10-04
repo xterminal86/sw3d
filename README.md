@@ -2,4 +2,4 @@
 
 Check out:
 
-[https://xterminal86.github.io/sw3d/](https://xterminal86.github.io/sw3d/)
+[https://github.com/xterminal86/sw3d/blob/main/docs/index.md](https://github.com/xterminal86/sw3d/blob/main/docs/index.md)

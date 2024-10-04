@@ -1,3 +1,6 @@
 # Build settings
 markdown: kramdown
-usemathjax: true
+
+plugins:
+  - jekyll-spaceship
+  

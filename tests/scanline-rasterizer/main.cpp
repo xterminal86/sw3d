@@ -58,47 +58,6 @@ double dy = 0.0;
 
 Vec3* CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
 
-enum class PointCaptureType
-{
-  UNDEFINED = 0,
-  FIRST,
-  LAST
-};
-
-enum class TriangleType
-{
-  UNDEFINED = 0,
-  FLAT_TOP,
-  FLAT_BOTTOM,
-  MAJOR_RIGHT,
-  MAJOR_LEFT,
-  VERTICAL_LINE,
-  HORIZONTAL_LINE
-};
-
-enum class WindingOrder
-{
-  CW = 0,
-  CCW
-};
-
-const std::unordered_map<TriangleType, std::string> TriangleTypeByType =
-{
-  { TriangleType::UNDEFINED,       "UNDEFINED"       },
-  { TriangleType::FLAT_TOP,        "FLAT_TOP"        },
-  { TriangleType::FLAT_BOTTOM,     "FLAT_BOTTOM"     },
-  { TriangleType::MAJOR_RIGHT,     "MAJOR_RIGHT"     },
-  { TriangleType::MAJOR_LEFT,      "MAJOR_LEFT"      },
-  { TriangleType::HORIZONTAL_LINE, "HORIZONTAL LINE" },
-  { TriangleType::VERTICAL_LINE,   "VERTICAL LINE"   },
-};
-
-const std::unordered_map<WindingOrder, std::string> WindingOrderByType =
-{
-  { WindingOrder::CW,  "CW"  },
-  { WindingOrder::CCW, "CCW" }
-};
-
 // =============================================================================
 
 double CrossProduct2D(const Vec3& v1, const Vec3& v2)
@@ -161,116 +120,6 @@ void CheckAndFixWinding(TriangleSimple& t)
     //
     std::swap(t.Points[1].X, t.Points[2].X);
     std::swap(t.Points[1].Y, t.Points[2].Y);
-  }
-}
-
-// =============================================================================
-
-void CrossProductTest()
-{
-  struct Indices
-  {
-    uint8_t Ind[3];
-  };
-
-  //
-  // CW
-  //
-  {
-    const std::vector<Indices> indices =
-    {
-      { 0, 1, 2 },
-      { 1, 2, 0 },
-      { 2, 0, 1 }
-    };
-
-    TriangleSimple t;
-    t.Points[0] = {  5, 10, 0 };
-    t.Points[1] = {  7,  5, 0 };
-    t.Points[2] = { 15, 15, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("CW check - %s\n", (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-    }
-  }
-
-  //
-  // CCW
-  //
-  {
-    const std::vector<Indices> indices =
-    {
-      { 0, 1, 2 },
-      { 1, 2, 0 },
-      { 2, 0, 1 }
-    };
-
-    TriangleSimple t;
-    t.Points[0] = {  7,  5, 0 };
-    t.Points[1] = {  5, 10, 0 };
-    t.Points[2] = { 15, 15, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("CCW check - %s\n", (wo == WindingOrder::CCW) ? "OK" : "FAIL!");
-    }
-  }
-
-  //
-  // Fix winding
-  //
-  {
-    //
-    // All possible vertex ordering input.
-    //
-    const std::vector<Indices> indices =
-    {
-      { 0, 1, 2 },
-      { 1, 2, 0 },
-      { 2, 0, 1 },
-      { 2, 1, 0 },
-      { 1, 0, 2 },
-      { 0, 2, 1 }
-    };
-
-    TriangleSimple t;
-    t.Points[0] = {  7,  5, 0 };
-    t.Points[1] = {  5, 10, 0 };
-    t.Points[2] = { 15, 15, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      printf("Before:\n%s", ToString(toTest).data());
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("After:\n%s", ToString(toTest).data());
-
-      printf("Result - %s\n", (GetWindingOrder(toTest) == WindingOrder::CW)
-                              ? "OK"
-                              : "FAIL!");
-    }
   }
 }
 
@@ -343,398 +192,45 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   // And thus we have a formula to determine splitting point given two others.
   //
 
-  int y1 = (int)t.Points[0].Y;
-  int y2 = (int)t.Points[1].Y;
-  int y3 = (int)t.Points[2].Y;
+  const int& y1 = (int)t.Points[0].Y;
+  const int& y2 = (int)t.Points[1].Y;
+  const int& y3 = (int)t.Points[2].Y;
 
-  int x1 = (int)t.Points[0].X;
-  int x2 = (int)t.Points[1].X;
-  int x3 = (int)t.Points[2].X;
+  const int& x1 = (int)t.Points[0].X;
+  const int& x2 = (int)t.Points[1].X;
+  const int& x3 = (int)t.Points[2].X;
 
-  bool isHorizontal = (y1 == y2 and y2 == y3);
-  if (isHorizontal)
+  if (y1 == y2 and y2 == y3)
   {
     return TriangleType::HORIZONTAL_LINE;
   }
 
-  bool isVertical = (x1 == x2 and x2 == x3);
-  if (isVertical)
+  if (x1 == x2 and x2 == x3)
   {
     return TriangleType::VERTICAL_LINE;
   }
 
-  bool isFlatTop = (y1 == y2);
-  if (isFlatTop)
+  if (y1 == y2)
   {
     return TriangleType::FLAT_TOP;
   }
 
-  bool isFlatBottom = (y2 == y3);
-  if (isFlatBottom)
+  if (y2 == y3)
   {
     return TriangleType::FLAT_BOTTOM;
   }
 
-  bool isMajorRight = (y2 > y3);
-  if (isMajorRight)
+  if (y2 > y3)
   {
     return TriangleType::MAJOR_RIGHT;
   }
 
-  bool isMajorLeft = (y2 < y3);
-  if (isMajorLeft)
+  if (y2 < y3)
   {
     return TriangleType::MAJOR_LEFT;
   }
 
   return TriangleType::UNDEFINED;
-}
-
-// =============================================================================
-
-//
-// From these tests below it can easily be seen that by cyclic rotation of
-// vertices left-to-right and right-to-left with the according enumeration we
-// will exhaust all possible cases of 3 vertices definitions for a triangle.
-//
-void SortingTest()
-{
-  struct Indices
-  {
-    uint8_t Ind[3];
-  };
-
-  //
-  // All possible 3-vertex combinations.
-  //
-  const std::vector<Indices> indices =
-  {
-    { 0, 1, 2 },
-    { 1, 2, 0 },
-    { 2, 0, 1 },
-    { 2, 1, 0 },
-    { 1, 0, 2 },
-    { 0, 2, 1 }
-  };
-
-  // ---------------------------------------------------------------------------
-
-  //
-  // Composite triangle processing will be kinda unfolded into processing of two
-  // already solved cases, so winding order here is not that important, we just
-  // need to correctly pass those 2 pairs of resulting 3-vertices for further
-  // processing of FT and FB triangles accordingly.
-  //
-  // Composite (Major Right)
-  //
-  {
-    printf("=== Composite (Major Right) ===\n\n");
-
-    TriangleSimple t;
-    t.Points[0] = {  5, 10, 0 };
-    t.Points[1] = {  7,  5, 0 };
-    t.Points[2] = { 15, 15, 0 };
-
-    //
-    //      1
-    //
-    //  3
-    //
-    //
-    //           2
-    //
-    TriangleSimple expected;
-    expected.Points[0] = {  7,  5, 0 };
-    expected.Points[1] = { 15, 15, 0 };
-    expected.Points[2] = {  5, 10, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("%s\n", ToString(toTest).data());
-
-      TriangleType tt = GetTriangleType(toTest);
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("Got expected vertices? %s\n",
-             (toTest == expected) ? "OK" : "FAIL!");
-      printf("TriangleType is: '%s' - %s\n",
-             TriangleTypeByType.at(tt).data(),
-             (tt == TriangleType::MAJOR_RIGHT) ? "OK" : "FAIL!");
-      printf("Winding order: '%s' - %s\n",
-             WindingOrderByType.at(wo).data(),
-             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-      printf("\n");
-    }
-
-    printf("\n");
-  }
-
-  // ---------------------------------------------------------------------------
-
-  //
-  // Composite (Major Left)
-  //
-  {
-    printf("=== Composite (Major Left) ===\n\n");
-
-    TriangleSimple t;
-    t.Points[0] = {  2, 15, 0 };
-    t.Points[1] = {  7,  5, 0 };
-    t.Points[2] = { 10, 10, 0 };
-
-    //
-    //      1
-    //
-    //         2
-    //
-    //
-    //  3
-    //
-    TriangleSimple expected;
-    expected.Points[0] = {  7,  5, 0 };
-    expected.Points[1] = { 10, 10, 0 };
-    expected.Points[2] = {  2, 15, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("%s\n", ToString(toTest).data());
-
-      TriangleType tt = GetTriangleType(toTest);
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("Got expected vertices? %s\n",
-             (toTest == expected) ? "OK" : "FAIL!");
-      printf("TriangleType is: '%s' - %s\n",
-             TriangleTypeByType.at(tt).data(),
-             (tt == TriangleType::MAJOR_LEFT) ? "OK" : "FAIL!");
-      printf("Winding order: '%s' - %s\n",
-             WindingOrderByType.at(wo).data(),
-             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-      printf("\n");
-    }
-
-    printf("\n");
-  }
-
-  // ---------------------------------------------------------------------------
-
-  //
-  // Flat Top
-  //
-  {
-    printf("=== Flat Top ===\n\n");
-
-    TriangleSimple t;
-    t.Points[0] = {  7, 10, 0 };
-    t.Points[1] = {  5,  5, 0 };
-    t.Points[2] = { 10,  5, 0 };
-
-    //
-    //  1     2
-    //
-    //     3
-    //
-    TriangleSimple expected;
-    expected.Points[0] = {  5,  5, 0 };
-    expected.Points[1] = { 10,  5, 0 };
-    expected.Points[2] = {  7, 10, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("%s\n", ToString(toTest).data());
-
-      TriangleType tt = GetTriangleType(toTest);
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("Got expected vertices? %s\n",
-             (toTest == expected) ? "OK" : "FAIL!");
-      printf("TriangleType is: '%s' - %s\n",
-             TriangleTypeByType.at(tt).data(),
-             (tt == TriangleType::FLAT_TOP) ? "OK" : "FAIL!");
-      printf("Winding order: '%s' - %s\n",
-             WindingOrderByType.at(wo).data(),
-             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-      printf("\n");
-    }
-
-    printf("\n");
-  }
-
-  // ---------------------------------------------------------------------------
-
-  //
-  // Flat Bottom
-  //
-  {
-    printf("=== Flat Bottom ===\n\n");
-
-    TriangleSimple t;
-    t.Points[0] = { 10, 10, 0 };
-    t.Points[1] = {  7,  5, 0 };
-    t.Points[2] = {  5, 10, 0 };
-
-    //
-    //     1
-    //
-    //  3     2
-    //
-    TriangleSimple expected;
-    expected.Points[0] = {  7,  5, 0 };
-    expected.Points[1] = { 10, 10, 0 };
-    expected.Points[2] = {  5, 10, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("%s\n", ToString(toTest).data());
-
-      TriangleType tt = GetTriangleType(toTest);
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("Got expected vertices? %s\n",
-             (toTest == expected) ? "OK" : "FAIL!");
-      printf("TriangleType is: '%s' - %s\n",
-             TriangleTypeByType.at(tt).data(),
-             (tt == TriangleType::FLAT_BOTTOM) ? "OK" : "FAIL!");
-      printf("Winding order: '%s' - %s\n",
-             WindingOrderByType.at(wo).data(),
-             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-      printf("\n");
-    }
-
-    printf("\n");
-  }
-
-  // ---------------------------------------------------------------------------
-
-  //
-  // Edge case - horizontal line
-  //
-  {
-    printf("=== Horizontal line ===\n\n");
-
-    TriangleSimple t;
-    t.Points[0] = { 10, 10, 0 };
-    t.Points[1] = { 15, 10, 0 };
-    t.Points[2] = { 20, 10, 0 };
-
-    //
-    //  1  3  2
-    //
-    TriangleSimple expected;
-    expected.Points[0] = { 10, 10, 0 };
-    expected.Points[1] = { 20, 10, 0 };
-    expected.Points[2] = { 15, 10, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("%s\n", ToString(toTest).data());
-
-      TriangleType tt = GetTriangleType(toTest);
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("Got expected vertices? %s\n",
-             (toTest == expected) ? "OK" : "FAIL!");
-      printf("TriangleType is: '%s' - %s\n",
-             TriangleTypeByType.at(tt).data(),
-             (tt == TriangleType::HORIZONTAL_LINE) ? "OK" : "FAIL!");
-      printf("Winding order: '%s' - %s\n",
-             WindingOrderByType.at(wo).data(),
-             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-      printf("\n");
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-
-  //
-  // Edge case - horizontal line
-  //
-  {
-    printf("=== Vertical line ===\n\n");
-
-    TriangleSimple t;
-    t.Points[0] = { 10, 10, 0 };
-    t.Points[1] = { 10, 15, 0 };
-    t.Points[2] = { 10, 20, 0 };
-
-    //
-    //  1
-    //
-    //  3
-    //
-    //  2
-    //
-    TriangleSimple expected;
-    expected.Points[0] = { 10, 10, 0 };
-    expected.Points[1] = { 10, 20, 0 };
-    expected.Points[2] = { 10, 15, 0 };
-
-    for (const Indices& i : indices)
-    {
-      TriangleSimple toTest;
-      toTest.Points[0] = t.Points[i.Ind[0]];
-      toTest.Points[1] = t.Points[i.Ind[1]];
-      toTest.Points[2] = t.Points[i.Ind[2]];
-
-      SortVertices(toTest);
-      CheckAndFixWinding(toTest);
-
-      printf("%s\n", ToString(toTest).data());
-
-      TriangleType tt = GetTriangleType(toTest);
-      WindingOrder wo = GetWindingOrder(toTest);
-
-      printf("Got expected vertices? %s\n",
-             (toTest == expected) ? "OK" : "FAIL!");
-      printf("TriangleType is: '%s' - %s\n",
-             TriangleTypeByType.at(tt).data(),
-             (tt == TriangleType::HORIZONTAL_LINE) ? "OK" : "FAIL!");
-      printf("Winding order: '%s' - %s\n",
-             WindingOrderByType.at(wo).data(),
-             (wo == WindingOrder::CW) ? "OK" : "FAIL!");
-      printf("\n");
-    }
-  }
 }
 
 // =============================================================================
@@ -839,6 +335,42 @@ class CTF : public DrawWrapper
 
     //
     // TODO: implement top-left rule.
+    //
+    // Why it's important:
+    //
+    // 1) Reduces pixel overdraw: e.g. with classical case of 2 triangles with
+    //    one shared edge we get 1 extra overdraw:
+    //
+    //    1      2
+    //     -----
+    //    |    /|
+    //    |  /  |
+    //    |/    |
+    //     -----
+    //    3     4
+    //
+    //    Without some kind of tie-breaking rule edge 2-3 gets drawn one more
+    //    time by one of the triangles, either 1-2-3 or 2-3-4.
+    //
+    //    1    2
+    //     -----
+    //     \   /|
+    //    | \C/ |
+    //    |/   \|
+    //     -----
+    //    3     4
+    //
+    //    In this configuration it's 1-C, 2-C, 3-C and 4-C that get drawn extra.
+    //    So here we have 4 triangles and 4 overdraws.
+    //
+    //    It's fucking madskillz now, but I hope you get the idea.
+    //
+    //    So with 1000 triangles we could theoretically (maybe, I didn't check)
+    //    have 500 wasted draw calls. This is unacceptable.
+    //
+    // 2) Blending will be fucked up along the shared edge because when you're
+    //    doing blending you actually rely on certain draw order. And overdraw
+    //    just breaks it.
     //
     void Rasterize(BLG& first,
                    BLG& second,
@@ -1258,13 +790,37 @@ class CTF : public DrawWrapper
 
     void HighlightPoint()
     {
-      static SDL_Rect rect;
-      rect.x = CurrentPoint->X - 5;
-      rect.y = CurrentPoint->Y - 5;
-      rect.w = 10;
-      rect.h = 10;
+      //
+      // For some reason SDL_RenderDrawRect() draws like this:
+      //
+      // |
+      // |-----
+      // |     |
+      // |     |
+      // |     |
+      //  -----
+      //
       SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
-      SDL_RenderDrawRect(_renderer, &rect);
+      SDL_RenderDrawLine(_renderer,
+                         CurrentPoint->X - 5,
+                         CurrentPoint->Y - 5,
+                         CurrentPoint->X + 5,
+                         CurrentPoint->Y - 5);
+      SDL_RenderDrawLine(_renderer,
+                         CurrentPoint->X + 5,
+                         CurrentPoint->Y - 5,
+                         CurrentPoint->X + 5,
+                         CurrentPoint->Y + 5);
+      SDL_RenderDrawLine(_renderer,
+                         CurrentPoint->X - 5,
+                         CurrentPoint->Y - 5,
+                         CurrentPoint->X - 5,
+                         CurrentPoint->Y + 5);
+      SDL_RenderDrawLine(_renderer,
+                         CurrentPoint->X - 5,
+                         CurrentPoint->Y + 5,
+                         CurrentPoint->X + 5,
+                         CurrentPoint->Y + 5);
     }
 
     // -------------------------------------------------------------------------
@@ -1427,9 +983,6 @@ class CTF : public DrawWrapper
 
 int main(int argc, char* argv[])
 {
-  //CrossProductTest();
-  //SortingTest();
-
   CTF c;
 
   if (c.Init(800, 800, QualityReductionFactor))

@@ -61,6 +61,30 @@ namespace SW3D
     FAILED_TO_LOAD_MODEL
   };
 
+  enum class PointCaptureType
+  {
+    UNDEFINED = 0,
+    FIRST,
+    LAST
+  };
+
+  enum class TriangleType
+  {
+    UNDEFINED = 0,
+    FLAT_TOP,
+    FLAT_BOTTOM,
+    MAJOR_RIGHT,
+    MAJOR_LEFT,
+    VERTICAL_LINE,
+    HORIZONTAL_LINE
+  };
+
+  enum class WindingOrder
+  {
+    CW = 0,
+    CCW
+  };
+
   extern EngineError Error;
 
   const char* ErrorToString();

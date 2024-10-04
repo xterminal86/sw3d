@@ -4,18 +4,19 @@ set (CMAKE_CXX_STANDARD_REQUIRED On)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
 
-set (TARGET_NAME cr)
+set (TARGET_NAME pit-rasterizer)
 project (${TARGET_NAME})
 
-include_directories(${SDL2_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator)
+include_directories(
+  ${SDL2_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../
+)
 
-add_executable(${TARGET_NAME}
+add_executable(
+  ${TARGET_NAME}
   main.cpp
   ../../types.cpp
   ../../sw3d.cpp
-  ../bresenham-generator/blg.cpp
 )
 
 if (WIN32)

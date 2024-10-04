@@ -7,11 +7,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
 set (TARGET_NAME various-tests)
 project (${TARGET_NAME})
 
-include_directories(${SDL2_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
+include_directories(
+  ${SDL2_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../
+  ${CMAKE_CURRENT_SOURCE_DIR}/../overdraw-test/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator/
+)
 
-add_executable(${TARGET_NAME}
+add_executable(
+  ${TARGET_NAME}
   main.cpp
+  ../overdraw-test/scanline-rasterizer.cpp
+  ../bresenham-generator/blg.cpp
   ../../types.cpp
   ../../sw3d.cpp
 )

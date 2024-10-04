@@ -14,7 +14,9 @@ Lots of questions, but you have to start from somewhere.
 
 Also, it's obvious that you can't show and explain everything in one YouTube video, for example, so authors end up concentrating on one subject while completely leaving out something else, which could be exactly the thing you're trying to understand right now. And so you quickly find yourself all over the Internet, searching and aggregating bits of information from different sources, trying to make sense of all that at the same time.
 
-In this series of articles I'll try to describe as much "low-level" stuff as possible by going slowly from simple to complicated and with as much detail as possible. We'll be using SDL2 to draw graphics because it's the most "low level" as you can get in a sense that we only can draw pixels to the screen with specified color and that's it. This will also showcase how all 3D stuff gets build from ground up. I'll also be using C++ because all of the learning materials used it, but I guess you can port everything to PyGame or something without much effort. Codebase is extensively commented, so this may be of some use too.
+In this series of articles I'll try to describe as much "low-level" stuff as possible by going slowly from simple to complicated and with as much detail as possible. We'll be using SDL2 to draw graphics because it's the most "low level" as you can get in a sense that we only can draw pixels to the screen with specified color and that's it. This will also showcase how all 3D stuff gets build from ground up. I'll also be using C++ because all of the learning materials used it, but I guess you can port everything to PyGame or something without much effort. I'd say whatever graphics library / framework you have that allows you to paint pixels on the screen will do. 
+
+Codebase is extensively commented, so you can check it out as well.
 
 Even though English is not my native language I'll be writing everything in it for 2 reasons:
 

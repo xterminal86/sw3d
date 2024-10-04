@@ -4,20 +4,24 @@ set (CMAKE_CXX_STANDARD_REQUIRED On)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
 
-set (TARGET_NAME obj-loader)
+set (TARGET_NAME overdraw-test)
 project (${TARGET_NAME})
 
 include_directories(
   ${SDL2_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../
+  ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator/
 )
 
 add_executable(
   ${TARGET_NAME}
   main.cpp
+  scanline-rasterizer.cpp
+  scanline-rasterizer.h
   ../../types.cpp
-  ../../model-loader.cpp
   ../../sw3d.cpp
+  ../bresenham-generator/blg.cpp
 )
 
 if (WIN32)

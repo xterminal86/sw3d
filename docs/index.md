@@ -1,8 +1,8 @@
 # SOFTWARE 3D RENDERER TUTORIAL
 
-<img src="images/title.png" title="" alt="" data-align="center">
+![](images/title.png)
 
-At first this project was aimed to be an implementation of things shown in [One Lone Coder](https://github.com/OneLoneCoder) video series called "3D Graphics Engine". But when my project continued to inflate more and more and code comments started to span across several screens I decided that it *might* be a good idea to put all of that knowledge into an article of some sort, so that it can maybe pop out of Internet search to somebody new to 3D graphics who is trying to figure out how everything works.
+At first this project was aimed to be an implementation of things shown in [One Lone Coder](https://github.com/OneLoneCoder) video series called "3D Graphics Engine". But when my project continued to inflate more and more and code comments started to span across several screens I decided that it _might_ be a good idea to put all of that knowledge into an article of some sort, so that it can maybe pop out of Internet search to somebody new to 3D graphics who is trying to figure out how everything works.
 
 As it usually happens, when you decide to research some topic of interest you'll end up going down the rabbit hole of different complexity: you start from something simple (in your opinion) but then everything branches out and sometimes so much that it's easy to get lost. 
 
@@ -20,7 +20,7 @@ Codebase is extensively commented, so you can check it out as well.
 
 Even though English is not my native language I'll be writing everything in it for 2 reasons:
 
-1. Remember AD&D and what's called *"common language"*? Well, it's quite obvious that English became *that* in our real life. And by obvious reasons also there's overwhelmingly much more actual information available in English regarding IT related topics.<br>
+1. Remember AD&D and what's called _"common language"_? Well, it's quite obvious that English became _that_ in our real life. And by obvious reasons also there's overwhelmingly much more actual information available in English regarding IT related topics.<br>
    By writing in a language other than English you write only for those who know it, but by writing in English you write for everyone.
 
 2. `"Понты дороже денег"` which can roughly be translated as "Showing off is priceless". XD
@@ -34,7 +34,7 @@ And before I forget, here's the list of sources I used in my research:
 - [javidx9 - YouTube](https://www.youtube.com/@javidx9)<br>
   This is where it all started. Like I mentioned earlier, information is not very detailed in his series about 3D graphics (I believe it was unfinished too), so you'll have to research other topics, which aren't covered, by yourself. But it's a good start.
 
-- [3D Programming Fundamentals [Introduction] Tutorial 0 - YouTube](https://www.youtube.com/watch?v=uehGqieEbus&list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA)<br>
+- [3D Programming Fundamentals \[Introduction\] Tutorial 0 - YouTube](https://www.youtube.com/watch?v=uehGqieEbus&list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA)<br>
   This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, videos are relatively short (for those of you with ADHD), but some things might still be left out. I'd advise watching this some time ***after*** you research things, though I'll probably be relying mostly on this playlist in my articles.
 
 - [Triangle Rasterization - YouTube](https://www.youtube.com/watch?v=k5wtuKWmV48&pp=ygUWdHJpYW5nbGUgcmFzdGVyaXphdGlvbg%3D%3D)<br>
@@ -44,7 +44,7 @@ And before I forget, here's the list of sources I used in my research:
   Not related to 3D rendering per se, but still interesting (and maybe useful) material to watch.
 
 - [Bresenham's Line Drawing Algorithm - YouTube](https://www.youtube.com/watch?v=RGB-wlatStc)<br>
-  Now this guy. I was undergoing some algorithmic classes once and had trouble understanding dynamic programming, in particular "0/1 backpack problem". So I googled about it and stumbled across this guy's video, which greatly helped back then. Turns out he also has similar video about infamous Bresenham line drawing algorithm. So if you want to finally understand it, watch it. *(Truth be told: there is still one thing left that I didn't understand, but whatever...)*
+  Now this guy. I was undergoing some algorithmic classes once and had trouble understanding dynamic programming, in particular "0/1 backpack problem". So I googled about it and stumbled across this guy's video, which greatly helped back then. Turns out he also has similar video about infamous Bresenham line drawing algorithm. So if you want to finally understand it, watch it. _(Truth be told: there is still one thing left that I didn't understand, but whatever...)_
 
 - [https://www.scratchapixel.com/index.html](https://www.scratchapixel.com/index.html)<br>
   A site that did the same thing I'm trying to do here, so I'll just quote from the starting page: `"Teaching computer graphics programming to regular folks"`. Again, not everything might be explained (or in detail that you want), but it's definitely worth looking into.

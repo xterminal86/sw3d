@@ -160,6 +160,14 @@ class BH : public DrawWrapper
       //
       // If line is steep make it gentle by swapping components.
       //
+      // E.g.
+      //
+      // (1, 2) - (2, 5) => (2, 1) - (5, 2)
+      //
+      // Even though we will perform calculations on a different line, during
+      // drawing we will swap pixel coordinates, thus returning to our original
+      // line.
+      //
       if(steep)
       {
         std::swap(x1, y1);
@@ -167,7 +175,7 @@ class BH : public DrawWrapper
       }
 
       //
-      // Sort by X so that x1 is always the leftmost.
+      // Sort by X so that x1 is always to the left.
       //
       if(x1 > x2)
       {
@@ -186,11 +194,14 @@ class BH : public DrawWrapper
 
       //
       // Set error to be half the distance across X between points.
-      // Why 2.0 exactly? To me it's unclear but in my opinion the motivation
-      // is this: suppose we want to draw a line from (0, 0) to (20, 1).
-      // We would like our line to go across Y = 0 for exactly half the distance
-      // between X1 and X2 before going up 1 pixel. So that's why we use half
-      // the distance.
+      // Why 2.0 exactly? As I understand it the motivation is this: suppose we
+      // want to draw a line from (0, 0) to (20, 1). We would like our line to
+      // go across Y = 0 for exactly half the distance between X1 and X2 before
+      // going up (or down if we're on the screen) 1 pixel. So that's why we use
+      // half the distance.
+      // You can check that out by replacing the value with 3.0, for example:
+      // horizontal line will start to "break" at around its 1/3 if you start to
+      // move second point downwards.
       //
       double error = dx / 2.0;
 
@@ -201,6 +212,9 @@ class BH : public DrawWrapper
 
       int y = (int)y1;
 
+      //
+      // End point of our loop.
+      //
       const int maxX = (int)x2;
 
       SDL_SetRenderDrawColor(_renderer, 0, 255, 0, 255);
@@ -222,20 +236,58 @@ class BH : public DrawWrapper
         }
 
         //
-        // Again, beats me why you must subtract dy and not something else.
+        // This will catch the moment when we need to "break" the line further.
+        // If we took enough of 'dy's from error (which is half the line width
+        // at start), we need to go down one pixel and correct the error.
         //
         error -= dy;
 
-        //
-        // If line is steep its dy will be greater than dx meaning that error
-        // will become negative. This signifies that we need to go "up" or
-        // "down" depending on line direction (ystep is already set accordingly).
-        // Again, one should think that we're dealing with gentle sloped line
-        // here because we will be using mirrored values for x and y (see above).
-        //
         if(error < 0)
         {
           y += ystep;
+
+          //
+          // Don't quite understand why there must be 'dx' here exactly.
+          // But from the behaviour you can see that if dy = 1 then line break
+          // occurs at exactly half, which is initial error value (dx / 2).
+          // But if dy != 1 then first break will occur earlier (at
+          // around (dx / 2) / dy), because error value will be decreased faster.
+          // After that for some reason we add full horizontal length, so that
+          // next break will occur in the middle of imaginary line from current
+          // point + dx (at around (p.x + dx) / dy).
+          // Maybe this was determined experimentally since it gives most
+          // pleasing results, idk.
+          //
+          // |--------- dx -------|
+          //
+          // *..........            - dy = 1
+          // ^          ..........* -
+          // |         ^
+          // |---------|
+          //   dx / 2
+          //
+          //
+          //
+          // *............                           -
+          // ^            ............               | dy = 2
+          // |           ^            ............*  -
+          // |           |           ^
+          // |-----------|           |
+          // (dx / 2) / 2|           |
+          //             |           |
+          //             |-----------|
+          //                 dx / 2
+          //
+          //
+          // *............                                       -
+          // ^            ............                           | dy = 3
+          // |           ^            ............               |
+          // |           |            ^          ^............*  -
+          // |-----------|            |          |
+          // (dx / 2) / 3|            |          |
+          //             |------------|----------|------------
+          //                (dx / 3)    (dx / 3)
+          //
           error += dx;
         }
       }

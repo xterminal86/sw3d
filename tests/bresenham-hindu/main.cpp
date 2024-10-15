@@ -330,7 +330,7 @@ class BH : public DrawWrapper
       //  -|--------------> x
       //   | x1         x2
       //
-      // Line equation is y = kx + C.
+      // Line equation is y = kx + b.
       //
       // Let's recall SOHCAHTOA, where Tangent = Opposite / Adjacent.
       // So it's easy to see that in line equation k = dy / dx = tan(a).
@@ -411,7 +411,7 @@ class BH : public DrawWrapper
       //
       // Our line equation for point T is this:
       //
-      // Yt = k(Xk + 1) + C
+      // Yt = k(Xk + 1) + b
       //
       // Let's find out d1 and d2:
       //
@@ -420,8 +420,8 @@ class BH : public DrawWrapper
       //
       // Now let's plug in Yt:
       //
-      // d1 = k(Xk + 1) + C - Yk
-      // d2 = (Yk + 1) - [ k(Xk + 1) + C ] = Yk + 1 - k(Xk + 1) - C
+      // d1 = k(Xk + 1) + b - Yk
+      // d2 = (Yk + 1) - [ k(Xk + 1) + b ] = Yk + 1 - k(Xk + 1) - b
       //
       // If (d1 - d2) < 0:
       //   then our value Y for this X sample should remain as Yk.
@@ -431,29 +431,29 @@ class BH : public DrawWrapper
       //
       // Let's actually subtract d1 and d2:
       //
-      // (d1 - d2) = [ k(Xk + 1) + C - Yk ] - [ Yk + 1 - k(Xk + 1) - C ]
+      // (d1 - d2) = [ k(Xk + 1) + b - Yk ] - [ Yk + 1 - k(Xk + 1) - b ]
       //
       // Open up brackets:
       //
-      // (d1 - d2) = k(Xk + 1) + C - Yk - Yk - 1 + k(Xk + 1) + C
+      // (d1 - d2) = k(Xk + 1) + b - Yk - Yk - 1 + k(Xk + 1) + b
       //             =========   ~ ---- ----       =========   ~
       //
       // Group things:
       //
-      // (d1 - d2) = 2k(Xk + 1) - 2Yk + 2C - 1
+      // (d1 - d2) = 2k(Xk + 1) - 2Yk + 2b - 1
       //
       // We still have k in our equation which is dy / dx. To get rid of
       // floating point calculation we just multiply the whole thing by dx:
       //
       //                             dy
-      // dx * (d1 - d2) = dx * ( 2 * -- (Xk + 1) - 2Yk + 2C - 1)
+      // dx * (d1 - d2) = dx * ( 2 * -- (Xk + 1) - 2Yk + 2b - 1)
       //                             dx
       //
-      // dx * (d1 - d2) = 2dy(Xk + 1) - 2dxYk + 2dxC - dx
+      // dx * (d1 - d2) = 2dy(Xk + 1) - 2dxYk + 2dxb - dx
       //
       // Let's call this whole thing "decision parameter" and call it Pk.
       //
-      // dx * (d1 - d2) = 2dyXk + 2dy - 2dxYk + 2dxC - dx = Pk
+      // dx * (d1 - d2) = 2dyXk + 2dy - 2dxYk + 2dxb - dx = Pk
       //                          ~~~           ~~~~   ~~
       // We can observe that highlighted variables are constant. For some reason
       // that is not very clear to me we can discard them as irrelevant, because
@@ -502,14 +502,14 @@ class BH : public DrawWrapper
       //
       // The only thing left is to calculate initial value for Pk. Recall:
       //
-      // Pk = 2dyXk + 2dy - 2dxYk + 2dxC - dx
+      // Pk = 2dyXk + 2dy - 2dxYk + 2dxb - dx
       //
       // This time for calculation of initial value we will use full form of the
-      // equation. But we need to remove constant C. To do that we can express C
+      // equation. But we need to remove constant b. To do that we can express b
       // from line equation:
       //
-      // y = kx + C            dy
-      // C = y - kx or C = y - -- x
+      // y = kx + b            dy
+      // b = y - kx or b = y - -- x
       //                       dx
       //
       // Let's plug it in the formula for Pk above:
@@ -521,7 +521,7 @@ class BH : public DrawWrapper
       // brackets:
       //
       // Pk1 = 2dyX1 + 2dy - 2dxY1 + 2dxY1 - 2dyX1 - dx
-      //       ~~~~~       ~~~~~~~   ~~~~~   ~~~~~~~
+      //       ~~~~~         ~~~~~   ~~~~~   ~~~~~
       // +----------------+
       // | Pk1 = 2dy - dx |
       // +----------------+

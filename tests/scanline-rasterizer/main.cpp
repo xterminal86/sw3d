@@ -749,6 +749,19 @@ class CTF : public DrawWrapper
     //    considered ascending if its respective vector V[ (X+1)%3 ] - V[X]
     //    (where X can be 0, 1, 2) has a positive y-coordinate."
     //
+    // --------------------------------------------------------------------
+    //
+    // Not to self: also from your own question at StackOverflow:
+    //
+    // https://stackoverflow.com/questions/78684610/need-help-understanding-top-left-rasterization-rule
+    //
+    // "The answer is in the poorly worded rule: "If two edges from the 
+    // same triangle touch the pixel center, then if both edges are "top" 
+    // or "left" then the sample is inside the triangle."
+    // That means that corners are, by default, NOT drawn unless the 
+    // segments forming it are "top and left" or "left and left". (Top and 
+    // top isn't possible as that would make a degenerate triangle)."
+    //
     void FillTriangleCustom(TriangleSimple& t)
     {
       SortVertices(t);

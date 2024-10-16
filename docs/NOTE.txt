@@ -3,10 +3,11 @@ GitHub pages won't render math.
 Trying to fix it is a pain in the ass: you can create folder "_layouts" with
 "default.html" template file there inside of which you can specify loading of
 MathJax or whatever the fuck inside the <head> tag. Now formulas will render,
-but you lose CSS styles.
+but you lose CSS styles and page becomes not mobile friendly.
 
 Putting "head.html" inside "_includes" does nothing.
 
-Viewing .md files directly in project's repository works fine though.
+Viewing .md files directly in project's repository works fine though, but some 
+formulas don't render.
 
 So fuck it.

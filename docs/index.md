@@ -49,7 +49,7 @@ And before I forget, here's the list of sources I used in my research:
 - [https://www.scratchapixel.com/index.html](https://www.scratchapixel.com/index.html)<br>
   A site that did the same thing I'm trying to do here, so I'll just quote from the starting page: `"Teaching computer graphics programming to regular folks"`. Again, not everything might be explained (or in detail that you want), but it's definitely worth looking into.
 
-Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing of these lines my renderer is still incomplete.
+Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing these lines my renderer is still incomplete.
 
 <br>
 

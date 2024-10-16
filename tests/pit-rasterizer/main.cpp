@@ -114,6 +114,7 @@ class CTF : public DrawWrapper
     void PitRasterizer(TriangleSimple& t)
     {
       static SDL_Point p1, p2, p3;
+
       p1 = { (int)t.Points[0].X, (int)t.Points[0].Y };
       p2 = { (int)t.Points[1].X, (int)t.Points[1].Y };
       p3 = { (int)t.Points[2].X, (int)t.Points[2].Y };
@@ -150,7 +151,9 @@ class CTF : public DrawWrapper
             SDL_Point p = { x, y };
 
             //
-            // This way it works a little bit faster it seems.
+            // It seems that if we don't use a function call (CrossProduct2D)
+            // and just perform calculations directly, this way it works a
+            // little bit faster.
             //
             int w0 = (p2.x - p1.x) * (p.y - p1.y) - (p2.y - p1.y) * (p.x - p1.x);
             int w1 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x);

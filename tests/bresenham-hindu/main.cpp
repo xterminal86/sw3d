@@ -711,10 +711,9 @@ class BH : public DrawWrapper
     // For scanline rasterization it is actually more convenient to go from
     // top to bottom. We could use existing implementation and put all points
     // inside some kind of container, like std::map by Y position, and use that,
-    // but let's pretend that we're trying to write optimal code for drawing
-    // and try to avoid unnecessary allocations and stuff. By having "vertical"
-    // implementation we will use it inside rasterizer along with its
-    // calculation to determine our scanline endpoints.
+    // but let's not make our life harder than it already is.
+    // By having "vertical" implementation we will use it inside rasterizer
+    // along with special helper class to to determine our scanline endpoints.
     //
     // The implementation is basically the same as "horizontal" one, just
     // everything gets swapped around. You could check it out yourself

@@ -7,7 +7,8 @@ but you lose CSS styles and page becomes not mobile friendly.
 
 Putting "head.html" inside "_includes" does nothing.
 
-Viewing .md files directly in project's repository works fine though, but some 
+Viewing .md files directly in project's repository works fine though, but some
 formulas don't render.
 
-So fuck it.
+I tried to copypaste some styles from existing external ones, so hopefully shit
+works now. At least to some degree.

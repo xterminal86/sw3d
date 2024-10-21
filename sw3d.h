@@ -279,7 +279,8 @@ namespace SW3D
   extern std::string DumpPixels(SDL_Surface* s);
 
   extern double DotProduct(const Vec3& v1, const Vec3& v2);
-  extern Vec3 CrossProduct(const Vec3& v1, const Vec3& v2);
+  extern double CrossProduct2D(const Vec3& v1, const Vec3& v2);
+  extern Vec3   CrossProduct(const Vec3& v1, const Vec3& v2);
 
   template <typename T>
   T Clamp(T value, T min, T max)

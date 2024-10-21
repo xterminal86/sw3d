@@ -60,13 +60,6 @@ Vec3* CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
 
 // =============================================================================
 
-double CrossProduct2D(const Vec3& v1, const Vec3& v2)
-{
-  return (v1.X * v2.Y - v1.Y * v2.X);
-}
-
-// =============================================================================
-
 WindingOrder GetWindingOrder(const TriangleSimple& t)
 {
   double cp = CrossProduct2D(t.Points[1] - t.Points[0],
@@ -157,15 +150,13 @@ TriangleType GetTriangleType(const TriangleSimple& t)
   //    3     |  2     3  |             |
   //          |           |          2  |  3
   //
-  // Because we decided on CW ordering we need to swap two vertices in certain
-  // cases: 1 <-> 2 for FB and C (MR). It doesn't matter which ones are swapped,
-  // but like with winding order you have to decide on one way and stick with
-  // it. Later in actual filling code of a triangle we'll use three points as
-  // arguments to a function, ordering of which will be expected (like for FT
-  // triangle we'll start from point 3 and go up, for FB - from point 1 and go
-  // down) and since our sorting and winding correction will end up with one
-  // unambiguous result, we can manually pass points into rasterization function
-  // in proper order.
+  // Because we decided on CW ordering we need to swap vertices 1 <---> 2 in FB.
+  // It doesn't matter which ones are swapped, but like with winding order you
+  // have to decide on one way and stick with it. Later in actual filling code
+  // of a triangle we'll use three points as arguments to a function, ordering
+  // of which will be expected and since our sorting and winding correction will
+  // end up with one unambiguous result, we can manually pass points into
+  // rasterization function in proper order.
   // So you see, it's everything about order here.
   //
   // We still need to find splitting point 'x' to be able to rasterize composite
@@ -755,11 +746,11 @@ class CTF : public DrawWrapper
     //
     // https://stackoverflow.com/questions/78684610/need-help-understanding-top-left-rasterization-rule
     //
-    // "The answer is in the poorly worded rule: "If two edges from the 
-    // same triangle touch the pixel center, then if both edges are "top" 
+    // "The answer is in the poorly worded rule: "If two edges from the
+    // same triangle touch the pixel center, then if both edges are "top"
     // or "left" then the sample is inside the triangle."
-    // That means that corners are, by default, NOT drawn unless the 
-    // segments forming it are "top and left" or "left and left". (Top and 
+    // That means that corners are, by default, NOT drawn unless the
+    // segments forming it are "top and left" or "left and left". (Top and
     // top isn't possible as that would make a degenerate triangle)."
     //
     void FillTriangleCustom(TriangleSimple& t)

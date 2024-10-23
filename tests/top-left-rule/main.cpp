@@ -17,33 +17,83 @@ bool ShowTriangle4 = true;
 
 SRTL Rasterizer;
 
-TriangleSimple Triangle1 =
+using GroupData = std::pair<TriangleSimple, SDL_Color>;
+
+// -----------------------------------------------------------------------------
+
+std::vector<GroupData> Group1 =
 {
   {
-    { 20, 20, 0 }, { 100, 20, 0 }, { 60, 60, 0 }
+    {
+      {
+        { 20, 20, 0 }, { 100, 20, 0 }, { 60, 60, 0 }
+      }
+    },
+    { 255, 0, 0, 255 }
+  },
+  {
+    {
+      {
+        { 100, 20, 0 }, { 60, 60, 0 }, { 100, 100, 0 }
+      }
+    },
+    { 0, 255, 0, 255 }
+  },
+  {
+    {
+      {
+        { 100, 100, 0 }, { 60, 60, 0 }, { 20, 100, 0 }
+      }
+    },
+    { 0, 128, 128, 255 }
+  },
+  {
+    {
+      {
+        { 20, 20, 0 }, { 60, 60, 0 }, { 20, 100, 0 }
+      }
+    },
+    { 128, 0, 128, 255 }
   }
 };
 
-TriangleSimple Triangle2 =
+// -----------------------------------------------------------------------------
+
+std::vector<GroupData> Group2 =
 {
   {
-    { 100, 20, 0 }, { 60, 60, 0 }, { 100, 100, 0 }
+    {
+      {
+        { 20, 20, 0 }, { 100, 60, 0 }, { 60, 60, 0 }
+      }
+    },
+    { 255, 0, 0, 255 }
+  },
+  {
+    {
+      {
+        { 20, 20, 0 }, { 100, 60, 0 }, { 120, 60, 0 }
+      }
+    },
+    { 0, 255, 0, 255 }
+  },
+  {
+    {
+      {
+        { 20, 20, 0 }, { 120, 20, 0 }, { 120, 60, 0 }
+      }
+    },
+    { 0, 128, 128, 255 }
   }
 };
 
-TriangleSimple Triangle3 =
-{
-  {
-    { 100, 100, 0 }, { 60, 60, 0 }, { 20, 100, 0 }
-  }
-};
+// -----------------------------------------------------------------------------
 
-TriangleSimple Triangle4 =
-{
-  {
-    { 20, 20, 0 }, { 60, 60, 0 }, { 20, 100, 0 }
-  }
-};
+size_t GroupIndex = 0;
+
+std::vector<std::vector<GroupData>> Groups = { Group1, Group2 };
+
+std::vector<GroupData>* CurrentGroup = &Groups[0];
 
 // =============================================================================
 
@@ -57,28 +107,16 @@ class TLR : public DrawWrapper
     {
       SaveColor();
 
-      if (ShowTriangle1)
+      for (size_t i = 0; i < (*CurrentGroup).size(); i++)
       {
-        SDL_SetRenderDrawColor(_renderer, 255, 0, 0, 255);
-        Rasterizer.Rasterize(Triangle1, Wireframe);
-      }
+        if (i == 0 and not ShowTriangle1) continue;
+        if (i == 1 and not ShowTriangle2) continue;
+        if (i == 2 and not ShowTriangle3) continue;
+        if (i == 3 and not ShowTriangle4) continue;
 
-      if (ShowTriangle2)
-      {
-        SDL_SetRenderDrawColor(_renderer, 0, 255, 0, 255);
-        Rasterizer.Rasterize(Triangle2, Wireframe);
-      }
-
-      if (ShowTriangle3)
-      {
-        SDL_SetRenderDrawColor(_renderer, 0, 128, 128, 255);
-        Rasterizer.Rasterize(Triangle3, Wireframe);
-      }
-
-      if (ShowTriangle4)
-      {
-        SDL_SetRenderDrawColor(_renderer, 128, 0, 128, 255);
-        Rasterizer.Rasterize(Triangle4, Wireframe);
+        SDL_Color& c = (*CurrentGroup)[i].second;
+        SDL_SetRenderDrawColor(_renderer, c.r, c.g, c.b, c.a);
+        Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
       }
 
       RestoreColor();
@@ -134,6 +172,14 @@ class TLR : public DrawWrapper
             case SDLK_4:
               ShowTriangle4 = not ShowTriangle4;
               break;
+
+            case SDLK_SPACE:
+            {
+              GroupIndex++;
+              GroupIndex %= Groups.size();
+              CurrentGroup = &Groups[GroupIndex];
+            }
+            break;
 
             default:
               break;

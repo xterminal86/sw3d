@@ -4,7 +4,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED On)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
 
-set (TARGET_NAME overdraw-test)
+set (TARGET_NAME top-left-rule)
 project (${TARGET_NAME})
 
 include_directories(

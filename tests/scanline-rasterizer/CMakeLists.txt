@@ -16,6 +16,8 @@ include_directories(
 add_executable(
   ${TARGET_NAME}
   main.cpp
+  scanline-rasterizer.cpp
+  scanline-rasterizer.h
   ../../types.cpp
   ../../sw3d.cpp
   ../bresenham-generator/blg.cpp

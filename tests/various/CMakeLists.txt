@@ -12,12 +12,13 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../
   ${CMAKE_CURRENT_SOURCE_DIR}/../overdraw-test/
   ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer/
 )
 
 add_executable(
   ${TARGET_NAME}
   main.cpp
-  ../overdraw-test/scanline-rasterizer.cpp
+  ../scanline-rasterizer/scanline-rasterizer.cpp
   ../bresenham-generator/blg.cpp
   ../../types.cpp
   ../../sw3d.cpp

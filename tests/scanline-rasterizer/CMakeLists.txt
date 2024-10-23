@@ -18,6 +18,8 @@ add_executable(
   main.cpp
   scanline-rasterizer.cpp
   scanline-rasterizer.h
+  srtl.cpp
+  srtl.h
   ../../types.cpp
   ../../sw3d.cpp
   ../bresenham-generator/blg.cpp

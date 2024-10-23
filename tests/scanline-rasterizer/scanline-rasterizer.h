@@ -26,7 +26,7 @@ class ScanlineRasterizer
     bool SortVertices(TriangleSimple& t);
     void CheckAndFixWinding(TriangleSimple& t);
 
-  private:
+  protected:
     void DrawVL();
     void DrawHL();
     void DrawFT(const TriangleSimple& t);
@@ -34,15 +34,15 @@ class ScanlineRasterizer
     void DrawMR(const TriangleSimple& t);
     void DrawML(const TriangleSimple& t);
 
-    void PerformRasterization(BLG& first,
-                              BLG& second,
-                              const TriangleSimple& t,
-                              TriangleType tt);
+    virtual void PerformRasterization(BLG& first,
+                                      BLG& second,
+                                      const TriangleSimple& t,
+                                      TriangleType tt);
 
-    void PerformRasterizationWireframe(BLG& first,
-                                       BLG& second,
-                                       const TriangleSimple& t,
-                                       TriangleType tt);
+    virtual void PerformRasterizationWireframe(BLG& first,
+                                               BLG& second,
+                                               const TriangleSimple& t,
+                                               TriangleType tt);
 
     SDL_Renderer* _renderer = nullptr;
 

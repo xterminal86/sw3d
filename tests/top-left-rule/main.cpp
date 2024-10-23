@@ -2,7 +2,7 @@
 
 #include "sw3d.h"
 #include "instant-font.h"
-#include "scanline-rasterizer.h"
+#include "srtl.h"
 
 using namespace SW3D;
 
@@ -15,7 +15,7 @@ bool ShowTriangle2 = true;
 bool ShowTriangle3 = true;
 bool ShowTriangle4 = true;
 
-ScanlineRasterizer Rasterizer;
+SRTL Rasterizer;
 
 TriangleSimple Triangle1 =
 {
@@ -71,13 +71,13 @@ class TLR : public DrawWrapper
 
       if (ShowTriangle3)
       {
-        SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
+        SDL_SetRenderDrawColor(_renderer, 0, 128, 128, 255);
         Rasterizer.Rasterize(Triangle3, Wireframe);
       }
 
       if (ShowTriangle4)
       {
-        SDL_SetRenderDrawColor(_renderer, 255, 0, 255, 255);
+        SDL_SetRenderDrawColor(_renderer, 128, 0, 128, 255);
         Rasterizer.Rasterize(Triangle4, Wireframe);
       }
 

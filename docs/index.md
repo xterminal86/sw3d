@@ -51,6 +51,14 @@ And before I forget, here's the list of sources I used in my research:
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing these lines my renderer is still incomplete.
 
+## Index
+
+- [Part 0](p0.md)
+
+- [Part 1](p1.md)
+
+- [Part 2](p2.md)
+
 <br>
 
 [ Next up: Preparations ](p0.md)

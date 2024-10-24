@@ -9,6 +9,7 @@ using namespace SW3D;
 const size_t QualityReductionFactor = 6;
 
 bool Wireframe = false;
+bool Overdraw  = false;
 
 std::vector<bool> ShowTriangle =
 {
@@ -24,6 +25,7 @@ std::vector<bool> ShowTriangle =
 };
 
 SRTL Rasterizer;
+ScanlineRasterizer RasterizerOverdraw;
 
 using GroupData = std::pair<TriangleSimple, SDL_Color>;
 
@@ -301,7 +303,15 @@ class TLR : public DrawWrapper
 
         SDL_Color& c = (*CurrentGroup)[i].second;
         SDL_SetRenderDrawColor(_renderer, c.r, c.g, c.b, c.a);
-        Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
+
+        if (Overdraw)
+        {
+          RasterizerOverdraw.Rasterize((*CurrentGroup)[i].first, Wireframe);
+        }
+        else
+        {
+          Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
+        }
       }
 
       RestoreColor();
@@ -315,13 +325,19 @@ class TLR : public DrawWrapper
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
                                                 2.0),
-                            "'1-9' to toggle triangles");
+                            "'1-9' - toggle triangles");
 
       IF::Instance().Printf(0, 20,
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
                                                 2.0),
                             "'TAB' - toggle wireframe rendering");
+
+      IF::Instance().Printf(0, 40,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'SPACE' - cycle test cases");
 
       int cnt = 0;
       for (bool shown : ShowTriangle)
@@ -398,6 +414,10 @@ class TLR : public DrawWrapper
             }
             break;
 
+            case SDLK_o:
+              Overdraw = not Overdraw;
+              break;
+
             default:
               break;
           }
@@ -415,7 +435,9 @@ int main(int argc, char* argv[])
   if (c.Init(800, 800, QualityReductionFactor))
   {
     IF::Instance().Init(c.GetRenderer());
+
     Rasterizer.Init(c.GetRenderer());
+    RasterizerOverdraw.Init(c.GetRenderer());
 
     c.Run(true);
   }

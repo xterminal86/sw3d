@@ -51,7 +51,7 @@ And before I forget, here's the list of sources I used in my research:
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing these lines my renderer is still incomplete.
 
-## Index
+## Table of Contents:
 
 - [Part 0](p0.md)
 

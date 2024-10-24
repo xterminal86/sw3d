@@ -19,79 +19,53 @@ void SRTL::PerformRasterization(BLG& first,
   int y1 = t.Points[0].Y;
   int y2 = t.Points[0].Y;
 
-  PointCaptureType ctLine1 = PointCaptureType::UNDEFINED;
-  PointCaptureType ctLine2 = PointCaptureType::UNDEFINED;
-
   switch (tt)
   {
     case TriangleType::FLAT_BOTTOM:
-    {
-      ctLine1 = (t.Points[2].X <= t.Points[0].X)
-                ? PointCaptureType::LAST
-                : PointCaptureType::FIRST;
-
-      ctLine2 = (t.Points[1].X <= t.Points[0].X)
-                ? PointCaptureType::FIRST
-                : PointCaptureType::LAST;
-
       y2 = t.Points[1].Y;
-    }
-    break;
+      break;
 
     case TriangleType::FLAT_TOP:
-    {
-      ctLine1 = (t.Points[2].X <= t.Points[0].X)
-                ? PointCaptureType::LAST
-                : PointCaptureType::FIRST;
-
-      ctLine2 = (t.Points[2].X <= t.Points[1].X)
-                ? PointCaptureType::FIRST
-                : PointCaptureType::LAST;
-
       y2 = t.Points[2].Y;
-    }
-    break;
+      break;
   }
 
   for (int currentScanline = y1; currentScanline < y2; currentScanline++)
   {
-    if (p1 != nullptr
-    and p1->second == currentScanline
-    and ctLine1 == PointCaptureType::FIRST)
+    //
+    // Always get "first" point no matter the direction.
+    //
+    if (p1 != nullptr and p1->second == currentScanline)
     {
       x1 = p1->first;
     }
 
     while (p1 != nullptr and p1->second == currentScanline)
     {
-      if (ctLine1 == PointCaptureType::LAST)
-      {
-        x1 = p1->first;
-      }
-
       p1 = first.Next();
     }
 
-    if (p2 != nullptr
-    and p2->second == currentScanline
-    and ctLine2 == PointCaptureType::FIRST)
+    if (p2 != nullptr and p2->second == currentScanline)
     {
       x2 = p2->first;
     }
 
     while (p2 != nullptr and p2->second == currentScanline)
     {
-      if (ctLine2 == PointCaptureType::LAST)
-      {
-        x2 = p2->first;
-      }
-
       p2 = second.Next();
     }
 
     for (int x = x1; x < x2; x++)
     {
-      SDL_RenderDrawPoint(_renderer, x, currentScanline);
+      bool isTop  = (tt == TriangleType::FLAT_TOP
+                 and currentScanline == y1
+                 and x >= x1);
+      bool isLeft = (x >= x1);
+
+      if (isTop or isLeft)
+      {
+        SDL_RenderDrawPoint(_renderer, x, currentScanline);
+      }
     }
   }
 }
@@ -117,86 +91,56 @@ void SRTL::PerformRasterizationWireframe(BLG& first,
   int y1 = t.Points[0].Y;
   int y2 = t.Points[0].Y;
 
-  PointCaptureType ctLine1 = PointCaptureType::UNDEFINED;
-  PointCaptureType ctLine2 = PointCaptureType::UNDEFINED;
-
   switch (tt)
   {
     case TriangleType::FLAT_BOTTOM:
-    {
-      ctLine1 = (t.Points[2].X <= t.Points[0].X)
-                ? PointCaptureType::LAST
-                : PointCaptureType::FIRST;
-
-      ctLine2 = (t.Points[1].X <= t.Points[0].X)
-                ? PointCaptureType::FIRST
-                : PointCaptureType::LAST;
-
       y2 = t.Points[1].Y;
-    }
-    break;
+      break;
 
     case TriangleType::FLAT_TOP:
-    {
-      ctLine1 = (t.Points[2].X <= t.Points[0].X)
-                ? PointCaptureType::LAST
-                : PointCaptureType::FIRST;
-
-      ctLine2 = (t.Points[2].X <= t.Points[1].X)
-                ? PointCaptureType::FIRST
-                : PointCaptureType::LAST;
-
       y2 = t.Points[2].Y;
-    }
-    break;
+      break;
   }
 
   for (int currentScanline = y1; currentScanline < y2; currentScanline++)
   {
-    if (p1 != nullptr
-    and p1->second == currentScanline
-    and ctLine1 == PointCaptureType::FIRST)
+    if (p1 != nullptr and p1->second == currentScanline)
     {
       x1 = p1->first;
     }
 
     while (p1 != nullptr and p1->second == currentScanline)
     {
-      if (ctLine1 == PointCaptureType::LAST)
-      {
-        x1 = p1->first;
-      }
-
       p1 = first.Next();
     }
 
-    if (p2 != nullptr
-    and p2->second == currentScanline
-    and ctLine2 == PointCaptureType::FIRST)
+    if (p2 != nullptr and p2->second == currentScanline)
     {
       x2 = p2->first;
     }
 
     while (p2 != nullptr and p2->second == currentScanline)
     {
-      if (ctLine2 == PointCaptureType::LAST)
-      {
-        x2 = p2->first;
-      }
-
       p2 = second.Next();
     }
 
-    if (currentScanline == y1)
+    if (tt == TriangleType::FLAT_TOP)
     {
-      for (int x = x1; x < x2; x++)
+      if (currentScanline == y1)
       {
-        SDL_RenderDrawPoint(_renderer, x, currentScanline);
+        for (int x = x1; x < x2; x++)
+        {
+          SDL_RenderDrawPoint(_renderer, x, currentScanline);
+        }
+      }
+      else
+      {
+        SDL_RenderDrawPoint(_renderer, x1, currentScanline);
       }
     }
     else
     {
-      SDL_RenderDrawPoint(_renderer, x1,     currentScanline);
+      SDL_RenderDrawPoint(_renderer, x1, currentScanline);
       SDL_RenderDrawPoint(_renderer, x2 - 1, currentScanline);
     }
   }
@@ -205,7 +149,7 @@ void SRTL::PerformRasterizationWireframe(BLG& first,
   {
     for (int x = x1; x < x2; x++)
     {
-      SDL_RenderDrawPoint(_renderer, x, y2);
+      SDL_RenderDrawPoint(_renderer, x, y2 - 1);
     }
   }
 }

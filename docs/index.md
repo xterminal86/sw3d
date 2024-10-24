@@ -1,6 +1,6 @@
 # SOFTWARE 3D RENDERER TUTORIAL
 
-![](images/title.png)
+![](images/index/title.png)
 
 At first this project was aimed to be an implementation of things shown in [One Lone Coder](https://github.com/OneLoneCoder) video series called "3D Graphics Engine". But when my project continued to inflate more and more and code comments started to span across several screens I decided that it _might_ be a good idea to put all of that knowledge into an article of some sort, so that it can maybe pop out of Internet search to somebody new to 3D graphics who is trying to figure out how everything works.
 

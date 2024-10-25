@@ -10,6 +10,7 @@ const size_t QualityReductionFactor = 6;
 
 bool Wireframe = false;
 bool Overdraw  = false;
+bool HideText  = false;
 
 std::vector<bool> ShowTriangle =
 {
@@ -134,6 +135,44 @@ std::vector<GroupData> Group4 =
   {
     {
       {
+        { 20, 20, 0 }, { 40, 20, 0 }, { 60, 60, 0 }
+      }
+    },
+    { 255, 0, 0, 255 }
+  },
+  {
+    {
+      {
+        { 40, 20, 0 }, { 60, 20, 0 }, { 60, 60, 0 }
+      }
+    },
+    { 0, 255, 0, 255 }
+  },
+  {
+    {
+      {
+        { 60, 20, 0 }, { 80, 20, 0 }, { 60, 60, 0 }
+      }
+    },
+    { 0, 128, 128, 255 }
+  },
+  {
+    {
+      {
+        { 80, 20, 0 }, { 100, 20, 0 }, { 60, 60, 0 }
+      }
+    },
+    { 128, 128, 0, 255 }
+  },
+};
+
+// -----------------------------------------------------------------------------
+
+std::vector<GroupData> Group5 =
+{
+  {
+    {
+      {
         { 10, 10, 0 }, { 140, 60, 0 }, { 130, 60, 0 }
       }
     },
@@ -199,7 +238,7 @@ std::vector<GroupData> Group4 =
 
 // -----------------------------------------------------------------------------
 
-std::vector<GroupData> Group5 =
+std::vector<GroupData> Group6 =
 {
   {
     {
@@ -277,7 +316,8 @@ std::vector<std::vector<GroupData>> Groups =
   Group2,
   Group3,
   Group4,
-  Group5
+  Group5,
+  Group6
 };
 
 std::vector<GroupData>* CurrentGroup = &Groups[0];
@@ -321,6 +361,11 @@ class TLR : public DrawWrapper
 
     void DrawToScreen() override
     {
+      if (HideText)
+      {
+        return;
+      }
+
       IF::Instance().Printf(0, 0,
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
@@ -368,6 +413,10 @@ class TLR : public DrawWrapper
 
             case SDLK_TAB:
               Wireframe = not Wireframe;
+              break;
+
+            case SDLK_h:
+              HideText = not HideText;
               break;
 
             case SDLK_1:

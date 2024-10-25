@@ -811,7 +811,7 @@ namespace SW3D
     //
     // FIXME: assuming camera is at (0, 0, 0), should be fixed in the future.
     //
-    // Can be any point since they're all lying on the same plane.
+    // Can be any point of a triangle since they're all lying on the same plane.
     //
     fv = (_projectionMode == ProjectionMode::ORTHOGRAPHIC)
          ? Vec3::In()

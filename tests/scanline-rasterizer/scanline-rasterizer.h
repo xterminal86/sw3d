@@ -50,6 +50,9 @@ class ScanlineRasterizer
 
     bool _drawWireframe = false;
     bool _initialized   = false;
+
+    BLG _first;
+    BLG _second;
 };
 
 #endif // SCANLINERASTERIZER_H

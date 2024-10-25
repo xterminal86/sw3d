@@ -10,7 +10,8 @@ const size_t QualityReductionFactor = 4;
 size_t SelectionIndex    = 0;
 size_t CurrentPointIndex = 0;
 
-bool Wireframe = false;
+bool Wireframe  = false;
+bool HideGizmos = false;
 
 const TriangleSimple FlatTop =
 {
@@ -170,7 +171,10 @@ class CTF : public DrawWrapper
     {
       SaveColor();
 
-      HighlightPoint();
+      if (not HideGizmos)
+      {
+        HighlightPoint();
+      }
 
       SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
       PitRasterizer(CurrentTriangle);
@@ -234,6 +238,10 @@ class CTF : public DrawWrapper
 
             case SDLK_f:
               Wireframe = not Wireframe;
+              break;
+
+            case SDLK_h:
+              HideGizmos = not HideGizmos;
               break;
 
             case SDLK_TAB:

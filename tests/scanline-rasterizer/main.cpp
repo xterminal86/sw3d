@@ -14,6 +14,7 @@ size_t CurrentPointIndex = 0;
 bool SubpixelDrawing    = false;
 bool ScanlineRasterizer = true;
 bool Wireframe          = false;
+bool HideGizmos         = false;
 
 const TriangleSimple FlatTop =
 {
@@ -835,7 +836,11 @@ class CTF : public DrawWrapper
 
       if (ScanlineRasterizer)
       {
-        HighlightPoint();
+        if (not HideGizmos)
+        {
+          HighlightPoint();
+        }
+
         SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
         static TriangleSimple tmp;
         tmp = CurrentTriangle;
@@ -860,33 +865,36 @@ class CTF : public DrawWrapper
 
     void DrawToScreen() override
     {
-      if (not ScanlineRasterizer)
+      if (not HideGizmos)
       {
-        IF::Instance().Printf((int)(dx * QualityReductionFactor),
-                              std::ceil(dy * QualityReductionFactor) + 20,
-                              IF::TextParams::Set(0xFFFFFF,
-                                                  IF::TextAlignment::LEFT,
-                                                  2.0),
-                              "dx = %.2f dy = %.2f (%d %d)",
-                              dx, dy,
-                              (int)std::round(dx),
-                              (int)std::round(dy));
+        if (not ScanlineRasterizer)
+        {
+          IF::Instance().Printf((int)(dx * QualityReductionFactor),
+                                std::ceil(dy * QualityReductionFactor) + 20,
+                                IF::TextParams::Set(0xFFFFFF,
+                                                    IF::TextAlignment::LEFT,
+                                                    2.0),
+                                "dx = %.2f dy = %.2f (%d %d)",
+                                dx, dy,
+                                (int)std::round(dx),
+                                (int)std::round(dy));
 
-        IF::Instance().Printf(0, 680,
-                              IF::TextParams::Set(0xFFFFFF,
-                                                  IF::TextAlignment::LEFT,
-                                                  2.0),
-                              "subpixel mode %s",
-                              SubpixelDrawing ? "ON" : "OFF");
-      }
-      else
-      {
-        IF::Instance().Printf(0, 0,
-                              IF::TextParams::Set(0xFFFFFF,
-                                                  IF::TextAlignment::LEFT,
-                                                  2.0),
-                              "CurrentPoint (%d %d)",
-                              (int)CurrentPoint->X, (int)CurrentPoint->Y);
+          IF::Instance().Printf(0, 680,
+                                IF::TextParams::Set(0xFFFFFF,
+                                                    IF::TextAlignment::LEFT,
+                                                    2.0),
+                                "subpixel mode %s",
+                                SubpixelDrawing ? "ON" : "OFF");
+        }
+        else
+        {
+          IF::Instance().Printf(0, 0,
+                                IF::TextParams::Set(0xFFFFFF,
+                                                    IF::TextAlignment::LEFT,
+                                                    2.0),
+                                "CurrentPoint (%d %d)",
+                                (int)CurrentPoint->X, (int)CurrentPoint->Y);
+        }
       }
     }
 
@@ -948,6 +956,10 @@ class CTF : public DrawWrapper
 
             case SDLK_f:
               Wireframe = not Wireframe;
+              break;
+
+            case SDLK_h:
+              HideGizmos = not HideGizmos;
               break;
 
             case SDLK_SPACE:

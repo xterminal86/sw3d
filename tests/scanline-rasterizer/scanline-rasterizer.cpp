@@ -157,25 +157,23 @@ void ScanlineRasterizer::DrawHL()
 
 void ScanlineRasterizer::DrawFT(const TriangleSimple& t)
 {
-  BLG first;
-  first.Init(t.Points[0].X,
-             t.Points[0].Y,
-             t.Points[2].X,
-             t.Points[2].Y);
-
-  BLG second;
-  second.Init(t.Points[1].X,
-              t.Points[1].Y,
+  _first.Init(t.Points[0].X,
+              t.Points[0].Y,
               t.Points[2].X,
               t.Points[2].Y);
 
+  _second.Init(t.Points[1].X,
+               t.Points[1].Y,
+               t.Points[2].X,
+               t.Points[2].Y);
+
   if (_drawWireframe)
   {
-    PerformRasterizationWireframe(first, second, t, TriangleType::FLAT_TOP);
+    PerformRasterizationWireframe(_first, _second, t, TriangleType::FLAT_TOP);
   }
   else
   {
-    PerformRasterization(first, second, t, TriangleType::FLAT_TOP);
+    PerformRasterization(_first, _second, t, TriangleType::FLAT_TOP);
   }
 }
 
@@ -183,25 +181,23 @@ void ScanlineRasterizer::DrawFT(const TriangleSimple& t)
 
 void ScanlineRasterizer::DrawFB(const TriangleSimple& t)
 {
-  BLG first;
-  first.Init(t.Points[0].X,
-             t.Points[0].Y,
-             t.Points[2].X,
-             t.Points[2].Y);
-
-  BLG second;
-  second.Init(t.Points[0].X,
+  _first.Init(t.Points[0].X,
               t.Points[0].Y,
-              t.Points[1].X,
-              t.Points[1].Y);
+              t.Points[2].X,
+              t.Points[2].Y);
+
+  _second.Init(t.Points[0].X,
+               t.Points[0].Y,
+               t.Points[1].X,
+               t.Points[1].Y);
 
   if (_drawWireframe)
   {
-    PerformRasterizationWireframe(first, second, t, TriangleType::FLAT_BOTTOM);
+    PerformRasterizationWireframe(_first, _second, t, TriangleType::FLAT_BOTTOM);
   }
   else
   {
-    PerformRasterization(first, second, t, TriangleType::FLAT_BOTTOM);
+    PerformRasterization(_first, _second, t, TriangleType::FLAT_BOTTOM);
   }
 }
 

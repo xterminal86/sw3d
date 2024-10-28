@@ -50,9 +50,9 @@ bool ScanlineRasterizer::SortVertices(TriangleSimple& t)
 
     for (size_t i = 0; i < 2; i++)
     {
-      bool sortingCondition = (t.Points[i].Y >  t.Points[i + 1].Y)
-                           or (t.Points[i].Y == t.Points[i + 1].Y
-                           and t.Points[i].X >  t.Points[i + 1].X);
+      bool sortingCondition = ((int)t.Points[i].Y >  (int)t.Points[i + 1].Y)
+                           or ((int)t.Points[i].Y == (int)t.Points[i + 1].Y
+                           and (int)t.Points[i].X >  (int)t.Points[i + 1].X);
       if (sortingCondition)
       {
         std::swap(t.Points[i].X, t.Points[i + 1].X);

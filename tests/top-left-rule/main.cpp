@@ -378,6 +378,32 @@ std::vector<GroupData> Group7 =
 
 // -----------------------------------------------------------------------------
 
+std::vector<GroupData> Group8 =
+{
+  {
+    {
+      {
+        { 50,      50,      0 },
+        { 53.4862, 10.1522, 0 },
+        { 89.8487, 53.4862, 0 }
+      }
+    },
+    { 255, 0, 0, 255 }
+  },
+  {
+    {
+      {
+        { 53.8462, 10.1522, 0 },
+        { 93.3340, 13.6384, 0 },
+        { 89.8487, 53.4862, 0 }
+      }
+    },
+    { 0, 255, 0, 255 }
+  },
+};
+
+// -----------------------------------------------------------------------------
+
 size_t GroupIndex = 0;
 
 std::vector<std::vector<GroupData>> Groups =
@@ -388,7 +414,8 @@ std::vector<std::vector<GroupData>> Groups =
   Group4,
   Group5,
   Group6,
-  Group7
+  Group7,
+  Group8
 };
 
 std::vector<GroupData>* CurrentGroup = &Groups[0];

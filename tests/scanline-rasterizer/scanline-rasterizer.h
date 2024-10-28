@@ -3,6 +3,7 @@
 
 #include <SDL2/SDL.h>
 
+#include "sw3d.h"
 #include "types.h"
 #include "blg.h"
 
@@ -15,8 +16,6 @@ class ScanlineRasterizer
 {
   public:
     void Init(SDL_Renderer* rendererRef);
-
-    double CrossProduct2D(const Vec3& v1, const Vec3& v2);
 
     WindingOrder GetWindingOrder(const TriangleSimple& t);
     TriangleType GetTriangleType(const TriangleSimple& t);

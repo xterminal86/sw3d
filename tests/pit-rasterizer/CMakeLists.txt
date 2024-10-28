@@ -15,6 +15,8 @@ include_directories(
 add_executable(
   ${TARGET_NAME}
   main.cpp
+  pit-rasterizer.h
+  pit-rasterizer.cpp
   ../../types.cpp
   ../../sw3d.cpp
 )

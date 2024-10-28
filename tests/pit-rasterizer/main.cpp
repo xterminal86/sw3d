@@ -2,6 +2,7 @@
 
 #include "sw3d.h"
 #include "instant-font.h"
+#include "pit-rasterizer.h"
 
 using namespace SW3D;
 
@@ -53,6 +54,8 @@ TriangleSimple CurrentTriangle = FlatTop;
 
 Vec3* CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
 
+PitRasterizer Rasterizer;
+
 // =============================================================================
 
 class CTF : public DrawWrapper
@@ -95,78 +98,6 @@ class CTF : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    //
-    // "Point In Triangle" method.
-    //
-    // Loop across triangle bounding box and draw pixel if it falls inside the
-    // triangle. Testing is performed using so-called 2D cross product (which
-    // is basically a normal cross product with Z set to 0). Point lies inside
-    // a triangle only if all cross products produce the same sign.
-    // Obviously, by using this method we're wasting exactly half amount of
-    // work since area of a triangle is half the area of outlined rectangle.
-    //
-    void PitRasterizer(TriangleSimple& t)
-    {
-      static SDL_Point p1, p2, p3;
-
-      p1 = { (int)t.Points[0].X, (int)t.Points[0].Y };
-      p2 = { (int)t.Points[1].X, (int)t.Points[1].Y };
-      p3 = { (int)t.Points[2].X, (int)t.Points[2].Y };
-
-      int xMin = std::min( std::min(p1.x, p2.x), p3.x);
-      int yMin = std::min( std::min(p1.y, p2.y), p3.y);
-      int xMax = std::max( std::max(p1.x, p2.x), p3.x);
-      int yMax = std::max( std::max(p1.y, p2.y), p3.y);
-
-      if (Wireframe)
-      {
-        //
-        // Triangle degenerated into vertical or horizontal line.
-        //
-        bool isLine = (p1.y == p2.y and p2.y == p3.y)
-                   or (p1.x == p2.x and p2.x == p3.x);
-        if (isLine)
-        {
-          SDL_RenderDrawLine(_renderer, xMin, yMin, xMax, yMax);
-        }
-        else
-        {
-          SDL_RenderDrawLine(_renderer, p1.x, p1.y, p2.x, p2.y);
-          SDL_RenderDrawLine(_renderer, p1.x, p1.y, p3.x, p3.y);
-          SDL_RenderDrawLine(_renderer, p2.x, p2.y, p3.x, p3.y);
-        }
-      }
-      else
-      {
-        for (int x = xMin; x <= xMax; x++)
-        {
-          for (int y = yMin; y <= yMax; y++)
-          {
-            SDL_Point p = { x, y };
-
-            //
-            // It seems that if we don't use a function call (CrossProduct2D)
-            // and just perform calculations directly, this way it works a
-            // little bit faster.
-            //
-            int w0 = (p2.x - p1.x) * (p.y - p1.y) - (p2.y - p1.y) * (p.x - p1.x);
-            int w1 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x);
-            int w2 = (p1.x - p3.x) * (p.y - p3.y) - (p1.y - p3.y) * (p.x - p3.x);
-
-            bool inside = (w0 <= 0 and w1 <= 0 and w2 <= 0)
-                       or (w0 >= 0 and w1 >= 0 and w2 >= 0);
-
-            if (inside)
-            {
-              SDL_RenderDrawPoint(_renderer, p.x, p.y);
-            }
-          }
-        }
-      }
-    }
-
-    // -------------------------------------------------------------------------
-
     void DrawToFrameBuffer() override
     {
       SaveColor();
@@ -177,7 +108,7 @@ class CTF : public DrawWrapper
       }
 
       SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-      PitRasterizer(CurrentTriangle);
+      Rasterizer.Rasterize(CurrentTriangle, Wireframe);
 
       RestoreColor();
     }
@@ -282,6 +213,7 @@ int main(int argc, char* argv[])
   if (c.Init(800, 800, QualityReductionFactor))
   {
     IF::Instance().Init(c.GetRenderer());
+    Rasterizer.Init(c.GetRenderer());
     c.Run(true);
   }
 

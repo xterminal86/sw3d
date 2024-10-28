@@ -3,6 +3,7 @@
 #include "sw3d.h"
 #include "instant-font.h"
 #include "srtl.h"
+#include "pit-rasterizer.h"
 
 using namespace SW3D;
 
@@ -27,6 +28,7 @@ std::vector<bool> ShowTriangle =
 
 SRTL Rasterizer;
 ScanlineRasterizer RasterizerOverdraw;
+PitRasterizer RasterizerPit;
 
 using GroupData = std::pair<TriangleSimple, SDL_Color>;
 
@@ -450,6 +452,8 @@ class TLR : public DrawWrapper
         {
           Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
         }
+
+        //RasterizerPit.Rasterize((*CurrentGroup)[i].first, Wireframe);
       }
 
       RestoreColor();
@@ -585,6 +589,7 @@ int main(int argc, char* argv[])
 
     Rasterizer.Init(c.GetRenderer());
     RasterizerOverdraw.Init(c.GetRenderer());
+    RasterizerPit.Init(c.GetRenderer());
 
     c.Run(true);
   }

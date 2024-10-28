@@ -13,6 +13,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../
   ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator/
   ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../pit-rasterizer/
 )
 
 add_executable(
@@ -22,6 +23,8 @@ add_executable(
   ../scanline-rasterizer/scanline-rasterizer.h
   ../scanline-rasterizer/srtl.cpp
   ../scanline-rasterizer/srtl.h
+  ../pit-rasterizer/pit-rasterizer.h
+  ../pit-rasterizer/pit-rasterizer.cpp
   ../../types.cpp
   ../../sw3d.cpp
   ../bresenham-generator/blg.cpp

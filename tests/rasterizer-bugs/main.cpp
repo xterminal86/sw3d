@@ -3,6 +3,7 @@
 #include "sw3d.h"
 #include "instant-font.h"
 #include "srtl.h"
+#include "pit-rasterizer.h"
 
 using namespace SW3D;
 
@@ -212,6 +213,7 @@ class TLR : public DrawWrapper
     SRTL _rasterizer;
 
     //ScanlineRasterizer _rasterizer;
+    //PitRasterizer _rasterizer;
 };
 
 // =============================================================================

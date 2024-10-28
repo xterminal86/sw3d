@@ -395,10 +395,10 @@ namespace SW3D
     HTML2RGBA(colorMask);
 
     SDL_SetRenderDrawColor(_renderer,
-                            _drawColor.r,
-                            _drawColor.g,
-                            _drawColor.b,
-                            _drawColor.a);
+                           _drawColor.r,
+                           _drawColor.g,
+                           _drawColor.b,
+                           _drawColor.a);
 
     SDL_RenderDrawPoint(_renderer, p.x, p.y);
 
@@ -984,6 +984,24 @@ namespace SW3D
     }
 
     return _drawColor;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  uint32_t DrawWrapper::RGBA2HTML(const SDL_Color& color)
+  {
+    uint32_t res = 0;
+
+    res |= (color.r << 16);
+    res |= (color.g << 8);
+    res |= color.b;
+
+    if (color.a != 0)
+    {
+      res |= (color.a << 24);
+    }
+
+    return res;
   }
 
   // ---------------------------------------------------------------------------
@@ -1682,7 +1700,7 @@ namespace SW3D
 
   Vec3 CrossProduct(const Vec3& v1, const Vec3& v2)
   {
-    Vec3 res;
+    static Vec3 res;
 
     res.X = (v1.Y * v2.Z - v1.Z * v2.Y);
     res.Y = (v1.Z * v2.X - v1.X * v2.Z);

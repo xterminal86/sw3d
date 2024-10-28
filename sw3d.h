@@ -165,6 +165,9 @@ namespace SW3D
       //
       virtual void DrawToScreen() {}
 
+      const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
+      uint32_t         RGBA2HTML(const SDL_Color& color);
+
     // *************************************************************************
     //
     //                               PRIVATE
@@ -180,7 +183,6 @@ namespace SW3D
 
       void FreeTexture(int handle);
 
-      const SDL_Color& HTML2RGBA(const uint32_t& colorMask);
       uint32_t Array2Mask(const uint8_t (&color)[4]);
 
       void DrawGrid();

@@ -869,34 +869,6 @@ class Drawer : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void Draw3D()
-    {
-      switch (ApplicationMode)
-      {
-        case AppMode::TEST:
-          DrawTestCube();
-          break;
-
-        case AppMode::FROM_OBJ:
-          DrawFromObj();
-          break;
-
-        case AppMode::SHOW_AXES:
-          DrawAxes();
-          break;
-
-        case AppMode::PIPELINE:
-          RenderingPipeline();
-          break;
-
-        case AppMode::TWO_PROJECTIONS:
-          TwoProjections();
-          break;
-      }
-    }
-
-    // -------------------------------------------------------------------------
-
     void DrawToScreen() override
     {
       IF::Instance().Printf(0, WindowHeight - 20,
@@ -1003,7 +975,28 @@ class Drawer : public DrawWrapper
 
     void DrawToFrameBuffer() override
     {
-      Draw3D();
+      switch (ApplicationMode)
+      {
+        case AppMode::TEST:
+          DrawTestCube();
+          break;
+
+        case AppMode::FROM_OBJ:
+          DrawFromObj();
+          break;
+
+        case AppMode::SHOW_AXES:
+          DrawAxes();
+          break;
+
+        case AppMode::PIPELINE:
+          RenderingPipeline();
+          break;
+
+        case AppMode::TWO_PROJECTIONS:
+          TwoProjections();
+          break;
+      }
     }
 
   private:

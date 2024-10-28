@@ -53,11 +53,11 @@ Well, I guess that's about it. I might update this list in the future if needed,
 
 ## Table of Contents:
 
-- [Part 0](p0.md)
+- [Part 0: Preparations](p0.md)
 
-- [Part 1](p1.md)
+- [Part 1: Line](p1.md)
 
-- [Part 2](p2.md)
+- [Part 2: Triangle](p2.md)
 
 <br>
 

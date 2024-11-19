@@ -4,17 +4,17 @@
 
 At first this project was aimed to be an implementation of things shown in [One Lone Coder](https://github.com/OneLoneCoder) video series called "3D Graphics Engine". But when my project continued to inflate more and more and code comments started to span across several screens I decided that it _might_ be a good idea to put all of that knowledge into an article of some sort, so that it can maybe pop out of Internet search to somebody new to 3D graphics who is trying to figure out how everything works.
 
-As it usually happens, when you decide to research some topic of interest you'll end up going down the rabbit hole of different complexity: you start from something simple (in your opinion) but then everything branches out and sometimes so much that it's easy to get lost. 
+As it usually happens, when you decide to research some topic of interest you'll end up going down the rabbit hole of different complexity: you start from something simple (in your opinion) but then everything branches out and sometimes so much that it's easy to get lost.
 
 This is no exception.
 
-I mean, everybody knows that 3D graphics basically means drawing lots of triangles to the screen. What could possibly be easier? So you go to YouTube and try to find some tutorial videos there (or even text stuff, but who wants to read text?). But what tutorials do you need? How to write your own raytracer? No, that's probably too complicated for a first tutorial project. How to render simple 3D cube? OK, sounds good, but very soon you'll start asking other questions: how does projection work? Why perspective projection matrix is the way it is? And what about shading and textures? 
+I mean, everybody knows that 3D graphics basically means drawing lots of triangles to the screen. What could possibly be easier? So you go to YouTube and try to find some tutorial videos there (or even text stuff, but who wants to read text?). But what tutorials do you need? How to write your own raytracer? No, that's probably too complicated for a first tutorial project. How to render simple 3D cube? OK, sounds good, but very soon you'll start asking other questions: how does projection work? Why perspective projection matrix is the way it is? And what about shading and textures?
 
-Lots of questions, but you have to start from somewhere. 
+Lots of questions, but you have to start from somewhere.
 
 Also, it's obvious that you can't show and explain everything in one YouTube video, for example, so authors end up concentrating on one subject while completely leaving out something else, which could be exactly the thing you're trying to understand right now. And so you quickly find yourself all over the Internet, searching and aggregating bits of information from different sources, trying to make sense of all that at the same time.
 
-In this series of articles I'll try to describe as much "low-level" stuff as possible by going slowly from simple to complicated and with as much detail as possible. We'll be using SDL2 to draw graphics because it's the most "low level" as you can get in a sense that we only can draw pixels to the screen with specified color and that's it. This will also showcase how all 3D stuff gets build from ground up. I'll also be using C++ because all of the learning materials used it, but I guess you can port everything to PyGame or something without much effort. I'd say whatever graphics library / framework you have that allows you to paint pixels on the screen will do. 
+In this series of articles I'll try to describe as much "low-level" stuff as possible by going slowly from simple to complicated and with as much detail as possible. We'll be using SDL2 to draw graphics because it's the most "low level" as you can get in a sense that we only can draw pixels to the screen with specified color and that's it. This will also showcase how all 3D stuff gets build from ground up. I'll also be using C++ because all of the learning materials used it, but I guess you can port everything to PyGame or something without much effort. I'd say whatever graphics library / framework you have that allows you to paint pixels on the screen will do.
 
 Codebase is extensively commented, so you can check it out as well.
 
@@ -48,6 +48,11 @@ And before I forget, here's the list of sources I used in my research:
 
 - [https://www.scratchapixel.com/index.html](https://www.scratchapixel.com/index.html)<br>
   A site that did the same thing I'm trying to do here, so I'll just quote from the starting page: `"Teaching computer graphics programming to regular folks"`. Again, not everything might be explained (or in detail that you want), but it's definitely worth looking into.
+
+- [https://kristoffer-dyrkorn.github.io/triangle-rasterizer/](https://kristoffer-dyrkorn.github.io/triangle-rasterizer/)<br>
+  A series of articles that are referenced by pikuma guy - additional information regarding floating point imprecision, top-lef rule and stuff.
+
+
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing these lines my renderer is still incomplete.
 

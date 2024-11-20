@@ -50,9 +50,7 @@ And before I forget, here's the list of sources I used in my research:
   A site that did the same thing I'm trying to do here, so I'll just quote from the starting page: `"Teaching computer graphics programming to regular folks"`. Again, not everything might be explained (or in detail that you want), but it's definitely worth looking into.
 
 - [https://kristoffer-dyrkorn.github.io/triangle-rasterizer/](https://kristoffer-dyrkorn.github.io/triangle-rasterizer/)<br>
-  A series of articles that are referenced by pikuma guy - additional information regarding floating point imprecision, top-lef rule and stuff.
-
-
+  A series of articles that are referenced by pikuma guy - additional information regarding floating point imprecision, top-left rule and stuff.
 
 Well, I guess that's about it. I might update this list in the future if needed, since at the moment of writing these lines my renderer is still incomplete.
 

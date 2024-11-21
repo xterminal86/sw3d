@@ -61,16 +61,6 @@ Vec3* CurrentPoint = &CurrentTriangle.Points[CurrentPointIndex];
 
 // =============================================================================
 
-WindingOrder GetWindingOrder(const TriangleSimple& t)
-{
-  double cp = CrossProduct2D(t.Points[1] - t.Points[0],
-                             t.Points[2] - t.Points[1]);
-
-  return cp > 0 ? WindingOrder::CW : WindingOrder::CCW;
-}
-
-// =============================================================================
-
 bool SortVertices(TriangleSimple& t)
 {
   bool swapPerformed = false;

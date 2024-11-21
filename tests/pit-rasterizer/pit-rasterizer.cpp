@@ -31,6 +31,18 @@ void PitRasterizer::Init(SDL_Renderer* rendererRef)
 // Obviously, by using this method we're wasting exactly half amount of
 // work since area of a triangle is half the area of outlined rectangle.
 //
+// Actually, as far as I learned during research, this method is actually an
+// industry standard and modern graphics cards use this one for rasterization
+// because it's easy to parallelize: you can split screen (framebuffer would be
+// more correctly I guess) in tiles and perform such PIT rasterization on a tile
+// by tile basis using several thousands of GPU cores in parallel (or something
+// like that). While in scanline rasterization you can't precalculate all point
+// needed for scanlines. Well, I guess you could, but like I said, as far as my
+// research goes it seems it's not as efficient as PIT method.
+//
+// I guess it all started from famous 1988 paper by Juan Piñeda called
+// "A Parallel Algorithm for Polygon Rasterization".
+//
 void PitRasterizer::Rasterize(const TriangleSimple& t, bool wireframe)
 {
   static SDL_Point p1, p2, p3;

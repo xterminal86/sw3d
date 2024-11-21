@@ -284,6 +284,16 @@ namespace SW3D
   extern double CrossProduct2D(const Vec3& v1, const Vec3& v2);
   extern Vec3   CrossProduct(const Vec3& v1, const Vec3& v2);
 
+  // ***************************************************************************
+  //
+  // For 2D screen space only.
+  //
+  // ***************************************************************************
+
+  extern WindingOrder GetWindingOrder(const TriangleSimple& t);
+
+  // ***************************************************************************
+
   template <typename T>
   T Clamp(T value, T min, T max)
   {

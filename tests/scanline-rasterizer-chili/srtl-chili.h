@@ -7,7 +7,7 @@
 using namespace SW3D;
 
 //
-// "Scanline Rasterizer Top Left using DDA line drawing"
+// "Scanline Rasterizer Top Left ChiliTomatoNoodle version"
 //
 class SRTLCHILI
 {

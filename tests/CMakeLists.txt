@@ -1,6 +1,7 @@
 add_subdirectory(various)
 add_subdirectory(obj-loader)
 add_subdirectory(scanline-rasterizer)
+add_subdirectory(scanline-rasterizer-dda)
 add_subdirectory(bresenham-hindu)
 add_subdirectory(bresenham-generator)
 add_subdirectory(pit-rasterizer)

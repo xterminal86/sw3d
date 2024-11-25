@@ -1,39 +1,15 @@
 #include <cstdio>
-#include <unordered_map>
 
 #include "sw3d.h"
 #include "instant-font.h"
-#include "pit-rasterizer-tlr.h"
+#include "srtl-dda.h"
 
 using namespace SW3D;
 
 const size_t QualityReductionFactor = 6;
 
-size_t SelectionIndex    = 0;
-size_t CurrentPointIndex = 0;
-
 bool Wireframe = false;
-
-const std::vector<PitRasterizerTLR::FillConvention> FillConventions =
-{
-  PitRasterizerTLR::FillConvention::NONE,
-  PitRasterizerTLR::FillConvention::TOP_LEFT,
-  PitRasterizerTLR::FillConvention::BOTTOM_RIGHT,
-  PitRasterizerTLR::FillConvention::TOP_RIGHT,
-  PitRasterizerTLR::FillConvention::BOTTOM_LEFT,
-};
-
-const std::unordered_map<PitRasterizerTLR::FillConvention, std::string>
-FillConventionNameByType =
-{
-  { PitRasterizerTLR::FillConvention::NONE,         "NONE"         },
-  { PitRasterizerTLR::FillConvention::TOP_LEFT,     "TOP-LEFT"     },
-  { PitRasterizerTLR::FillConvention::BOTTOM_RIGHT, "BOTTOM-RIGHT" },
-  { PitRasterizerTLR::FillConvention::TOP_RIGHT,    "TOP-RIGHT"    },
-  { PitRasterizerTLR::FillConvention::BOTTOM_LEFT,  "BOTTOM-LEFT"  },
-};
-
-uint8_t FillConventionIndex = 0;
+bool HideText  = false;
 
 std::vector<bool> ShowTriangle =
 {
@@ -48,9 +24,9 @@ std::vector<bool> ShowTriangle =
   true,
 };
 
-using GroupData = std::pair<TriangleSimple, SDL_Color>;
+SRTLDDA Rasterizer;
 
-PitRasterizerTLR Rasterizer;
+using GroupData = std::pair<TriangleSimple, SDL_Color>;
 
 // -----------------------------------------------------------------------------
 
@@ -444,16 +420,15 @@ std::vector<GroupData>* CurrentGroup = &Groups[0];
 
 // =============================================================================
 
-class CTF : public DrawWrapper
+class TLR : public DrawWrapper
 {
   public:
+
     // -------------------------------------------------------------------------
 
     void DrawToFrameBuffer() override
     {
       SaveColor();
-
-      SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
 
       for (size_t i = 0; i < (*CurrentGroup).size(); i++)
       {
@@ -475,15 +450,40 @@ class CTF : public DrawWrapper
 
     void DrawToScreen() override
     {
-      PitRasterizerTLR::FillConvention c = FillConventions[FillConventionIndex];
-
+      if (HideText)
+      {
+        return;
+      }
 
       IF::Instance().Printf(0, 0,
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
                                                 2.0),
-                            "%s",
-                            FillConventionNameByType.at(c).data());
+                            "'1-9' - toggle triangles");
+
+      IF::Instance().Printf(0, 20,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'TAB' - toggle wireframe rendering");
+
+      IF::Instance().Printf(0, 40,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "'SPACE' - cycle test cases");
+
+      int cnt = 0;
+      for (bool shown : ShowTriangle)
+      {
+        IF::Instance().Printf(cnt * (QualityReductionFactor + 20), _windowHeight - 20,
+                              IF::TextParams::Set(shown ? 0x00FF00 : 0xFF0000,
+                                                  IF::TextAlignment::LEFT,
+                                                  2.0),
+                              "%d",
+                              cnt + 1);
+        cnt++;
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -504,13 +504,9 @@ class CTF : public DrawWrapper
               Wireframe = not Wireframe;
               break;
 
-            case SDLK_f:
-            {
-              FillConventionIndex++;
-              FillConventionIndex %= FillConventions.size();
-              Rasterizer.SetFillConvention(FillConventions[FillConventionIndex]);
-            }
-            break;
+            case SDLK_h:
+              HideText = not HideText;
+              break;
 
             case SDLK_1:
               ShowTriangle[0] = not ShowTriangle[0];
@@ -568,13 +564,16 @@ class CTF : public DrawWrapper
 
 int main(int argc, char* argv[])
 {
-  CTF c;
+  TLR c;
 
   if (c.Init(800, 800, QualityReductionFactor))
   {
     IF::Instance().Init(c.GetRenderer());
+
+    CurrentGroup = &Groups[GroupIndex];
+
     Rasterizer.Init(c.GetRenderer());
-    Rasterizer.SetFillConvention(FillConventions[FillConventionIndex]);
+
     c.Run(true);
   }
 

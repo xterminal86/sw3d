@@ -4,33 +4,22 @@ set (CMAKE_CXX_STANDARD_REQUIRED On)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
 
-set (TARGET_NAME rasterizer-bugs)
+set (TARGET_NAME scanline-rasterizer-dda)
 project (${TARGET_NAME})
 
 include_directories(
   ${SDL2_INCLUDE_DIRS}
-  ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../
-  ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator/
-  ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer/
-  ${CMAKE_CURRENT_SOURCE_DIR}/../pit-rasterizer/
-  ${CMAKE_CURRENT_SOURCE_DIR}/../pit-rasterizer-tlr/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator
 )
 
 add_executable(
   ${TARGET_NAME}
   main.cpp
-  ../scanline-rasterizer/scanline-rasterizer.cpp
-  ../scanline-rasterizer/scanline-rasterizer.h
-  ../scanline-rasterizer/srtl.cpp
-  ../scanline-rasterizer/srtl.h
-  ../pit-rasterizer/pit-rasterizer.h
-  ../pit-rasterizer/pit-rasterizer.cpp
-  ../pit-rasterizer-tlr/pit-rasterizer-tlr.h
-  ../pit-rasterizer-tlr/pit-rasterizer-tlr.cpp
+  srtl-dda.cpp
+  srtl-dda.h
   ../../types.cpp
   ../../sw3d.cpp
-  ../bresenham-generator/blg.cpp
 )
 
 if (WIN32)

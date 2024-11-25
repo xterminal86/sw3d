@@ -74,6 +74,9 @@ class BH : public DrawWrapper
 
       for (int i = 0; i <= steps; i++)
       {
+        // NOTE: works better
+        //SDL_RenderDrawPoint(_renderer, (int)(x + 0.5), (int)(y + 0.5));
+
         SDL_RenderDrawPoint(_renderer, (int)x, (int)y);
 
         x += xInc;

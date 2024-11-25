@@ -1,5 +1,7 @@
 #include "srtl.h"
 
+// =============================================================================
+
 void SRTL::PerformRasterization(BLG& first,
                                 BLG& second,
                                 const TriangleSimple& t,
@@ -32,6 +34,11 @@ void SRTL::PerformRasterization(BLG& first,
 
   for (int currentScanline = y1; currentScanline < y2; currentScanline++)
   {
+    //if (currentScanline == 13)
+    //{
+    //  SDL_Log("Stop here");
+    //}
+
     //
     // Always get "first" point no matter the direction.
     //
@@ -55,17 +62,14 @@ void SRTL::PerformRasterization(BLG& first,
       p2 = second.Next();
     }
 
+    if (tt == TriangleType::FLAT_BOTTOM and currentScanline == y1)
+    {
+      continue;
+    }
+
     for (int x = x1; x < x2; x++)
     {
-      bool isTop  = (tt == TriangleType::FLAT_TOP
-                 and currentScanline == y1
-                 and x >= x1);
-      bool isLeft = (x >= x1);
-
-      if (isTop or isLeft)
-      {
-        SDL_RenderDrawPoint(_renderer, x, currentScanline);
-      }
+      SDL_RenderDrawPoint(_renderer, x, currentScanline);
     }
   }
 }

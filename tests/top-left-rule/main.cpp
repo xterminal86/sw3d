@@ -406,7 +406,7 @@ std::vector<GroupData> Group8 =
 
 // -----------------------------------------------------------------------------
 
-size_t GroupIndex = 0;
+size_t GroupIndex = 7;
 
 std::vector<std::vector<GroupData>> Groups =
 {
@@ -586,6 +586,8 @@ int main(int argc, char* argv[])
   if (c.Init(800, 800, QualityReductionFactor))
   {
     IF::Instance().Init(c.GetRenderer());
+
+    CurrentGroup = &Groups[GroupIndex];
 
     Rasterizer.Init(c.GetRenderer());
     RasterizerOverdraw.Init(c.GetRenderer());

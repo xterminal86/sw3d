@@ -31,10 +31,8 @@ WindingOrder ScanlineRasterizer::GetWindingOrder(const TriangleSimple& t)
 
 // =============================================================================
 
-bool ScanlineRasterizer::SortVertices(TriangleSimple& t)
+void ScanlineRasterizer::SortVertices(TriangleSimple& t)
 {
-  bool swapPerformed = false;
-
   bool sorted = false;
 
   while (not sorted)
@@ -51,12 +49,9 @@ bool ScanlineRasterizer::SortVertices(TriangleSimple& t)
         std::swap(t.Points[i].X, t.Points[i + 1].X);
         std::swap(t.Points[i].Y, t.Points[i + 1].Y);
         sorted = false;
-        swapPerformed = true;
       }
     }
   }
-
-  return swapPerformed;
 }
 
 // =============================================================================

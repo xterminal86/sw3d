@@ -4,14 +4,17 @@
 #include "instant-font.h"
 #include "srtl.h"
 #include "pit-rasterizer.h"
+#include "pit-rasterizer-tlr.h"
 
 using namespace SW3D;
 
 const size_t QualityReductionFactor = 4;
 
 bool Wireframe = false;
+bool HideText  = true;
 
-const double RotationSpeed = 50.0;
+const double RotationFactor = 0.01;
+const double RotationSpeed  = 50.0;
 
 double AngleX = 0.0;
 double AngleY = 0.0;
@@ -19,8 +22,18 @@ double AngleZ = 0.0;
 
 std::vector<SDL_Color> TriangleColors =
 {
-  { 255, 0, 0, 255 },
-  { 0, 255, 0, 255 }
+  { 255,   0,   0, 255 },
+  { 0,   255,   0, 255 },
+  { 0,     0, 255, 255 },
+  { 255, 255,   0, 255 },
+  { 0,   255, 255, 255 },
+  { 255,   0, 255, 255 },
+  { 64,   96, 128, 255 },
+  { 32,   64,  96, 255 },
+  { 64,   32, 128, 255 },
+  { 128,  64,  32, 255 },
+  { 64,   96, 160, 255 },
+  { 64,  150,  26, 255 },
 };
 
 // =============================================================================
@@ -37,10 +50,9 @@ class TLR : public DrawWrapper
 
       _cube.Triangles =
       {
-        // FRONT
+        //// FRONT
         { 0.0, 0.0, 0.0,    1.0, 0.0, 0.0,    0.0, 1.0, 0.0 },
         { 1.0, 0.0, 0.0,    1.0, 1.0, 0.0,    0.0, 1.0, 0.0 },
-
         //// BACK
         //{ 0.0, 0.0, 1.0,    0.0, 1.0, 1.0,    1.0, 0.0, 1.0 },
         //{ 1.0, 0.0, 1.0,    0.0, 1.0, 1.0,    1.0, 1.0, 1.0 },
@@ -126,6 +138,11 @@ class TLR : public DrawWrapper
 
     void DrawToScreen() override
     {
+      if (HideText)
+      {
+        return;
+      }
+
       size_t cnt = 0;
       for (auto& t : _triScreenSpace)
       {
@@ -172,27 +189,31 @@ class TLR : public DrawWrapper
               break;
 
             case SDLK_a:
-              AngleY -= (0.1 * RotationSpeed);
+              AngleY -= (RotationFactor * RotationSpeed);
               break;
 
             case SDLK_d:
-              AngleY += (0.1 * RotationSpeed);
+              AngleY += (RotationFactor * RotationSpeed);
               break;
 
             case SDLK_w:
-              AngleX -= (0.1 * RotationSpeed);
+              AngleX -= (RotationFactor * RotationSpeed);
               break;
 
             case SDLK_s:
-              AngleX += (0.1 * RotationSpeed);
+              AngleX += (RotationFactor * RotationSpeed);
               break;
 
             case SDLK_q:
-              AngleZ -= (0.1 * RotationSpeed);
+              AngleZ -= (RotationFactor * RotationSpeed);
               break;
 
             case SDLK_e:
-              AngleZ += (0.1 * RotationSpeed);
+              AngleZ += (RotationFactor * RotationSpeed);
+              break;
+
+            case SDLK_h:
+              HideText = not HideText;
               break;
 
             default:
@@ -210,10 +231,11 @@ class TLR : public DrawWrapper
     //
     // BUG: some pixels are not filled.
     //
-    SRTL _rasterizer;
+    //SRTL _rasterizer;
 
     //ScanlineRasterizer _rasterizer;
-    //PitRasterizer _rasterizer;
+    //PitRasterizer      _rasterizer;
+    PitRasterizerTLR   _rasterizer;
 };
 
 // =============================================================================

@@ -21,6 +21,13 @@ void PitRasterizerTLR::Init(SDL_Renderer* rendererRef)
 
 // =============================================================================
 
+void PitRasterizerTLR::SetFillConvention(FillConvention c)
+{
+  _fillConvention = c;
+}
+
+// =============================================================================
+
 void PitRasterizerTLR::Rasterize(const TriangleSimple& t, bool wireframe)
 {
   static SDL_Point p1, p2, p3;
@@ -29,6 +36,17 @@ void PitRasterizerTLR::Rasterize(const TriangleSimple& t, bool wireframe)
 
   SortVertices();
   CheckAndFixWinding();
+
+  //
+  // After sorting and fixing vertices can only be like these:
+  //
+  // 1   2  |    1     |    1      |     1
+  //        |          |           |
+  //   3    |  3    2  |       2   |  3
+  //        |          |           |
+  //        |          |  3        |        2
+  //
+  //
 
   p1 = { (int)_tmp.Points[0].X, (int)_tmp.Points[0].Y };
   p2 = { (int)_tmp.Points[1].X, (int)_tmp.Points[1].Y };
@@ -120,9 +138,55 @@ void PitRasterizerTLR::Rasterize(const TriangleSimple& t, bool wireframe)
     // we're sort of "chipping off" 1 pixel from right and bottom edges of a
     // triangle.
     //
-    int bias1 = IsTopLeft(p2, p1) ? 0 : -1;
-    int bias2 = IsTopLeft(p3, p2) ? 0 : -1;
-    int bias3 = IsTopLeft(p1, p3) ? 0 : -1;
+    // It seems that you can choose any type of convention as long as it
+    // produces consistent results, but I guess there are reasons why people
+    // chose top-left rule that I don't know about. I can only guess that it
+    // might be connected with the fact that most people read left to right top
+    // to bottom, so if you chip rightmost and downmost pixel edges, it will be
+    // least noticeable.
+    //
+
+    int bias1 = 0;
+    int bias2 = 0;
+    int bias3 = 0;
+
+    switch (_fillConvention)
+    {
+      case FillConvention::TOP_LEFT:
+      {
+        bias1 = IsTopLeft(p1, p2) ? 0 : -1;
+        bias2 = IsTopLeft(p2, p3) ? 0 : -1;
+        bias3 = IsTopLeft(p3, p1) ? 0 : -1;
+      }
+      break;
+
+      case FillConvention::BOTTOM_RIGHT:
+      {
+        bias1 = IsBottomRight(p1, p2) ? 0 : -1;
+        bias2 = IsBottomRight(p2, p3) ? 0 : -1;
+        bias3 = IsBottomRight(p3, p1) ? 0 : -1;
+      }
+      break;
+
+      case FillConvention::TOP_RIGHT:
+      {
+        bias1 = IsTopRight(p1, p2) ? 0 : -1;
+        bias2 = IsTopRight(p2, p3) ? 0 : -1;
+        bias3 = IsTopRight(p3, p1) ? 0 : -1;
+      }
+      break;
+
+      case FillConvention::BOTTOM_LEFT:
+      {
+        bias1 = IsBottomLeft(p1, p2) ? 0 : -1;
+        bias2 = IsBottomLeft(p2, p3) ? 0 : -1;
+        bias3 = IsBottomLeft(p3, p1) ? 0 : -1;
+      }
+      break;
+
+      default:
+        break;
+    }
 
     for (int x = xMin; x <= xMax; x++)
     {
@@ -203,4 +267,46 @@ bool PitRasterizerTLR::IsTopLeft(const SDL_Point& start, const SDL_Point& end)
   bool isLeftEdge = edge.Y < 0;
 
   return isTopEdge || isLeftEdge;
+}
+
+// =============================================================================
+
+bool PitRasterizerTLR::IsBottomRight(const SDL_Point& start, const SDL_Point& end)
+{
+  static Vec3 edge;
+  edge.X = end.x - start.x;
+  edge.Y = end.y - start.y;
+
+  bool isBottomEdge = (edge.Y == 0) and (edge.X < 0);
+  bool isRightEdge  = edge.Y > 0;
+
+  return isBottomEdge || isRightEdge;
+}
+
+// =============================================================================
+
+bool PitRasterizerTLR::IsTopRight(const SDL_Point& start, const SDL_Point& end)
+{
+  static Vec3 edge;
+  edge.X = end.x - start.x;
+  edge.Y = end.y - start.y;
+
+  bool isTopEdge   = (edge.Y == 0) and (edge.X > 0);
+  bool isRightEdge = edge.Y > 0;
+
+  return isTopEdge || isRightEdge;
+}
+
+// =============================================================================
+
+bool PitRasterizerTLR::IsBottomLeft(const SDL_Point& start, const SDL_Point& end)
+{
+  static Vec3 edge;
+  edge.X = end.x - start.x;
+  edge.Y = end.y - start.y;
+
+  bool isBottomEdge = (edge.Y == 0) and (edge.X < 0);
+  bool isLeftEdge   = edge.Y < 0;
+
+  return isBottomEdge || isLeftEdge;
 }

@@ -22,7 +22,7 @@ class ScanlineRasterizer
 
     void Rasterize(const TriangleSimple& t, bool wireframe = false);
 
-    bool SortVertices(TriangleSimple& t);
+    void SortVertices(TriangleSimple& t);
     void CheckAndFixWinding(TriangleSimple& t);
 
   protected:

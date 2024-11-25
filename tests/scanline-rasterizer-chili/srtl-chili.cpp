@@ -1,8 +1,8 @@
-#include "srtl-dda.h"
+#include "srtl-chili.h"
 
 // =============================================================================
 
-void SRTLDDA::Init(SDL_Renderer* rendererRef)
+void SRTLCHILI::Init(SDL_Renderer* rendererRef)
 {
   if (rendererRef == nullptr)
   {
@@ -23,24 +23,65 @@ void SRTLDDA::Init(SDL_Renderer* rendererRef)
 
 // =============================================================================
 
-void SRTLDDA::DrawFT(const TriangleSimple& t)
+void SRTLCHILI::DrawFT(const TriangleSimple& t)
 {
   //
   // 1   2
   //
   //   3
   //
+  // Instead of "rise over run" this method uses an inverse to avoid potential
+  // division by zero in case when triangle degenerates into vertical line.
+  // If dx were to be 0 it'll be in numerator anyway.
+  //
   double kl = (t.Points[2].X - t.Points[0].X) / (t.Points[2].Y - t.Points[0].Y);
   double kr = (t.Points[2].X - t.Points[1].X) / (t.Points[2].Y - t.Points[1].Y);
 
+  //
+  // Add 0.5 to grab center of a pixel. Turns out this makes the "dumb"
+  // algorithm produce more accurate results. Of course this will work only if
+  // your pixel fraction part goes from 0 to 1, which is the case in SDL2 if
+  // you're not using render functions with F postfix in their name. Otherwise
+  // pixel center is located at exact integer coordinates, thus your pixel will
+  // occupy (x - 0.5, x + 0.5), (y - 0.5, y + 0.5) area of sorts.
+  // In original author's implementation he used std::ceil() and subtracted 0.5.
+  // It's obvious that it's the same thing.
+  //
   const int yStart = (int)std::floor(t.Points[0].Y + 0.5);
   const int yEnd   = (int)std::floor(t.Points[2].Y + 0.5);
 
   for (int y = yStart; y < yEnd; y++)
   {
     //
-    // y = kx + b
-    // x = y - kx
+    // Because we inverted the slope fraction, we now expressing X values via
+    // given Y.
+    // To find x positions of left and right edges for scanlines we check how
+    // much in X will we move for given Y scanline value and add that to
+    // original X. Again, add 0.5 because we want pixel center.
+    // It's obvious that for one edge its slope will be positive and for the
+    // other it will be negative, so it will be actually subtraction in one
+    // case.
+    //
+    //
+    //       pxl
+    //       |
+    //    0  |           1 |Y scanlines
+    //  <-X--------------+ |1
+    //  | |\            /  |2
+    // D| | \          /   |3
+    //  <----P        /    |4
+    //        \      /     |5
+    //         \    /      |6
+    //          \  /       |7
+    //           \/        |8
+    //            2
+    //
+    // X   -> (t.Points[0].X, t.Points[0].Y)
+    // D   -> (double(y) + 0.5 - t.Points[0].Y)
+    // pxl -> (kl * D + t.Points[0].X)
+    // P   -> (pxl, y)
+    //
+    // Bear in mind that D and pxl are not equal! It's ACII art.
     //
     const double pxl = kl * (double(y) + 0.5 - t.Points[0].Y) + t.Points[0].X;
     const double pxr = kr * (double(y) + 0.5 - t.Points[1].Y) + t.Points[1].X;
@@ -67,7 +108,7 @@ void SRTLDDA::DrawFT(const TriangleSimple& t)
 
 // =============================================================================
 
-void SRTLDDA::DrawFB(const TriangleSimple& t)
+void SRTLCHILI::DrawFB(const TriangleSimple& t)
 {
   //
   //   1
@@ -82,8 +123,12 @@ void SRTLDDA::DrawFB(const TriangleSimple& t)
 
   for (int y = yStart; y < yEnd; y++)
   {
+    //
+    // The only difference here is that we start from one common point.
+    // Everything else is the same concept.
+    //
     const double pxl = kl * (double(y) + 0.5 - t.Points[0].Y) + t.Points[0].X;
-    const double pxr = kr * (double(y) + 0.5 - t.Points[1].Y) + t.Points[1].X;
+    const double pxr = kr * (double(y) + 0.5 - t.Points[0].Y) + t.Points[0].X;
 
     const int xStart = (int)std::floor(pxl + 0.5);
     const int xEnd   = (int)std::floor(pxr + 0.5);
@@ -107,7 +152,7 @@ void SRTLDDA::DrawFB(const TriangleSimple& t)
 
 // =============================================================================
 
-void SRTLDDA::DrawMR(const TriangleSimple& t)
+void SRTLCHILI::DrawMR(const TriangleSimple& t)
 {
   //
   //   1
@@ -128,7 +173,7 @@ void SRTLDDA::DrawMR(const TriangleSimple& t)
 
 // =============================================================================
 
-void SRTLDDA::DrawML(const TriangleSimple& t)
+void SRTLCHILI::DrawML(const TriangleSimple& t)
 {
   //
   //   1
@@ -149,7 +194,37 @@ void SRTLDDA::DrawML(const TriangleSimple& t)
 
 // =============================================================================
 
-void SRTLDDA::Rasterize(const TriangleSimple& t, bool wireframe)
+void SRTLCHILI::DrawVL()
+{
+  int x  = _copy.Points[0].X;
+
+  int y1 = _copy.Points[0].Y;
+  int y2 = _copy.Points[1].Y;
+
+  for (int scanline = y1; scanline <= y2; scanline++)
+  {
+    SDL_RenderDrawPoint(_renderer, x, scanline);
+  }
+}
+
+// =============================================================================
+
+void SRTLCHILI::DrawHL()
+{
+  int scanline = _copy.Points[0].Y;
+
+  int x1 = _copy.Points[0].X;
+  int x2 = _copy.Points[1].X;
+
+  for (int x = x1; x <= x2; x++)
+  {
+    SDL_RenderDrawPoint(_renderer, x, scanline);
+  }
+}
+
+// =============================================================================
+
+void SRTLCHILI::Rasterize(const TriangleSimple& t, bool wireframe)
 {
   _wireframe = wireframe;
 
@@ -163,17 +238,17 @@ void SRTLDDA::Rasterize(const TriangleSimple& t, bool wireframe)
 
 // =============================================================================
 
-void SRTLDDA::PerformRasterization()
+void SRTLCHILI::PerformRasterization()
 {
   TriangleType tt = GetTriangleType(_copy);
   switch (tt)
   {
     case TriangleType::VERTICAL_LINE:
-      //DrawVL();
+      DrawVL();
       break;
 
     case TriangleType::HORIZONTAL_LINE:
-      //DrawHL();
+      DrawHL();
       break;
 
     case TriangleType::FLAT_TOP:
@@ -199,7 +274,7 @@ void SRTLDDA::PerformRasterization()
 
 // =============================================================================
 
-void SRTLDDA::SortVertices()
+void SRTLCHILI::SortVertices()
 {
   bool sorted = false;
 
@@ -224,7 +299,7 @@ void SRTLDDA::SortVertices()
 
 // =============================================================================
 
-void SRTLDDA::CheckAndFixWinding()
+void SRTLCHILI::CheckAndFixWinding()
 {
   WindingOrder wo = GetWindingOrder(_copy);
   if (wo == WindingOrder::CCW)
@@ -236,7 +311,7 @@ void SRTLDDA::CheckAndFixWinding()
 
 // =============================================================================
 
-WindingOrder SRTLDDA::GetWindingOrder(const TriangleSimple& t)
+WindingOrder SRTLCHILI::GetWindingOrder(const TriangleSimple& t)
 {
   double cp = CrossProduct2D(t.Points[1] - t.Points[0],
                              t.Points[2] - t.Points[1]);
@@ -246,7 +321,7 @@ WindingOrder SRTLDDA::GetWindingOrder(const TriangleSimple& t)
 
 // =============================================================================
 
-TriangleType SRTLDDA::GetTriangleType(const TriangleSimple& t)
+TriangleType SRTLCHILI::GetTriangleType(const TriangleSimple& t)
 {
   const int& y1 = (int)t.Points[0].Y;
   const int& y2 = (int)t.Points[1].Y;

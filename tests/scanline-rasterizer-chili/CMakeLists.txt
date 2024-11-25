@@ -4,7 +4,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED On)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
 
-set (TARGET_NAME scanline-rasterizer-dda)
+set (TARGET_NAME scanline-rasterizer-chili)
 project (${TARGET_NAME})
 
 include_directories(
@@ -16,8 +16,8 @@ include_directories(
 add_executable(
   ${TARGET_NAME}
   main.cpp
-  srtl-dda.cpp
-  srtl-dda.h
+  srtl-chili.cpp
+  srtl-chili.h
   ../../types.cpp
   ../../sw3d.cpp
 )

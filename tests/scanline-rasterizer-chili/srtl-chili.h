@@ -1,5 +1,5 @@
-#ifndef SRTLDDA_H
-#define SRTLDDA_H
+#ifndef SRTLCHILI_H
+#define SRTLCHILI_H
 
 #include "sw3d.h"
 #include "types.h"
@@ -9,7 +9,7 @@ using namespace SW3D;
 //
 // "Scanline Rasterizer Top Left using DDA line drawing"
 //
-class SRTLDDA
+class SRTLCHILI
 {
   public:
     void Init(SDL_Renderer* rendererRef);
@@ -29,6 +29,8 @@ class SRTLDDA
     void DrawFB(const TriangleSimple& t);
     void DrawMR(const TriangleSimple& t);
     void DrawML(const TriangleSimple& t);
+    void DrawVL();
+    void DrawHL();
 
     TriangleSimple _copy;
 
@@ -38,4 +40,4 @@ class SRTLDDA
     bool _wireframe   = false;
 };
 
-#endif // SRTLDDA_H
+#endif // SRTLCHILI_H

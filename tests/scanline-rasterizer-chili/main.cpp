@@ -2,7 +2,7 @@
 
 #include "sw3d.h"
 #include "instant-font.h"
-#include "srtl-dda.h"
+#include "srtl-chili.h"
 
 using namespace SW3D;
 
@@ -24,7 +24,7 @@ std::vector<bool> ShowTriangle =
   true,
 };
 
-SRTLDDA Rasterizer;
+SRTLCHILI Rasterizer;
 
 using GroupData = std::pair<TriangleSimple, SDL_Color>;
 
@@ -381,9 +381,19 @@ std::vector<GroupData> Group8 =
   {
     {
       {
-        { 50,      50,      0 },
-        { 53.4862, 10.1522, 0 },
-        { 89.8487, 53.4862, 0 }
+        //
+        // This set produces gaps
+        //
+        //{ 50,      50,      0 },
+        //{ 53.4862, 10.1522, 0 },
+        //{ 89.8487, 53.4862, 0 }
+
+        //
+        // Though if clamped beforehand then it's fine.
+        //
+        { 50, 50, 0 },
+        { 53, 10, 0 },
+        { 89, 53, 0 }
       }
     },
     { 255, 0, 0, 255 }
@@ -391,9 +401,15 @@ std::vector<GroupData> Group8 =
   {
     {
       {
-        { 53.8462, 10.1522, 0 },
-        { 93.3340, 13.6384, 0 },
-        { 89.8487, 53.4862, 0 }
+        // See above
+        //
+        //{ 53.8462, 10.1522, 0 },
+        //{ 93.3340, 13.6384, 0 },
+        //{ 89.8487, 53.4862, 0 }
+        //
+        { 53, 10, 0 },
+        { 93, 13, 0 },
+        { 89, 53, 0 }
       }
     },
     { 0, 255, 0, 255 }

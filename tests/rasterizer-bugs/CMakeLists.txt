@@ -15,6 +15,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer/
   ${CMAKE_CURRENT_SOURCE_DIR}/../pit-rasterizer/
   ${CMAKE_CURRENT_SOURCE_DIR}/../pit-rasterizer-tlr/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer-chili/
 )
 
 add_executable(
@@ -28,6 +29,8 @@ add_executable(
   ../pit-rasterizer/pit-rasterizer.cpp
   ../pit-rasterizer-tlr/pit-rasterizer-tlr.h
   ../pit-rasterizer-tlr/pit-rasterizer-tlr.cpp
+  ../scanline-rasterizer-chili/srtl-chili.h
+  ../scanline-rasterizer-chili/srtl-chili.cpp
   ../../types.cpp
   ../../sw3d.cpp
   ../bresenham-generator/blg.cpp

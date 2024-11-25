@@ -27,6 +27,7 @@ enum class DemoMode
   VERTICAL,
   DUMB,
   DDA,
+  DDA_IMPROVED,
   LAST_ELEMENT
 };
 
@@ -44,7 +45,7 @@ class BH : public DrawWrapper
     //
     // DDA algorithm.
     //
-    void LineDDA(int sx, int sy, int ex, int ey)
+    void LineDDA(int sx, int sy, int ex, int ey, bool improved = false)
     {
       int x1 = sx;
       int y1 = sy;
@@ -74,10 +75,14 @@ class BH : public DrawWrapper
 
       for (int i = 0; i <= steps; i++)
       {
-        // NOTE: works better
-        //SDL_RenderDrawPoint(_renderer, (int)(x + 0.5), (int)(y + 0.5));
-
-        SDL_RenderDrawPoint(_renderer, (int)x, (int)y);
+        if (improved)
+        {
+          SDL_RenderDrawPoint(_renderer, (int)(x + 0.5), (int)(y + 0.5));
+        }
+        else
+        {
+          SDL_RenderDrawPoint(_renderer, (int)x, (int)y);
+        }
 
         x += xInc;
 
@@ -133,7 +138,7 @@ class BH : public DrawWrapper
       {
         if (steep)
         {
-          int x = (int)(i - b) / k;
+          int x = (int)((double)(i - b) / k);
           SDL_RenderDrawPoint(_renderer, x, i);
         }
         else
@@ -891,11 +896,11 @@ class BH : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
-    void DrawDDA()
+    void DrawDDA(bool improved)
     {
       SaveColor();
 
-      LineDDA(X1, Y1, X2, Y2);
+      LineDDA(X1, Y1, X2, Y2, improved);
 
       SDL_SetRenderDrawColor(_renderer, 0, 255, 255, 255);
       SDL_RenderDrawPoint(_renderer, X1, Y1);
@@ -925,7 +930,11 @@ class BH : public DrawWrapper
           break;
 
         case DemoMode::DDA:
-          DrawDDA();
+          DrawDDA(false);
+          break;
+
+        case DemoMode::DDA_IMPROVED:
+          DrawDDA(true);
           break;
       }
     }
@@ -1084,6 +1093,18 @@ class BH : public DrawWrapper
 
     // -------------------------------------------------------------------------
 
+    void PrintDDAImproved()
+    {
+      IF::Instance().Printf(0,
+                            _windowHeight - 20,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "DDA mode (pixel centered)");
+    }
+
+    // -------------------------------------------------------------------------
+
     void DrawToScreen() override
     {
       if (not ShowText)
@@ -1107,6 +1128,10 @@ class BH : public DrawWrapper
 
         case DemoMode::DDA:
           PrintDDA();
+          break;
+
+        case DemoMode::DDA_IMPROVED:
+          PrintDDAImproved();
           break;
       }
     }

@@ -5,6 +5,7 @@
 #include "srtl.h"
 #include "pit-rasterizer.h"
 #include "pit-rasterizer-tlr.h"
+#include "srtl-chili.h"
 
 using namespace SW3D;
 
@@ -13,8 +14,8 @@ const size_t QualityReductionFactor = 4;
 bool Wireframe = false;
 bool HideText  = true;
 
-const double RotationFactor = 0.01;
-const double RotationSpeed  = 50.0;
+const double RotationFactor = 0.03;
+const double RotationSpeed  = 49.0;
 
 double AngleX = 0.0;
 double AngleY = 0.0;
@@ -36,6 +37,37 @@ std::vector<SDL_Color> TriangleColors =
   { 64,  150,  26, 255 },
 };
 
+enum class RasterizerType
+{
+  SCANLINE_TOP_LEFT = 0,
+  SCANLINE_OVERDRAW,
+  PIT_OVERDRAW,
+  PIT_TOP_LEFT,
+  SCANLINE_CHILI
+};
+
+const std::unordered_map<RasterizerType, std::string> RasterizerNameByType =
+{
+  { RasterizerType::SCANLINE_TOP_LEFT, "Scanline (top-left rule)"     },
+  { RasterizerType::SCANLINE_OVERDRAW, "Scanline (overdraw)"          },
+  { RasterizerType::PIT_TOP_LEFT,      "P.I.T (top-left rule)"        },
+  { RasterizerType::PIT_OVERDRAW,      "P.I.T (overdraw)"             },
+  { RasterizerType::SCANLINE_CHILI,    "Scanline (ChiliTomatoNoodle)" },
+};
+
+const std::vector<RasterizerType> Rasterizers =
+{
+  RasterizerType::SCANLINE_TOP_LEFT,
+  RasterizerType::SCANLINE_OVERDRAW,
+  RasterizerType::PIT_TOP_LEFT,
+  RasterizerType::PIT_OVERDRAW,
+  RasterizerType::SCANLINE_CHILI,
+};
+
+uint8_t RasterizerIndex = 0;
+
+RasterizerType CurrentRasterizer = RasterizerType::SCANLINE_TOP_LEFT;
+
 // =============================================================================
 
 class TLR : public DrawWrapper
@@ -46,7 +78,11 @@ class TLR : public DrawWrapper
 
     void PostInit() override
     {
-      _rasterizer.Init(_renderer);
+      _rasterizerSRTL.Init(_renderer);
+      _rasterizerScanline.Init(_renderer);
+      _rasterizerPit.Init(_renderer);
+      _rasterizerPitTLR.Init(_renderer);
+      _rasterizerChili.Init(_renderer);
 
       _cube.Triangles =
       {
@@ -126,7 +162,29 @@ class TLR : public DrawWrapper
         auto& clr = TriangleColors[colorIndex];
 
         SDL_SetRenderDrawColor(_renderer, clr.r, clr.g, clr.b, clr.a);
-        _rasterizer.Rasterize(tp, Wireframe);
+
+        switch (CurrentRasterizer)
+        {
+          case RasterizerType::SCANLINE_TOP_LEFT:
+            _rasterizerSRTL.Rasterize(tp, Wireframe);
+            break;
+
+          case RasterizerType::SCANLINE_OVERDRAW:
+            _rasterizerScanline.Rasterize(tp, Wireframe);
+            break;
+
+          case RasterizerType::PIT_OVERDRAW:
+            _rasterizerPit.Rasterize(tp, Wireframe);
+            break;
+
+          case RasterizerType::PIT_TOP_LEFT:
+            _rasterizerPitTLR.Rasterize(tp, Wireframe);
+            break;
+
+          case RasterizerType::SCANLINE_CHILI:
+            _rasterizerChili.Rasterize(tp, Wireframe);
+            break;
+        }
 
         colorIndex++;
       }
@@ -138,6 +196,20 @@ class TLR : public DrawWrapper
 
     void DrawToScreen() override
     {
+      IF::Instance().Printf(0, 32,
+                            IF::TextParams::Set(0xFFFFFF,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "ROT: x = %.2f y = %.2f z = %.2f",
+                            AngleX, AngleY, AngleZ);
+
+      IF::Instance().Printf(0, 64,
+                            IF::TextParams::Set(0xFFFF00,
+                                                IF::TextAlignment::LEFT,
+                                                2.0),
+                            "%s",
+                            RasterizerNameByType.at(CurrentRasterizer).data());
+
       if (HideText)
       {
         return;
@@ -184,6 +256,12 @@ class TLR : public DrawWrapper
               Stop();
               break;
 
+            case SDLK_SPACE:
+              AngleX = 0.0;
+              AngleY = 0.0;
+              AngleZ = 0.0;
+              break;
+
             case SDLK_TAB:
               Wireframe = not Wireframe;
               break;
@@ -216,6 +294,25 @@ class TLR : public DrawWrapper
               HideText = not HideText;
               break;
 
+            case SDLK_LEFTBRACKET:
+              if (RasterizerIndex == 0)
+              {
+                RasterizerIndex = Rasterizers.size() - 1;
+              }
+              else
+              {
+                RasterizerIndex--;
+              }
+
+              CurrentRasterizer = Rasterizers[RasterizerIndex];
+              break;
+
+            case SDLK_RIGHTBRACKET:
+              RasterizerIndex++;
+              RasterizerIndex %= Rasterizers.size();
+              CurrentRasterizer = Rasterizers[RasterizerIndex];
+              break;
+
             default:
               break;
           }
@@ -231,11 +328,12 @@ class TLR : public DrawWrapper
     //
     // BUG: some pixels are not filled.
     //
-    //SRTL _rasterizer;
+    SRTL               _rasterizerSRTL;
 
-    //ScanlineRasterizer _rasterizer;
-    //PitRasterizer      _rasterizer;
-    PitRasterizerTLR   _rasterizer;
+    ScanlineRasterizer _rasterizerScanline;
+    PitRasterizer      _rasterizerPit;
+    PitRasterizerTLR   _rasterizerPitTLR;
+    SRTLCHILI          _rasterizerChili;
 };
 
 // =============================================================================

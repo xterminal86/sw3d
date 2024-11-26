@@ -120,7 +120,7 @@ void ScanlineRasterizer::DrawVL()
   int y1 = _copy.Points[0].Y;
   int y2 = _copy.Points[1].Y;
 
-  for (int scanline = y1; scanline <= y2; scanline++)
+  for (int scanline = y1; scanline < y2; scanline++)
   {
     SDL_RenderDrawPoint(_renderer, x, scanline);
   }
@@ -135,7 +135,7 @@ void ScanlineRasterizer::DrawHL()
   int x1 = _copy.Points[0].X;
   int x2 = _copy.Points[1].X;
 
-  for (int x = x1; x <= x2; x++)
+  for (int x = x1; x < x2; x++)
   {
     SDL_RenderDrawPoint(_renderer, x, scanline);
   }

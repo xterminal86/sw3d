@@ -382,7 +382,7 @@ std::vector<GroupData> Group8 =
     {
       {
         //
-        // This set produces gaps
+        // This set produces gaps.
         //
         //{ 50,      50,      0 },
         //{ 53.4862, 10.1522, 0 },
@@ -390,6 +390,9 @@ std::vector<GroupData> Group8 =
 
         //
         // Though if clamped beforehand then it's fine.
+        // So the problem is most likely because inside the rasterization
+        // function we add 0.5 to get to pixel center, so coordinates are
+        // expected to be already clamped.
         //
         { 50, 50, 0 },
         { 53, 10, 0 },
@@ -406,7 +409,6 @@ std::vector<GroupData> Group8 =
         //{ 53.8462, 10.1522, 0 },
         //{ 93.3340, 13.6384, 0 },
         //{ 89.8487, 53.4862, 0 }
-        //
 
         { 53, 10, 0 },
         { 93, 13, 0 },

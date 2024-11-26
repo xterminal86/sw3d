@@ -7,7 +7,7 @@
 
 using namespace SW3D;
 
-const size_t QualityReductionFactor = 6;
+const size_t QualityReductionFactor = 8;
 
 bool Wireframe = false;
 bool Overdraw  = false;
@@ -452,8 +452,6 @@ class TLR : public DrawWrapper
         {
           Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
         }
-
-        //RasterizerPit.Rasterize((*CurrentGroup)[i].first, Wireframe);
       }
 
       RestoreColor();

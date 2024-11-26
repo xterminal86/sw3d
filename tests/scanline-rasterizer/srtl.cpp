@@ -34,11 +34,6 @@ void SRTL::PerformRasterization(BLG& first,
 
   for (int currentScanline = y1; currentScanline < y2; currentScanline++)
   {
-    //if (currentScanline == 13)
-    //{
-    //  SDL_Log("Stop here");
-    //}
-
     //
     // Always get "first" point no matter the direction.
     //

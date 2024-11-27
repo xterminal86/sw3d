@@ -10,6 +10,8 @@ const size_t QualityReductionFactor = 16;
 double PosX = 20.0;
 double PosY = 20.0;
 
+double ToAdd = 0.01;
+
 // =============================================================================
 
 class CTF : public DrawWrapper
@@ -83,19 +85,19 @@ class CTF : public DrawWrapper
               break;
 
             case SDLK_a:
-              PosX -= 0.1;
+              PosX -= ToAdd;
               break;
 
             case SDLK_d:
-              PosX += 0.1;
+              PosX += ToAdd;
               break;
 
             case SDLK_w:
-              PosY -= 0.1;
+              PosY -= ToAdd;
               break;
 
             case SDLK_s:
-              PosY += 0.1;
+              PosY += ToAdd;
               break;
 
             default:

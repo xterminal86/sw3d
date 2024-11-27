@@ -2,17 +2,14 @@
 
 #include "sw3d.h"
 #include "instant-font.h"
-#include "srtl.h"
-#include "pit-rasterizer.h"
+#include "srd.h"
 
 using namespace SW3D;
 
-const size_t QualityReductionFactor = 8;
+const size_t QualityReductionFactor = 6;
 
 bool Wireframe = false;
-bool Overdraw  = false;
 bool HideText  = false;
-bool Pit       = false;
 
 std::vector<bool> ShowTriangle =
 {
@@ -27,9 +24,7 @@ std::vector<bool> ShowTriangle =
   true,
 };
 
-SRTL               Rasterizer;
-ScanlineRasterizer RasterizerOverdraw;
-PitRasterizer      RasterizerPit;
+SRD Rasterizer;
 
 using GroupData = std::pair<TriangleSimple, SDL_Color>;
 
@@ -386,9 +381,16 @@ std::vector<GroupData> Group8 =
   {
     {
       {
+        //
+        // This set produces gaps.
+        //
         { 50,      50,      0 },
         { 53.4862, 10.1522, 0 },
         { 89.8487, 53.4862, 0 }
+
+        //{ 50, 50, 0 },
+        //{ 53, 10, 0 },
+        //{ 89, 53, 0 }
       }
     },
     { 255, 0, 0, 255 }
@@ -399,6 +401,10 @@ std::vector<GroupData> Group8 =
         { 53.8462, 10.1522, 0 },
         { 93.3340, 13.6384, 0 },
         { 89.8487, 53.4862, 0 }
+
+        //{ 53, 10, 0 },
+        //{ 93, 13, 0 },
+        //{ 89, 53, 0 }
       }
     },
     { 0, 255, 0, 255 }
@@ -407,7 +413,7 @@ std::vector<GroupData> Group8 =
 
 // -----------------------------------------------------------------------------
 
-size_t GroupIndex = 7;
+size_t GroupIndex = 0;
 
 std::vector<std::vector<GroupData>> Groups =
 {
@@ -445,21 +451,7 @@ class TLR : public DrawWrapper
         SDL_Color& c = (*CurrentGroup)[i].second;
         SDL_SetRenderDrawColor(_renderer, c.r, c.g, c.b, c.a);
 
-        if (Pit)
-        {
-          RasterizerPit.Rasterize((*CurrentGroup)[i].first, Wireframe);
-        }
-        else
-        {
-          if (Overdraw)
-          {
-            RasterizerOverdraw.Rasterize((*CurrentGroup)[i].first, Wireframe);
-          }
-          else
-          {
-            Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
-          }
-        }
+        Rasterizer.Rasterize((*CurrentGroup)[i].first, Wireframe);
       }
 
       RestoreColor();
@@ -571,14 +563,6 @@ class TLR : public DrawWrapper
             }
             break;
 
-            case SDLK_o:
-              Overdraw = not Overdraw;
-              break;
-
-            case SDLK_p:
-              Pit = not Pit;
-              break;
-
             default:
               break;
           }
@@ -600,8 +584,6 @@ int main(int argc, char* argv[])
     CurrentGroup = &Groups[GroupIndex];
 
     Rasterizer.Init(c.GetRenderer());
-    RasterizerOverdraw.Init(c.GetRenderer());
-    RasterizerPit.Init(c.GetRenderer());
 
     c.Run(true);
   }

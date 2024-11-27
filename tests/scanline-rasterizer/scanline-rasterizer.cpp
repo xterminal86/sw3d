@@ -209,6 +209,7 @@ void ScanlineRasterizer::DrawMR(const TriangleSimple& t)
 void ScanlineRasterizer::DrawML(const TriangleSimple& t)
 {
   double a = (t.Points[1].Y - t.Points[0].Y) / (t.Points[2].Y - t.Points[0].Y);
+
   Vec3 x = t.Points[0] + (t.Points[2] - t.Points[0]) * a;
 
   TriangleSimple fb = { t.Points[0], t.Points[1], x };

@@ -40,12 +40,14 @@ void SRTLCHILI::DrawFT(const TriangleSimple& t)
   //
   // Add 0.5 to grab center of a pixel. Turns out this makes the "dumb"
   // algorithm produce more accurate results. Of course this will work only if
-  // your pixel fraction part goes from 0 to 1, which is the case in SDL2 if
+  // your pixel fraction part goes [0 ; 1), which is the case in SDL2 if
   // you're not using render functions with F postfix in their name. Otherwise
   // pixel center is located at exact integer coordinates, thus your pixel will
-  // occupy (x - 0.5, x + 0.5), (y - 0.5, y + 0.5) area of sorts.
-  // In original author's implementation he used std::ceil() and subtracted 0.5.
-  // It's obvious that it's the same thing.
+  // occupy [x - 0.5, x + 0.5), (y - 0.5, y + 0.5] area of sorts
+  // (see 'pixel-float-coords' project).
+  // In original author's implementation he used std::ceil() and subtracted 0.5,
+  // but it's obvious that it's the same thing. I just find it easier to think
+  // "ahead" in terms of pixel center than "backwards".
   //
   const int yStart = (int)std::floor(t.Points[0].Y + 0.5);
   const int yEnd   = (int)std::floor(t.Points[2].Y + 0.5);

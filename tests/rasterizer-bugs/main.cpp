@@ -5,6 +5,7 @@
 #include "srtl.h"
 #include "pit-rasterizer.h"
 #include "pit-rasterizer-tlr.h"
+#include "srd.h"
 #include "srtl-chili.h"
 
 using namespace SW3D;
@@ -41,6 +42,7 @@ enum class RasterizerType
 {
   SCANLINE_TOP_LEFT = 0,
   SCANLINE_OVERDRAW,
+  SCANLINE_DUMB_TOP_LEFT,
   PIT_OVERDRAW,
   PIT_TOP_LEFT,
   SCANLINE_CHILI
@@ -48,17 +50,19 @@ enum class RasterizerType
 
 const std::unordered_map<RasterizerType, std::string> RasterizerNameByType =
 {
-  { RasterizerType::SCANLINE_TOP_LEFT, "Scanline (top-left rule)"     },
-  { RasterizerType::SCANLINE_OVERDRAW, "Scanline (overdraw)"          },
-  { RasterizerType::PIT_TOP_LEFT,      "P.I.T (top-left rule)"        },
-  { RasterizerType::PIT_OVERDRAW,      "P.I.T (overdraw)"             },
-  { RasterizerType::SCANLINE_CHILI,    "Scanline (ChiliTomatoNoodle)" },
+  { RasterizerType::SCANLINE_TOP_LEFT,      "Scanline (top-left rule)"       },
+  { RasterizerType::SCANLINE_OVERDRAW,      "Scanline (overdraw)"            },
+  { RasterizerType::SCANLINE_DUMB_TOP_LEFT, "Scanline (dumb, top-left rule)" },
+  { RasterizerType::PIT_TOP_LEFT,           "P.I.T (top-left rule)"          },
+  { RasterizerType::PIT_OVERDRAW,           "P.I.T (overdraw)"               },
+  { RasterizerType::SCANLINE_CHILI,         "Scanline (ChiliTomatoNoodle)"   },
 };
 
 const std::vector<RasterizerType> Rasterizers =
 {
   RasterizerType::SCANLINE_TOP_LEFT,
   RasterizerType::SCANLINE_OVERDRAW,
+  RasterizerType::SCANLINE_DUMB_TOP_LEFT,
   RasterizerType::PIT_TOP_LEFT,
   RasterizerType::PIT_OVERDRAW,
   RasterizerType::SCANLINE_CHILI,
@@ -80,6 +84,7 @@ class TLR : public DrawWrapper
     {
       _rasterizerSRTL.Init(_renderer);
       _rasterizerScanline.Init(_renderer);
+      _rasterizerDumb.Init(_renderer);
       _rasterizerPit.Init(_renderer);
       _rasterizerPitTLR.Init(_renderer);
       _rasterizerChili.Init(_renderer);
@@ -183,6 +188,10 @@ class TLR : public DrawWrapper
 
           case RasterizerType::SCANLINE_CHILI:
             _rasterizerChili.Rasterize(tp, Wireframe);
+            break;
+
+          case RasterizerType::SCANLINE_DUMB_TOP_LEFT:
+            _rasterizerDumb.Rasterize(tp, Wireframe);
             break;
         }
 
@@ -330,6 +339,7 @@ class TLR : public DrawWrapper
     //
     SRTL               _rasterizerSRTL;
 
+    SRD                _rasterizerDumb;
     ScanlineRasterizer _rasterizerScanline;
     PitRasterizer      _rasterizerPit;
     PitRasterizerTLR   _rasterizerPitTLR;

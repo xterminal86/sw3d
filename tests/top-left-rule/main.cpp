@@ -4,6 +4,7 @@
 #include "instant-font.h"
 #include "srtl.h"
 #include "pit-rasterizer.h"
+#include "srd.h"
 
 using namespace SW3D;
 
@@ -27,7 +28,8 @@ std::vector<bool> ShowTriangle =
   true,
 };
 
-SRTL               Rasterizer;
+SRD                Rasterizer;
+//SRTL               Rasterizer;
 ScanlineRasterizer RasterizerOverdraw;
 PitRasterizer      RasterizerPit;
 

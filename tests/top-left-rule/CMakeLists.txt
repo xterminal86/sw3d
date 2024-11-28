@@ -13,6 +13,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../
   ${CMAKE_CURRENT_SOURCE_DIR}/../bresenham-generator/
   ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../scanline-rasterizer-dumb/
   ${CMAKE_CURRENT_SOURCE_DIR}/../pit-rasterizer/
 )
 
@@ -23,6 +24,8 @@ add_executable(
   ../scanline-rasterizer/scanline-rasterizer.h
   ../scanline-rasterizer/srtl.cpp
   ../scanline-rasterizer/srtl.h
+  ../scanline-rasterizer-dumb/srd.cpp
+  ../scanline-rasterizer-dumb/srd.h
   ../pit-rasterizer/pit-rasterizer.h
   ../pit-rasterizer/pit-rasterizer.cpp
   ../../types.cpp

@@ -8,13 +8,13 @@ As it usually happens, when you decide to research some topic of interest you'll
 
 This is no exception.
 
-I mean, everybody knows that 3D graphics basically means drawing lots of triangles to the screen. What could possibly be easier? So you go to YouTube and try to find some tutorial videos there (or even text stuff, but who wants to read text?). But what tutorials do you need? How to write your own raytracer? No, that's probably too complicated for a first tutorial project. How to render simple 3D cube? OK, sounds good, but very soon you'll start asking other questions: how does projection work? Why perspective projection matrix is the way it is? And what about shading and textures?
+I mean, everybody knows that 3D graphics basically means drawing lots of triangles to the screen. What could possibly be easier? So you go to YouTube and try to find some tutorial videos there (or even text stuff, but who wants to read text?). But what tutorials do you need? How to write your own raytracer? No, that's probably too complicated for a first tutorial project. How to render simple 3D cube? OK, sounds good, but very soon you'll start asking other questions: how does projection work? Why perspective projection matrix is the way it is? And what about shading and textures? How do you do that?
 
 Lots of questions, but you have to start from somewhere.
 
 Also, it's obvious that you can't show and explain everything in one YouTube video, for example, so authors end up concentrating on one subject while completely leaving out something else, which could be exactly the thing you're trying to understand right now. And so you quickly find yourself all over the Internet, searching and aggregating bits of information from different sources, trying to make sense of all that at the same time.
 
-In this series of articles I'll try to describe as much "low-level" stuff as possible by going slowly from simple to complicated and with as much detail as possible. We'll be using SDL2 to draw graphics because it's the most "low level" as you can get in a sense that we only can draw pixels to the screen with specified color and that's it. This will also showcase how all 3D stuff gets build from ground up. I'll also be using C++ because all of the learning materials used it, but I guess you can port everything to PyGame or something without much effort. I'd say whatever graphics library / framework you have that allows you to paint pixels on the screen will do.
+In this series of articles I'll try to describe as much "low-level" stuff as possible by going slowly from simple to complicated and with as much detail as possible. We'll be using SDL2 to draw graphics because it's the most "low level" as you can get in a sense that we only can draw pixels to the screen with specified color and that's it. This will also showcase how all 3D stuff gets build from ground up and what unobvious problems mght arise in the process. I'll also be using C++ because all of the learning materials used it, but I guess you can port everything to PyGame or something without much effort. I'd say whatever graphics library / framework you have that allows you to paint pixels on the screen will do.
 
 Codebase is extensively commented, so you can check it out as well.
 
@@ -35,10 +35,10 @@ And before I forget, here's the list of sources I used in my research:
   This is where it all started. Like I mentioned earlier, information is not very detailed in his series about 3D graphics (I believe it was unfinished too), so you'll have to research other topics, which aren't covered, by yourself. But it's a good start.
 
 - [3D Programming Fundamentals \[Introduction\] Tutorial 0 - YouTube](https://www.youtube.com/watch?v=uehGqieEbus&list=PLqCJpWy5Fohe8ucwhksiv9hTF5sfid8lA)<br>
-  This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, videos are relatively short (for those of you with ADHD), but some things might still be left out. I'd advise watching this some time ***after*** you research things, though I'll probably be relying mostly on this playlist in my articles.
+  This stuff on the other hand is quite the opposite. The series is extensive, covers pretty much everything, videos are relatively short (for those of you with ADHD), but some things might still be left out. I'd advise watching this some time ***after*** you research things on your own, though I'll probably be relying mostly on this playlist in my articles.
 
 - [Triangle Rasterization - YouTube](https://www.youtube.com/watch?v=k5wtuKWmV48&pp=ygUWdHJpYW5nbGUgcmFzdGVyaXphdGlvbg%3D%3D)<br>
-  I used rasterization method from this video at iteration 0 of the renderer, if you will, because it's simple. But you'll quickly realize that it might not be the best solution (or even acceptable one). Still, the author covers several important topics as well, so you should definitely watch it.
+  I used rasterization method from this video at iteration 0 of the renderer, if you will, because it's simple. Author also covers several important topics as well, so you should definitely watch it.
 
 - [Pinhole and Perspective Projection | Image Formation - YouTube](https://www.youtube.com/watch?v=_EhY31MSbNM)<br>
   Not related to 3D rendering per se, but still interesting (and maybe useful) material to watch.
@@ -61,6 +61,8 @@ Well, I guess that's about it. I might update this list in the future if needed,
 - [Part 1: Line](p1.md)
 
 - [Part 2: Triangle](p2.md)
+
+- [Part 3: Scanline is a lie](p3.md)
 
 <br>
 

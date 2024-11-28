@@ -676,6 +676,20 @@ void CrossProductTest()
 {
   HEADER();
 
+  Vec3 v1 = { 2, 2, 0 };
+  Vec3 v2 = { 3, 1, 0 };
+  Vec3 v3 = { 1, 1, 0 };
+
+  Vec3 vv1 = v2 - v1;
+  Vec3 vv2 = v3 - v2;
+
+  SDL_Log("%s", ToString(vv1).data());
+  SDL_Log("%s", ToString(vv2).data());
+
+  double res = CrossProduct2D(vv1, vv2);
+
+  SDL_Log("**** %.4f", res);
+
   ScanlineRasterizer r;
 
   struct Indices

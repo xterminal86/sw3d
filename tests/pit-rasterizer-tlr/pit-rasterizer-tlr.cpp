@@ -254,7 +254,7 @@ bool PitRasterizerTLR::IsTopLeft(const SDL_Point& start, const SDL_Point& end)
   edge.Y = end.y - start.y;
 
   //
-  // top edge is the one which has the same Y (hence egde.Y == 0) and
+  // top edge is the one which has the same Y (hence edge.Y == 0) and
   // (edge.X > 0) to distinguish it from flat bottom. If we have consistent
   // winding order we will always have (edge.X > 0) for flat top and
   // (edge.X < 0) for flat bottom for CW winding order, and vice verca for CCW.

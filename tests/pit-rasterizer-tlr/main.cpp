@@ -33,7 +33,7 @@ FillConventionNameByType =
   { PitRasterizerTLR::FillConvention::BOTTOM_LEFT,  "BOTTOM-LEFT"  },
 };
 
-uint8_t FillConventionIndex = 0;
+uint8_t FillConventionIndex = 1;
 
 std::vector<bool> ShowTriangle =
 {

@@ -21,6 +21,9 @@ void SRTL::PerformRasterization(BLG& first,
   int y1 = t.Points[0].Y;
   int y2 = t.Points[0].Y;
 
+  PointCaptureType ctLine1 = PointCaptureType::UNDEFINED;
+  PointCaptureType ctLine2 = PointCaptureType::UNDEFINED;
+
   switch (tt)
   {
     case TriangleType::FLAT_BOTTOM:

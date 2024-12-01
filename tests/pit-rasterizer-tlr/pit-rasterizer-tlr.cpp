@@ -57,148 +57,150 @@ void PitRasterizerTLR::Rasterize(const TriangleSimple& t, bool wireframe)
   int xMax = std::max( std::max(p1.x, p2.x), p3.x);
   int yMax = std::max( std::max(p1.y, p2.y), p3.y);
 
-  if (wireframe)
+  //
+  // In order to adhere to the top-left rule by using PIT rasterizer,
+  // this time we're actually going to rely on a sign of CrossProduct2D().
+  // In previous iteration of this rasterizer we didn't care about overdraw,
+  // so we didn't care about the sign of a result from CrossProduct2D().
+  // As long as it's the same for all 3 conditions, point is considered to lie
+  // inside the triangle. This also meant that we didn't care about vertex
+  // order either because we're going to iterate pixelwise across bounding box
+  // anyway - all that was needed is to calculate box top left corder and
+  // bottom right, which can be easily done using simple min-max testing.
+  //
+  // Let's recall this top-left rule again.
+  // A pixel is considered to belong to the triangle if it's either completely
+  // isinde the triangle or - in case it happens to be on one of the
+  // triangle's edges - this edge satisfies top-left rule, which is:
+  //
+  // 1. Edge is a flat-top edge.
+  // 2. Edge is a "left" edge, that is difference between its end and start
+  //    points is negative (provided we chose CW winding order), that is it
+  //    "goes up".
+  //
+  // Some examples follow:
+  //
+  //
+  // ---------- <--- top edge
+  // \        /
+  //  \      /
+  // ^ \    /
+  // |  \  /
+  // |   \/
+  // |
+  // left edge
+  //
+  //
+  //
+  //
+  //            /|
+  //   +-----> / |
+  //   |      /  |
+  //   |     /   |
+  //   |    \    |
+  //   |     \   |
+  //   +----> \  |
+  //   |       \ |
+  //   |        \|
+  //   |
+  //   left edges
+  //
+  //
+  // If winding order would've been different, than left edge were the one
+  // that "goes down".
+  //
+  // So, obviously, what we need to do is draw pixels that happen to lay
+  // on top or left edges. With our CW winding order chosen it's obvious that
+  // pixel will belong to the triangle if CrossProduct2D() >= 0.
+  // So what we're doing here is check whether current 3 edges of a triangle
+  // happen to top or left and if some of them are, we don't do anything,
+  // hence 0. Otherwise we assign -1 which will be later added to the result
+  // of CrossProduct2D() thus artificially forcing condition to fail and pixel
+  // not to be drawn. We can do that because we're working in integer domain
+  // and minimum possible distance between two pixels is 1, so by adding -1
+  // we're sort of "chipping off" 1 pixel from right and bottom edges of a
+  // triangle.
+  //
+  // It seems that you can choose any type of convention as long as it
+  // produces consistent results, but I guess there are reasons why people
+  // chose top-left rule that I don't know about. I can only guess that it
+  // might be connected with the fact that most people read left to right top
+  // to bottom, so if you chip rightmost and downmost pixel edges, it will be
+  // least noticeable.
+  //
+
+  int bias1 = 0;
+  int bias2 = 0;
+  int bias3 = 0;
+
+  switch (_fillConvention)
   {
-    bool isLine = (p1.y == p2.y and p2.y == p3.y)
-               or (p1.x == p2.x and p2.x == p3.x);
-    if (isLine)
+    case FillConvention::TOP_LEFT:
     {
-      SDL_RenderDrawLine(_renderer, xMin, yMin, xMax, yMax);
+      bias1 = IsTopLeft(p1, p2) ? 0 : -1;
+      bias2 = IsTopLeft(p2, p3) ? 0 : -1;
+      bias3 = IsTopLeft(p3, p1) ? 0 : -1;
     }
-    else
+    break;
+
+    case FillConvention::BOTTOM_RIGHT:
     {
-      SDL_RenderDrawLine(_renderer, p1.x, p1.y, p2.x, p2.y);
-      SDL_RenderDrawLine(_renderer, p1.x, p1.y, p3.x, p3.y);
-      SDL_RenderDrawLine(_renderer, p2.x, p2.y, p3.x, p3.y);
+      bias1 = IsBottomRight(p1, p2) ? 0 : -1;
+      bias2 = IsBottomRight(p2, p3) ? 0 : -1;
+      bias3 = IsBottomRight(p3, p1) ? 0 : -1;
     }
+    break;
+
+    case FillConvention::TOP_RIGHT:
+    {
+      bias1 = IsTopRight(p1, p2) ? 0 : -1;
+      bias2 = IsTopRight(p2, p3) ? 0 : -1;
+      bias3 = IsTopRight(p3, p1) ? 0 : -1;
+    }
+    break;
+
+    case FillConvention::BOTTOM_LEFT:
+    {
+      bias1 = IsBottomLeft(p1, p2) ? 0 : -1;
+      bias2 = IsBottomLeft(p2, p3) ? 0 : -1;
+      bias3 = IsBottomLeft(p3, p1) ? 0 : -1;
+    }
+    break;
+
+    default:
+      break;
   }
-  else
+
+  SDL_Point p;
+
+  for (int x = xMin; x <= xMax; x++)
   {
-    //
-    // In order to adhere to the top-left rule by using PIT rasterizer,
-    // this time we're actually going to rely on a sign of CrossProduct2D().
-    // In previous iteration of this rasterizer we didn't care about overdraw,
-    // so we didn't care about the sign of a result from CrossProduct2D().
-    // As long as it's the same for all 3 conditions, point is considered to lie
-    // inside the triangle. This also meant that we didn't care about vertex
-    // order either because we're going to iterate pixelwise across bounding box
-    // anyway - all that was needed is to calculate box top left corder and
-    // bottom right, which can be easily done using simple min-max testing.
-    //
-    // Let's recall this top-left rule again.
-    // A pixel is considered to belong to the triangle if it's either completely
-    // isinde the triangle or - in case it happens to be on one of the
-    // triangle's edges - this edge satisfies top-left rule, which is:
-    //
-    // 1. Edge is a flat-top edge.
-    // 2. Edge is a "left" edge, that is difference between its end and start
-    //    points is negative (provided we chose CW winding order), that is it
-    //    "goes up".
-    //
-    // Some examples follow:
-    //
-    //
-    // ---------- <--- top edge
-    // \        /
-    //  \      /
-    // ^ \    /
-    // |  \  /
-    // |   \/
-    // |
-    // left edge
-    //
-    //
-    //
-    //
-    //            /|
-    //   +-----> / |
-    //   |      /  |
-    //   |     /   |
-    //   |    \    |
-    //   |     \   |
-    //   +----> \  |
-    //   |       \ |
-    //   |        \|
-    //   |
-    //   left edges
-    //
-    //
-    // If winding order would've been different, than left edge were the one
-    // that "goes down".
-    //
-    // So, obviously, what we need to do is draw pixels that happen to lay
-    // on top or left edges. With our CW winding order chosen it's obvious that
-    // pixel will belong to the triangle if CrossProduct2D() >= 0.
-    // So what we're doing here is check whether current 3 edges of a triangle
-    // happen to top or left and if some of them are, we don't do anything,
-    // hence 0. Otherwise we assign -1 which will be later added to the result
-    // of CrossProduct2D() thus artificially forcing condition to fail and pixel
-    // not to be drawn. We can do that because we're working in integer domain
-    // and minimum possible distance between two pixels is 1, so by adding -1
-    // we're sort of "chipping off" 1 pixel from right and bottom edges of a
-    // triangle.
-    //
-    // It seems that you can choose any type of convention as long as it
-    // produces consistent results, but I guess there are reasons why people
-    // chose top-left rule that I don't know about. I can only guess that it
-    // might be connected with the fact that most people read left to right top
-    // to bottom, so if you chip rightmost and downmost pixel edges, it will be
-    // least noticeable.
-    //
+    p.x = x;
 
-    int bias1 = 0;
-    int bias2 = 0;
-    int bias3 = 0;
-
-    switch (_fillConvention)
+    for (int y = yMin; y <= yMax; y++)
     {
-      case FillConvention::TOP_LEFT:
+      p.y = y;
+
+      int cp1 = (p2.x - p1.x) * (p.y - p1.y) - (p2.y - p1.y) * (p.x - p1.x);
+      int cp2 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x);
+      int cp3 = (p1.x - p3.x) * (p.y - p3.y) - (p1.y - p3.y) * (p.x - p3.x);
+
+      int w0 = cp1 + bias1;
+      int w1 = cp2 + bias2;
+      int w2 = cp3 + bias3;
+
+      bool inside = (w0 >= 0 and w1 >= 0 and w2 >= 0);
+      if (wireframe)
       {
-        bias1 = IsTopLeft(p1, p2) ? 0 : -1;
-        bias2 = IsTopLeft(p2, p3) ? 0 : -1;
-        bias3 = IsTopLeft(p3, p1) ? 0 : -1;
+        if ((cp1 == 0 and bias1 == 0)
+         or (cp2 == 0 and bias2 == 0)
+         or (cp3 == 0 and bias3 == 0))
+        {
+          SDL_RenderDrawPoint(_renderer, p.x, p.y);
+        }
       }
-      break;
-
-      case FillConvention::BOTTOM_RIGHT:
+      else
       {
-        bias1 = IsBottomRight(p1, p2) ? 0 : -1;
-        bias2 = IsBottomRight(p2, p3) ? 0 : -1;
-        bias3 = IsBottomRight(p3, p1) ? 0 : -1;
-      }
-      break;
-
-      case FillConvention::TOP_RIGHT:
-      {
-        bias1 = IsTopRight(p1, p2) ? 0 : -1;
-        bias2 = IsTopRight(p2, p3) ? 0 : -1;
-        bias3 = IsTopRight(p3, p1) ? 0 : -1;
-      }
-      break;
-
-      case FillConvention::BOTTOM_LEFT:
-      {
-        bias1 = IsBottomLeft(p1, p2) ? 0 : -1;
-        bias2 = IsBottomLeft(p2, p3) ? 0 : -1;
-        bias3 = IsBottomLeft(p3, p1) ? 0 : -1;
-      }
-      break;
-
-      default:
-        break;
-    }
-
-    for (int x = xMin; x <= xMax; x++)
-    {
-      for (int y = yMin; y <= yMax; y++)
-      {
-        SDL_Point p = { x, y };
-
-        int w0 = (p2.x - p1.x) * (p.y - p1.y) - (p2.y - p1.y) * (p.x - p1.x) + bias1;
-        int w1 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x) + bias2;
-        int w2 = (p1.x - p3.x) * (p.y - p3.y) - (p1.y - p3.y) * (p.x - p3.x) + bias3;
-
-        bool inside = (w0 >= 0 and w1 >= 0 and w2 >= 0);
         if (inside)
         {
           SDL_RenderDrawPoint(_renderer, p.x, p.y);

@@ -50,12 +50,12 @@ enum class RasterizerType
 
 const std::unordered_map<RasterizerType, std::string> RasterizerNameByType =
 {
-  { RasterizerType::SCANLINE_TOP_LEFT,      "Scanline (top-left rule)"       },
-  { RasterizerType::SCANLINE_OVERDRAW,      "Scanline (overdraw)"            },
-  { RasterizerType::SCANLINE_DUMB_TOP_LEFT, "Scanline (dumb, top-left rule)" },
-  { RasterizerType::PIT_TOP_LEFT,           "P.I.T (top-left rule)"          },
-  { RasterizerType::PIT_OVERDRAW,           "P.I.T (overdraw)"               },
-  { RasterizerType::SCANLINE_CHILI,         "Scanline (ChiliTomatoNoodle)"   },
+  { RasterizerType::SCANLINE_TOP_LEFT,      "Scanline (buggy, top-left rule)"       },
+  { RasterizerType::SCANLINE_OVERDRAW,      "Scanline (buggy, overdraw)"            },
+  { RasterizerType::SCANLINE_DUMB_TOP_LEFT, "Scanline (fixed, dumb, top-left rule)" },
+  { RasterizerType::PIT_TOP_LEFT,           "P.I.T (top-left rule)"                 },
+  { RasterizerType::PIT_OVERDRAW,           "P.I.T (overdraw)"                      },
+  { RasterizerType::SCANLINE_CHILI,         "Scanline (ChiliTomatoNoodle)"          },
 };
 
 const std::vector<RasterizerType> Rasterizers =

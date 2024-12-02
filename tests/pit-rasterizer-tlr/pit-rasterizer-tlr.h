@@ -27,6 +27,8 @@ class PitRasterizerTLR
   private:
     void SortVertices();
     void CheckAndFixWinding();
+    void RasterizeFilled();
+    void RasterizeWireframe();
 
     bool IsTopLeft(const SDL_Point& start, const SDL_Point& end);
     bool IsBottomRight(const SDL_Point& start, const SDL_Point& end);

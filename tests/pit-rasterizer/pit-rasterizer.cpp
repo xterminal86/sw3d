@@ -76,9 +76,9 @@ void PitRasterizer::Rasterize(const TriangleSimple& t, bool wireframe)
   }
   else
   {
-    for (int x = xMin; x <= xMax; x++)
+    for (int y = yMin; y <= yMax; y++)
     {
-      for (int y = yMin; y <= yMax; y++)
+      for (int x = xMin; x <= xMax; x++)
       {
         SDL_Point p = { x, y };
 

@@ -482,8 +482,11 @@ class CTF : public DrawWrapper
                             IF::TextParams::Set(0xFFFFFF,
                                                 IF::TextAlignment::LEFT,
                                                 2.0),
-                            "%s",
-                            FillConventionNameByType.at(c).data());
+                            "%s%s",
+                            FillConventionNameByType.at(c).data(),
+                            Rasterizer.UseOptimizedVariant
+                            ? " (optimized)"
+                            : "");
     }
 
     // -------------------------------------------------------------------------
@@ -546,6 +549,10 @@ class CTF : public DrawWrapper
 
             case SDLK_9:
               ShowTriangle[8] = not ShowTriangle[8];
+              break;
+
+            case SDLK_o:
+              Rasterizer.UseOptimizedVariant = not Rasterizer.UseOptimizedVariant;
               break;
 
             case SDLK_SPACE:

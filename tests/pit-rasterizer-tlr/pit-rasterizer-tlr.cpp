@@ -41,7 +41,14 @@ void PitRasterizerTLR::Rasterize(const TriangleSimple& t, bool wireframe)
   }
   else
   {
-    RasterizeFilled();
+    if (UseOptimizedVariant)
+    {
+      RasterizeOptimized();
+    }
+    else
+    {
+      RasterizeFilled();
+    }
   }
 }
 
@@ -126,14 +133,22 @@ void PitRasterizerTLR::RasterizeFilled()
   // So, obviously, what we need to do is draw pixels that happen to lay
   // on top or left edges. With our CW winding order chosen it's obvious that
   // pixel will belong to the triangle if CrossProduct2D() >= 0.
+  // Also remember that one of the properties of cross product is that magnitude
+  // of the resulting vector is equal to the area of parallelogram formed by two
+  // multiplied vectors. So if those vectors are collinear, area will be 0.
   // So what we're doing here is check whether current 3 edges of a triangle
   // happen to top or left and if some of them are, we don't do anything,
-  // hence 0. Otherwise we assign -1 which will be later added to the result
-  // of CrossProduct2D() thus artificially forcing condition to fail and pixel
-  // not to be drawn. We can do that because we're working in integer domain
-  // and minimum possible distance between two pixels is 1, so by adding -1
-  // we're sort of "chipping off" 1 pixel from right and bottom edges of a
-  // triangle.
+  // hence biases are 0. Otherwise we assign -1 which will be later added to the
+  // result of CrossProduct2D() thus artificially forcing the 'inside' condition
+  // check to fail and pixel not to be drawn. We can do that because we're
+  // working in integer domain and minimum possible distance between two pixels
+  // is 1, so by adding -1 we're sort of "chipping off" 1 pixel from right and
+  // bottom edges of a triangle.
+  //
+  // TLDR: if point happens to fall inside triangle, result of the cross product
+  // will be positive, so adding -1 to it will either make it remain positive or
+  // become 0. But if cross product is already 0, then the point happens to fall
+  // on the edge exactly and we need to check what kind of edge it is.
   //
   // It seems that you can choose any type of convention as long as it
   // produces consistent results, but I guess there are reasons why people
@@ -294,6 +309,119 @@ void PitRasterizerTLR::RasterizeFilled()
         SDL_RenderDrawPoint(_renderer, p.x, p.y);
       }
     }
+  }
+}
+
+// =============================================================================
+
+void PitRasterizerTLR::RasterizeOptimized()
+{
+  //
+  // Doesn't seem to have any impact in terms of FPS count.
+  //
+  static SDL_Point p1, p2, p3;
+
+  p1 = { (int)_tmp.Points[0].X, (int)_tmp.Points[0].Y };
+  p2 = { (int)_tmp.Points[1].X, (int)_tmp.Points[1].Y };
+  p3 = { (int)_tmp.Points[2].X, (int)_tmp.Points[2].Y };
+
+  int xMin = std::min( std::min(p1.x, p2.x), p3.x);
+  int yMin = std::min( std::min(p1.y, p2.y), p3.y);
+  int xMax = std::max( std::max(p1.x, p2.x), p3.x);
+  int yMax = std::max( std::max(p1.y, p2.y), p3.y);
+
+  int bias1 = 0;
+  int bias2 = 0;
+  int bias3 = 0;
+
+  switch (_fillConvention)
+  {
+    case FillConvention::TOP_LEFT:
+    {
+      bias1 = IsTopLeft(p1, p2) ? 0 : -1;
+      bias2 = IsTopLeft(p2, p3) ? 0 : -1;
+      bias3 = IsTopLeft(p3, p1) ? 0 : -1;
+    }
+    break;
+
+    case FillConvention::BOTTOM_RIGHT:
+    {
+      bias1 = IsBottomRight(p1, p2) ? 0 : -1;
+      bias2 = IsBottomRight(p2, p3) ? 0 : -1;
+      bias3 = IsBottomRight(p3, p1) ? 0 : -1;
+    }
+    break;
+
+    case FillConvention::TOP_RIGHT:
+    {
+      bias1 = IsTopRight(p1, p2) ? 0 : -1;
+      bias2 = IsTopRight(p2, p3) ? 0 : -1;
+      bias3 = IsTopRight(p3, p1) ? 0 : -1;
+    }
+    break;
+
+    case FillConvention::BOTTOM_LEFT:
+    {
+      bias1 = IsBottomLeft(p1, p2) ? 0 : -1;
+      bias2 = IsBottomLeft(p2, p3) ? 0 : -1;
+      bias3 = IsBottomLeft(p3, p1) ? 0 : -1;
+    }
+    break;
+
+    default:
+      break;
+  }
+
+  double area = (p2.x - p1.x) * (p3.y - p2.y) - (p2.y - p1.y) * (p3.x - p2.x);
+
+  //
+  // Exchanging multiplications and additions for every iteration with just
+  // additions.
+  //
+
+  int delta_w0_col = (p1.y - p2.y);
+  int delta_w1_col = (p2.y - p3.y);
+  int delta_w2_col = (p3.y - p1.y);
+
+  int delta_w0_row = (p2.x - p1.x);
+  int delta_w1_row = (p3.x - p2.x);
+  int delta_w2_row = (p1.x - p3.x);
+
+  SDL_Point p;
+
+  p.x = xMin;
+  p.y = yMin;
+
+  int cp1 = (p2.x - p1.x) * (p.y - p1.y) - (p2.y - p1.y) * (p.x - p1.x) + bias1;
+  int cp2 = (p3.x - p2.x) * (p.y - p2.y) - (p3.y - p2.y) * (p.x - p2.x) + bias2;
+  int cp3 = (p1.x - p3.x) * (p.y - p3.y) - (p1.y - p3.y) * (p.x - p3.x) + bias3;
+
+  for (int y = yMin; y <= yMax; y++)
+  {
+    int w0 = cp1;
+    int w1 = cp2;
+    int w2 = cp3;
+
+    for (int x = xMin; x <= xMax; x++)
+    {
+      bool inside = (w0 >= 0 and w1 >= 0 and w2 >= 0);
+      if (inside)
+      {
+        double lambda1 = (double)cp1 / area;
+        double lambda2 = (double)cp2 / area;
+        double lambda3 = 1.0 - lambda1 - lambda2;
+
+        SDL_RenderDrawPoint(_renderer, x, y);
+      }
+
+      w0 += delta_w0_col;
+      w1 += delta_w1_col;
+      w2 += delta_w2_col;
+    }
+
+    cp1 += delta_w0_row;
+    cp2 += delta_w1_row;
+    cp3 += delta_w2_row;
   }
 }
 

@@ -24,11 +24,14 @@ class PitRasterizerTLR
     void Rasterize(const TriangleSimple& t, bool wireframe = false);
     void SetFillConvention(FillConvention c);
 
+    bool UseOptimizedVariant = false;
+
   private:
     void SortVertices();
     void CheckAndFixWinding();
     void RasterizeFilled();
     void RasterizeWireframe();
+    void RasterizeOptimized();
 
     bool IsTopLeft(const SDL_Point& start, const SDL_Point& end);
     bool IsBottomRight(const SDL_Point& start, const SDL_Point& end);

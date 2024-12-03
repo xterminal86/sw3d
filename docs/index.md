@@ -68,6 +68,8 @@ So, if you'd like to join me on this adventure, you're welcome!
 
 - [Part 3: Scanline is a lie](p3.md)
 
+- [Part 4: Cube](p4.md)
+
 <br>
 
 [ Next up: Preparations ](p0.md)

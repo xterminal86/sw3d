@@ -1,6 +1,6 @@
 # sw3d
 
-Check out:
+Check out github pages:
 
 <br>
 
